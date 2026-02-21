@@ -1,0 +1,77 @@
+@model Escale.Web.Models.LoginViewModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Login";
+}
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="text-center mb-4">
+            <div class="brand-logo">
+                <i class="fas fa-gas-pump"></i>
+            </div>
+            <h2 class="fw-bold mb-2" style="color: var(--primary-color);">Escale Gas Station</h2>
+            <p class="text-muted mb-0">Management Portal</p>
+            <div class="mt-2">
+                <span class="badge" style="background: var(--primary-color); color: white;">Secure Access</span>
+            </div>
+        </div>
+
+        <form asp-controller="Account" asp-action="Login" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+            
+            <div class="mb-4">
+                <label asp-for="Email" class="form-label fw-bold">Email Address</label>
+                <div class="input-group input-group-lg">
+                    <span class="input-group-text" style="background: rgba(33, 158, 188, 0.1); border-color: var(--border-color);">
+                        <i class="fas fa-envelope" style="color: var(--primary-color);"></i>
+                    </span>
+                    <input asp-for="Email" class="form-control" placeholder="Enter your email" />
+                </div>
+                <span asp-validation-for="Email" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="Password" class="form-label fw-bold">Password</label>
+                <div class="input-group input-group-lg">
+                    <span class="input-group-text" style="background: rgba(33, 158, 188, 0.1); border-color: var(--border-color);">
+                        <i class="fas fa-lock" style="color: var(--primary-color);"></i>
+                    </span>
+                    <input asp-for="Password" class="form-control" placeholder="Enter your password" />
+                </div>
+                <span asp-validation-for="Password" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-4 d-flex justify-content-between align-items-center">
+                <div class="form-check">
+                    <input asp-for="RememberMe" class="form-check-input" />
+                    <label asp-for="RememberMe" class="form-check-label">Remember me</label>
+                </div>
+                <a href="#" class="text-decoration-none" style="color: var(--primary-color); font-weight: 600;">Forgot Password?</a>
+            </div>
+
+            <div class="d-grid mb-3">
+                <button type="submit" class="btn btn-primary btn-lg py-3">
+                    <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                </button>
+            </div>
+
+            <div class="text-center">
+                <small class="text-muted">
+                    <i class="fas fa-shield-alt me-1"></i>
+                    Secure login powered by Escale
+                </small>
+            </div>
+        </form>
+    </div>
+
+    <div class="text-center mt-4">
+        <small class="text-white">
+            <i class="fas fa-copyright me-1"></i>2024 Escale Gas Management System. All rights reserved.
+        </small>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

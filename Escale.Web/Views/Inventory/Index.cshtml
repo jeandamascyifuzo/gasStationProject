@@ -1,0 +1,308 @@
+@model Escale.Web.Models.InventoryViewModel
+@{
+    ViewData["Title"] = "Inventory";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 page-header">
+    <div>
+        <h1 class="h2"><i class="fas fa-boxes me-2"></i>Inventory Management</h1>
+        <p class="text-muted mb-0">Monitor fuel stock levels and manage refills across all stations.</p>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#refillModal">
+            <i class="fas fa-plus me-2"></i>Record Refill
+        </button>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white shadow stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-xs mb-1">TOTAL ITEMS</div>
+                        <div class="h4 mb-0 fw-bold">@Model.Stats.TotalItems</div>
+                    </div>
+                    <div class="icon-wrapper">
+                        <i class="fas fa-boxes fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark shadow stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-xs mb-1">LOW STOCK</div>
+                        <div class="h4 mb-0 fw-bold">@Model.Stats.LowStockItems</div>
+                    </div>
+                    <div class="icon-wrapper">
+                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white shadow stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-xs mb-1">CRITICAL</div>
+                        <div class="h4 mb-0 fw-bold">@Model.Stats.CriticalItems</div>
+                    </div>
+                    <div class="icon-wrapper">
+                        <i class="fas fa-exclamation-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white shadow stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-xs mb-1">STOCK LEVEL</div>
+                        <div class="h4 mb-0 fw-bold">
+                            @((Model.Stats.TotalCurrentStock / Model.Stats.TotalCapacity * 100).ToString("F1"))%
+                        </div>
+                    </div>
+                    <div class="icon-wrapper">
+                        <i class="fas fa-chart-pie fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Current Stock Levels -->
+<div class="card shadow mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-warehouse me-2"></i>Current Stock Levels</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table id="inventoryTable" class="table table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>Station</th>
+                        <th>Fuel Type</th>
+                        <th>Current Level</th>
+                        <th>Capacity</th>
+                        <th>Stock %</th>
+                        <th>Reorder Level</th>
+                        <th>Status</th>
+                        <th>Last Refill</th>
+                        <th>Next Delivery</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.InventoryItems)
+                    {
+                        <tr class="@(item.Status == "Critical" ? "table-danger" : item.Status == "Low Stock" ? "table-warning" : "")">
+                            <td>@item.StationName</td>
+                            <td>
+                                <span class="badge @(item.FuelType == "Petrol" ? "bg-success" : item.FuelType == "Diesel" ? "bg-primary" : "bg-warning")">
+                                    @item.FuelType
+                                </span>
+                            </td>
+                            <td><strong>@item.CurrentLevel.ToString("N0")L</strong></td>
+                            <td>@item.Capacity.ToString("N0")L</td>
+                            <td>
+                                <div class="progress" style="height: 25px;">
+                                    <div class="progress-bar @(item.IsLowStock ? "bg-danger" : item.PercentageFull > 70 ? "bg-success" : "bg-warning")" 
+                                         style="width: @item.PercentageFull%">
+                                        @item.PercentageFull.ToString("F1")%
+                                    </div>
+                                </div>
+                            </td>
+                            <td>@item.ReorderLevel.ToString("N0")L</td>
+                            <td>
+                                <span class="badge @(item.Status == "Critical" ? "bg-danger" : item.Status == "Low Stock" ? "bg-warning" : "bg-success")">
+                                    @item.Status
+                                </span>
+                            </td>
+                            <td>@item.LastRefill.ToString("yyyy-MM-dd")</td>
+                            <td>@(item.NextDeliveryDate?.ToString("yyyy-MM-dd") ?? "TBD")</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" onclick="updateReorderLevel(@item.Id, @item.ReorderLevel)" title="Set Reorder Level">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Refills -->
+<div class="card shadow">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Refills</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table id="refillsTable" class="table table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Station</th>
+                        <th>Fuel Type</th>
+                        <th>Quantity (L)</th>
+                        <th>Unit Cost</th>
+                        <th>Total Cost</th>
+                        <th>Supplier</th>
+                        <th>Invoice #</th>
+                        <th>Recorded By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var refill in Model.RecentRefills)
+                    {
+                        <tr>
+                            <td>@refill.RefillDate.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>@refill.StationName</td>
+                            <td>
+                                <span class="badge @(refill.FuelType == "Petrol" ? "bg-success" : refill.FuelType == "Diesel" ? "bg-primary" : "bg-warning")">
+                                    @refill.FuelType
+                                </span>
+                            </td>
+                            <td>@refill.Quantity.ToString("N0")</td>
+                            <td>@refill.UnitCost.ToString("N0") RWF</td>
+                            <td><strong>@refill.TotalCost.ToString("N0") RWF</strong></td>
+                            <td>@refill.SupplierName</td>
+                            <td>@refill.InvoiceNumber</td>
+                            <td>@refill.RecordedBy</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Refill Modal -->
+<div class="modal fade" id="refillModal" tabindex="-1" aria-labelledby="refillModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="refillModalLabel">Record Fuel Refill</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="refillForm" asp-controller="Inventory" asp-action="RecordRefill" method="post">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="stationId" class="form-label">Station <span class="text-danger">*</span></label>
+                            <select class="form-select" id="stationId" name="StationId" required>
+                                <option value="">Select Station</option>
+                                @foreach (var station in Model.Stations)
+                                {
+                                    <option value="@station.Id">@station.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="fuelType" class="form-label">Fuel Type <span class="text-danger">*</span></label>
+                            <select class="form-select" id="fuelType" name="FuelType" required>
+                                <option value="">Select Fuel Type</option>
+                                @foreach (var fuel in Model.FuelTypes)
+                                {
+                                    <option value="@fuel.Name">@fuel.Name</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="quantity" class="form-label">Quantity (Liters) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="quantity" name="Quantity" required step="0.01" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="unitCost" class="form-label">Unit Cost (RWF) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="unitCost" name="UnitCost" required step="0.01" onchange="calculateTotalCost()" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="totalCost" class="form-label">Total Cost (RWF)</label>
+                        <input type="number" class="form-control" id="totalCost" name="TotalCost" readonly />
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="supplierName" class="form-label">Supplier Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="supplierName" name="SupplierName" required placeholder="Rwanda Fuel Ltd" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="invoiceNumber" class="form-label">Invoice Number</label>
+                            <input type="text" class="form-control" id="invoiceNumber" name="InvoiceNumber" placeholder="INV-2024-001" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="refillDate" class="form-label">Refill Date <span class="text-danger">*</span></label>
+                        <input type="datetime-local" class="form-control" id="refillDate" name="RefillDate" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="Notes" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Record Refill
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    $(document).ready(function() {
+        $('#inventoryTable').DataTable({
+            pageLength: 10,
+            order: [[6, 'desc']]
+        });
+
+        $('#refillsTable').DataTable({
+            pageLength: 10,
+            order: [[0, 'desc']]
+        });
+
+        $('#refillDate').val(new Date().toISOString().slice(0, 16));
+    });
+
+    function calculateTotalCost() {
+        var quantity = parseFloat($('#quantity').val()) || 0;
+        var unitCost = parseFloat($('#unitCost').val()) || 0;
+        var totalCost = quantity * unitCost;
+        $('#totalCost').val(totalCost.toFixed(2));
+    }
+
+    $('#quantity').on('change keyup', calculateTotalCost);
+
+    function updateReorderLevel(id, currentLevel) {
+        var newLevel = prompt('Enter new reorder level (Liters):', currentLevel);
+        if (newLevel !== null && newLevel !== '') {
+            $.post('@Url.Action("UpdateReorderLevel", "Inventory")', { id: id, reorderLevel: newLevel }, function() {
+                location.reload();
+            });
+        }
+    }
+</script>
+}

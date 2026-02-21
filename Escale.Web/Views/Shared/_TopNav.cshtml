@@ -1,0 +1,70 @@
+<nav class="navbar navbar-dark sticky-top flex-md-nowrap p-0 shadow-lg">
+    <a class="navbar-brand col-md-3 col-lg-2 me-0 px-4 py-3" asp-controller="Dashboard" asp-action="Index">
+        <i class="fas fa-gas-pump me-2"></i>
+        <span class="fw-bold">Escale</span>
+        <span style="color: var(--secondary-color); font-weight: 300;">Gas</span>
+    </a>
+    <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    
+    <div class="d-flex align-items-center px-3">
+        <!-- Notifications -->
+        <div class="dropdown me-3">
+            <a class="nav-link text-white" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-bell fa-lg"></i>
+                <span class="badge bg-danger position-absolute top-0 start-100 translate-middle rounded-pill" style="font-size: 0.7rem;">3</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationDropdown" style="width: 300px;">
+                <li class="dropdown-header">
+                    <strong>Notifications</strong>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <a class="dropdown-item" href="#">
+                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                        <small>Low stock at Remera Branch</small>
+                        <br /><small class="text-muted">2 mins ago</small>
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="#">
+                        <i class="fas fa-user-plus text-info me-2"></i>
+                        <small>New customer registered</small>
+                        <br /><small class="text-muted">15 mins ago</small>
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="#">
+                        <i class="fas fa-dollar-sign text-success me-2"></i>
+                        <small>Daily sales target achieved</small>
+                        <br /><small class="text-muted">1 hour ago</small>
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-center text-primary" href="#"><small>View all notifications</small></a></li>
+            </ul>
+        </div>
+
+        <!-- User Profile -->
+        <div class="dropdown">
+            <a class="nav-link dropdown-toggle text-white d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <div class="user-avatar me-2">
+                    <i class="fas fa-user-circle fa-lg"></i>
+                </div>
+                <span class="d-none d-lg-inline">@(Context.Session.GetString("UserEmail") ?? "User")</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow-lg" aria-labelledby="userDropdown">
+                <li class="dropdown-header">
+                    <strong>@(Context.Session.GetString("UserEmail") ?? "User")</strong>
+                    <br /><small class="text-muted">Administrator</small>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2 text-primary"></i>My Profile</a></li>
+                <li><a class="dropdown-item" asp-controller="Settings" asp-action="Index"><i class="fas fa-cog me-2 text-primary"></i>Settings</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-danger" asp-controller="Account" asp-action="Logout"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>

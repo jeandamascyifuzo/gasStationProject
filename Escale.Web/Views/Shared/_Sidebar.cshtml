@@ -1,60 +1,69 @@
-<nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-dark sidebar collapse">
-    <div class="position-sticky pt-3">
+<nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+    <div class="position-sticky pt-3">        
+
         <ul class="nav flex-column">
             <li class="nav-item">
                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")" asp-controller="Dashboard" asp-action="Index">
                     <i class="fas fa-chart-line me-2"></i>
-                    Dashboard
+                    <span>Dashboard</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Stations" ? "active" : "")" asp-controller="Stations" asp-action="Index">
                     <i class="fas fa-gas-pump me-2"></i>
-                    Stations
+                    <span>Stations</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="#">
                     <i class="fas fa-fill-drip me-2"></i>
-                    Pumps
+                    <span>Pumps</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "FuelTypes" ? "active" : "")" asp-controller="FuelTypes" asp-action="Index">
                     <i class="fas fa-oil-can me-2"></i>
-                    Fuel Types
+                    <span>Fuel Types</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Inventory" ? "active" : "")" asp-controller="Inventory" asp-action="Index">
                     <i class="fas fa-boxes me-2"></i>
-                    Inventory
+                    <span>Inventory</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Transactions" ? "active" : "")" asp-controller="Transactions" asp-action="Index">
                     <i class="fas fa-receipt me-2"></i>
-                    Transactions
+                    <span>Transactions</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Customers" ? "active" : "")" asp-controller="Customers" asp-action="Index">
+                    <i class="fas fa-user-friends me-2"></i>
+                    <span>Customers</span>
                 </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Users" ? "active" : "")" asp-controller="Users" asp-action="Index">
                     <i class="fas fa-users me-2"></i>
-                    Users
+                    <span>Users</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Reports" ? "active" : "")" asp-controller="Reports" asp-action="Index">
                     <i class="fas fa-chart-bar me-2"></i>
-                    Reports
+                    <span>Reports</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Settings" ? "active" : "")" asp-controller="Settings" asp-action="Index">
                     <i class="fas fa-cog me-2"></i>
-                    Settings
+                    <span>Settings</span>
                 </a>
             </li>
         </ul>
+
+        
     </div>
 </nav>
