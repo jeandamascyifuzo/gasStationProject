@@ -1,0 +1,60 @@
+<nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-dark sidebar collapse">
+    <div class="position-sticky pt-3">
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")" asp-controller="Dashboard" asp-action="Index">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Stations" ? "active" : "")" asp-controller="Stations" asp-action="Index">
+                    <i class="fas fa-gas-pump me-2"></i>
+                    Stations
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-fill-drip me-2"></i>
+                    Pumps
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "FuelTypes" ? "active" : "")" asp-controller="FuelTypes" asp-action="Index">
+                    <i class="fas fa-oil-can me-2"></i>
+                    Fuel Types
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-boxes me-2"></i>
+                    Inventory
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Transactions" ? "active" : "")" asp-controller="Transactions" asp-action="Index">
+                    <i class="fas fa-receipt me-2"></i>
+                    Transactions
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Users" ? "active" : "")" asp-controller="Users" asp-action="Index">
+                    <i class="fas fa-users me-2"></i>
+                    Users
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Reports
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-cog me-2"></i>
+                    Settings
+                </a>
+            </li>
+        </ul>
+    </div>
+</nav>

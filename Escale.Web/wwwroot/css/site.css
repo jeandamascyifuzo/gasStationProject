@@ -1,5 +1,7 @@
 html {
   font-size: 14px;
+  position: relative;
+  min-height: 100%;
 }
 
 @media (min-width: 768px) {
@@ -8,15 +10,194 @@ html {
   }
 }
 
+body {
+  margin-bottom: 60px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
   box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
 
-html {
-  position: relative;
-  min-height: 100%;
+/* Login Page Styles */
+.login-page {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-body {
-  margin-bottom: 60px;
+.login-container {
+  width: 100%;
+  max-width: 450px;
+  padding: 15px;
+}
+
+.login-card {
+  background: white;
+  border-radius: 15px;
+  padding: 40px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.login-card .fas.fa-gas-pump {
+  color: #0d6efd;
+}
+
+/* Sidebar Styles */
+.sidebar {
+  position: fixed;
+  top: 48px;
+  bottom: 0;
+  left: 0;
+  z-index: 100;
+  padding: 48px 0 0;
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+  overflow-y: auto;
+}
+
+.sidebar .nav-link {
+  color: #adb5bd;
+  font-weight: 500;
+  padding: 12px 16px;
+  transition: all 0.3s;
+}
+
+.sidebar .nav-link:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar .nav-link.active {
+  color: #fff;
+  background-color: rgba(13, 110, 253, 0.3);
+  border-left: 3px solid #0d6efd;
+}
+
+.sidebar .nav-link i {
+  width: 20px;
+}
+
+/* Top Navbar */
+.navbar-dark {
+  background-color: #212529 !important;
+}
+
+.navbar-brand {
+  padding-top: .75rem;
+  padding-bottom: .75rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+/* Main Content Area */
+.main-content {
+  margin-top: 48px;
+  padding-top: 20px;
+}
+
+/* Card Styles with Colored Borders */
+.border-left-primary {
+  border-left: 4px solid #0d6efd !important;
+}
+
+.border-left-success {
+  border-left: 4px solid #198754 !important;
+}
+
+.border-left-info {
+  border-left: 4px solid #0dcaf0 !important;
+}
+
+.border-left-warning {
+  border-left: 4px solid #ffc107 !important;
+}
+
+/* Dashboard Cards */
+.card {
+  border-radius: 10px;
+  transition: transform 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+.text-xs {
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+/* DataTables Customization */
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+  background: #0d6efd !important;
+  border-color: #0d6efd !important;
+}
+
+table.dataTable thead th {
+  font-weight: 600;
+  background-color: #f8f9fa;
+}
+
+/* Modal Customization */
+.modal-header {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.modal-footer {
+  background-color: #f8f9fa;
+  border-top: 2px solid #dee2e6;
+}
+
+/* Badges */
+.badge {
+  padding: 6px 12px;
+  font-weight: 500;
+}
+
+/* Buttons */
+.btn {
+  border-radius: 5px;
+  font-weight: 500;
+}
+
+.btn-sm {
+  padding: 4px 8px;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .sidebar {
+    top: 0;
+    padding-top: 48px;
+  }
+  
+  .main-content {
+    margin-left: 0 !important;
+  }
+  
+  .login-card {
+    padding: 30px 20px;
+  }
+  
+  .card .col-auto {
+    display: none;
+  }
+}
+
+/* Utility Classes */
+.text-gray-300 {
+  color: #dddfeb !important;
+}
+
+.text-gray-800 {
+  color: #5a5c69 !important;
+}
+
+.shadow {
+  box-shadow: 0 .15rem 1.75rem 0 rgba(58, 59, 69, .15) !important;
 }

@@ -1,0 +1,206 @@
+@model Escale.Web.Models.UserViewModel
+@{
+    ViewData["Title"] = "Users";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-users me-2"></i>Users Management</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#userModal" onclick="openUserModal()">
+            <i class="fas fa-user-plus me-2"></i>Add New User
+        </button>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table id="usersTable" class="table table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Role</th>
+                        <th>Station</th>
+                        <th>Status</th>
+                        <th>Last Login</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in Model.Users)
+                    {
+                        <tr>
+                            <td>@user.Name</td>
+                            <td>@user.Email</td>
+                            <td>@user.Phone</td>
+                            <td>
+                                <span class="badge @(user.Role == "Admin" ? "bg-danger" : user.Role == "Manager" ? "bg-primary" : "bg-secondary")">
+                                    @user.Role
+                                </span>
+                            </td>
+                            <td>@(user.StationName ?? "N/A")</td>
+                            <td>
+                                <span class="badge @(user.IsActive ? "bg-success" : "bg-secondary")">
+                                    @(user.IsActive ? "Active" : "Disabled")
+                                </span>
+                            </td>
+                            <td>@(user.LastLogin?.ToString("yyyy-MM-dd HH:mm") ?? "Never")</td>
+                            <td>
+                                <button class="btn btn-sm btn-info" onclick="editUser(@user.Id)" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-warning" onclick="resetPassword(@user.Id)" title="Reset Password">
+                                    <i class="fas fa-key"></i>
+                                </button>
+                                <button class="btn btn-sm @(user.IsActive ? "btn-secondary" : "btn-success")" onclick="toggleUserStatus(@user.Id)" title="@(user.IsActive ? "Disable" : "Enable")">
+                                    <i class="fas fa-@(user.IsActive ? "ban" : "check")"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- User Modal -->
+<div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userModalLabel">Add/Edit User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="userForm" asp-controller="Users" asp-action="Create" method="post">
+                <div class="modal-body">
+                    <input type="hidden" id="userId" name="Id" />
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="userName" class="form-label">Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="userName" name="Name" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="userEmail" class="form-label">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="userEmail" name="Email" required />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="userPhone" class="form-label">Phone</label>
+                            <input type="tel" class="form-control" id="userPhone" name="Phone" placeholder="+250788000000" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="userRole" class="form-label">Role <span class="text-danger">*</span></label>
+                            <select class="form-select" id="userRole" name="Role" onchange="toggleStationField()" required>
+                                <option value="">Select Role</option>
+                                @foreach (var role in Model.Roles)
+                                {
+                                    <option value="@role">@role</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row" id="stationFieldRow">
+                        <div class="col-md-6 mb-3">
+                            <label for="userStationId" class="form-label">Station</label>
+                            <select class="form-select" id="userStationId" name="StationId">
+                                <option value="">Select Station</option>
+                                @foreach (var station in Model.Stations)
+                                {
+                                    <option value="@station.Id">@station.Name</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row" id="passwordFieldRow">
+                        <div class="col-md-6 mb-3">
+                            <label for="userPassword" class="form-label">Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="userPassword" name="Password" />
+                            <small class="form-text text-muted">Leave blank to keep current password</small>
+                        </div>
+                    </div>
+
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="isActive" name="IsActive" checked />
+                        <label class="form-check-label" for="isActive">Active</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Save User
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    $(document).ready(function() {
+        $('#usersTable').DataTable({
+            pageLength: 25,
+            order: [[0, 'asc']],
+            columnDefs: [
+                { orderable: false, targets: 7 }
+            ]
+        });
+    });
+
+    function openUserModal() {
+        $('#userForm').attr('action', '@Url.Action("Create", "Users")');
+        $('#userModalLabel').text('Add New User');
+        $('#userForm')[0].reset();
+        $('#userId').val('');
+        $('#isActive').prop('checked', true);
+        $('#passwordFieldRow').show();
+        toggleStationField();
+    }
+
+    function editUser(id) {
+        // TODO: Load user data via AJAX
+        $('#userForm').attr('action', '@Url.Action("Edit", "Users")');
+        $('#userModalLabel').text('Edit User');
+        $('#userId').val(id);
+        $('#passwordFieldRow').hide();
+        $('#userModal').modal('show');
+    }
+
+    function resetPassword(id) {
+        if (confirm('Send password reset email to this user?')) {
+            $.post('@Url.Action("ResetPassword", "Users")', { id: id }, function() {
+                alert('Password reset email sent successfully!');
+            });
+        }
+    }
+
+    function toggleUserStatus(id) {
+        if (confirm('Are you sure you want to change this user\'s status?')) {
+            $.post('@Url.Action("ToggleStatus", "Users")', { id: id }, function() {
+                location.reload();
+            });
+        }
+    }
+
+    function toggleStationField() {
+        const role = $('#userRole').val();
+        if (role === 'Admin') {
+            $('#stationFieldRow').hide();
+            $('#userStationId').removeAttr('required');
+        } else {
+            $('#stationFieldRow').show();
+            if (role === 'Manager' || role === 'Cashier') {
+                $('#userStationId').attr('required', 'required');
+            }
+        }
+    }
+</script>
+}

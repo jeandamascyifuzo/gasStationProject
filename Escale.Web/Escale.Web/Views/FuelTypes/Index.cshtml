@@ -1,0 +1,147 @@
+@model List<Escale.Web.Models.FuelType>
+@{
+    ViewData["Title"] = "Fuel Types";
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-oil-can me-2"></i>Fuel Types Management</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#fuelTypeModal" onclick="openFuelTypeModal()">
+            <i class="fas fa-plus me-2"></i>Add Fuel Type
+        </button>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table id="fuelTypesTable" class="table table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th>Fuel Name</th>
+                        <th>Code</th>
+                        <th>Price/L (RWF)</th>
+                        <th>Cost Price (RWF)</th>
+                        <th>VAT %</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var fuel in Model)
+                    {
+                        <tr>
+                            <td>@fuel.Name</td>
+                            <td><span class="badge bg-secondary">@fuel.Code</span></td>
+                            <td>@fuel.SellingPrice.ToString("N0")</td>
+                            <td>@fuel.CostPrice.ToString("N0")</td>
+                            <td>@fuel.VATRate%</td>
+                            <td>
+                                <span class="badge @(fuel.IsActive ? "bg-success" : "bg-secondary")">
+                                    @(fuel.IsActive ? "Active" : "Inactive")
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-info" onclick="editFuelType(@fuel.Id)" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteFuelType(@fuel.Id)" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Fuel Type Modal -->
+<div class="modal fade" id="fuelTypeModal" tabindex="-1" aria-labelledby="fuelTypeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="fuelTypeModalLabel">Add/Edit Fuel Type</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="fuelTypeForm" asp-controller="FuelTypes" asp-action="Create" method="post">
+                <div class="modal-body">
+                    <input type="hidden" id="fuelId" name="Id" />
+                    
+                    <div class="mb-3">
+                        <label for="fuelName" class="form-label">Fuel Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="fuelName" name="Name" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="fuelCode" class="form-label">Code <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="fuelCode" name="Code" placeholder="e.g., PET" required />
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="sellingPrice" class="form-label">Selling Price (RWF) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="sellingPrice" name="SellingPrice" step="0.01" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="costPrice" class="form-label">Cost Price (RWF) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="costPrice" name="CostPrice" step="0.01" required />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="vatRate" class="form-label">VAT Rate (%) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="vatRate" name="VATRate" min="0" max="100" value="18" required />
+                    </div>
+
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="isActive" name="IsActive" checked />
+                        <label class="form-check-label" for="isActive">Active</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Save Fuel Type
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    $(document).ready(function() {
+        $('#fuelTypesTable').DataTable({
+            pageLength: 10,
+            order: [[0, 'asc']]
+        });
+    });
+
+    function openFuelTypeModal() {
+        $('#fuelTypeForm').attr('action', '@Url.Action("Create", "FuelTypes")');
+        $('#fuelTypeModalLabel').text('Add Fuel Type');
+        $('#fuelTypeForm')[0].reset();
+        $('#fuelId').val('');
+        $('#isActive').prop('checked', true);
+    }
+
+    function editFuelType(id) {
+        // TODO: Load fuel type data via AJAX
+        $('#fuelTypeForm').attr('action', '@Url.Action("Edit", "FuelTypes")');
+        $('#fuelTypeModalLabel').text('Edit Fuel Type');
+        $('#fuelId').val(id);
+        $('#fuelTypeModal').modal('show');
+    }
+
+    function deleteFuelType(id) {
+        if (confirm('Are you sure you want to delete this fuel type?')) {
+            $.post('@Url.Action("Delete", "FuelTypes")', { id: id }, function() {
+                location.reload();
+            });
+        }
+    }
+</script>
+}
