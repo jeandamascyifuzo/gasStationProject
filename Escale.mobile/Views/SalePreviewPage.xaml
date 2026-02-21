@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Escale.mobile.ViewModels"
+             x:Class="Escale.mobile.Views.SalePreviewPage"
+             x:DataType="vm:SalePreviewViewModel"
+             Title="Sale Preview"
+             BackgroundColor="#F8F9FA">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="20">
+
+            <!-- Header -->
+            <Border StrokeShape="RoundRectangle 15"
+                    BackgroundColor="#1E3A8A"
+                    Padding="20">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="SALE PREVIEW" 
+                           FontSize="20" 
+                           FontAttributes="Bold"
+                           TextColor="White"
+                           HorizontalOptions="Center"/>
+                    <Label Text="{Binding StationName}" 
+                           FontSize="14"
+                           TextColor="White"
+                           Opacity="0.9"
+                           HorizontalOptions="Center"/>
+                    <Label Text="{Binding Sale.TransactionDate, StringFormat='{0:MMM dd, yyyy HH:mm}'}" 
+                           FontSize="12"
+                           TextColor="White"
+                           Opacity="0.8"
+                           HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Fuel Details Card -->
+            <Border StrokeShape="RoundRectangle 15"
+                    BackgroundColor="White"
+                    Padding="20">
+                <Border.Shadow>
+                    <Shadow Brush="Black" Opacity="0.08" Radius="8" Offset="0,2"/>
+                </Border.Shadow>
+
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="15">
+                    <!-- Fuel Type -->
+                    <Border Grid.Row="0" 
+                            StrokeShape="RoundRectangle 8"
+                            BackgroundColor="#EEF2FF"
+                            Padding="15,10">
+                        <HorizontalStackLayout Spacing="10">
+                            <Label Text="⛽" FontSize="24" VerticalOptions="Center"/>
+                            <VerticalStackLayout Spacing="2" VerticalOptions="Center">
+                                <Label Text="Fuel Type" 
+                                       FontSize="12"
+                                       TextColor="#64748B"/>
+                                <Label Text="{Binding Sale.FuelType}" 
+                                       FontSize="18"
+                                       FontAttributes="Bold"
+                                       TextColor="#1E3A8A"/>
+                            </VerticalStackLayout>
+                        </HorizontalStackLayout>
+                    </Border>
+
+                    <!-- Quantity -->
+                    <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Border Grid.Column="0" 
+                                StrokeShape="RoundRectangle 8"
+                                BackgroundColor="#F0FDF4"
+                                Padding="15,10">
+                            <VerticalStackLayout Spacing="5">
+                                <Label Text="Liters" 
+                                       FontSize="12"
+                                       TextColor="#64748B"/>
+                                <Label Text="{Binding Sale.Liters, StringFormat='{0:F2} L'}" 
+                                       FontSize="20"
+                                       FontAttributes="Bold"
+                                       TextColor="#10B981"/>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border Grid.Column="1" 
+                                StrokeShape="RoundRectangle 8"
+                                BackgroundColor="#FEF3C7"
+                                Padding="15,10">
+                            <VerticalStackLayout Spacing="5">
+                                <Label Text="Price/Liter" 
+                                       FontSize="12"
+                                       TextColor="#64748B"/>
+                                <Label Text="{Binding Sale.PricePerLiter, StringFormat='{0:N0} RWF'}" 
+                                       FontSize="20"
+                                       FontAttributes="Bold"
+                                       TextColor="#F59E0B"/>
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+
+                    <!-- Divider -->
+                    <BoxView Grid.Row="2" 
+                             HeightRequest="1" 
+                             BackgroundColor="#E2E8F0"
+                             Margin="0,5"/>
+
+                    <!-- Price Breakdown -->
+                    <VerticalStackLayout Grid.Row="3" Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Grid.Column="0"
+                                   Text="Subtotal:" 
+                                   FontSize="16"
+                                   TextColor="#64748B"/>
+                            <Label Grid.Column="1"
+                                   Text="{Binding Sale.Subtotal, StringFormat='{0:N0} RWF'}" 
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   TextColor="#1E293B"/>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Grid.Column="0"
+                                   Text="VAT (18%):" 
+                                   FontSize="16"
+                                   TextColor="#64748B"/>
+                            <Label Grid.Column="1"
+                                   Text="{Binding Sale.VAT, StringFormat='{0:N0} RWF'}" 
+                                   FontSize="16"
+                                   TextColor="#64748B"/>
+                        </Grid>
+
+                        <!-- Total -->
+                        <Border StrokeShape="RoundRectangle 10"
+                                BackgroundColor="#DCFCE7"
+                                Padding="15"
+                                Margin="0,5,0,0">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Grid.Column="0"
+                                       Text="TOTAL" 
+                                       FontSize="20"
+                                       FontAttributes="Bold"
+                                       TextColor="#15803D"
+                                       VerticalOptions="Center"/>
+                                <Label Grid.Column="1"
+                                       Text="{Binding Sale.Total, StringFormat='{0:N0} RWF'}" 
+                                       FontSize="24"
+                                       FontAttributes="Bold"
+                                       TextColor="#15803D"
+                                       VerticalOptions="Center"/>
+                            </Grid>
+                        </Border>
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+
+            <!-- Payment & Customer Info -->
+            <Border StrokeShape="RoundRectangle 15"
+                    BackgroundColor="White"
+                    Padding="20">
+                <Border.Shadow>
+                    <Shadow Brush="Black" Opacity="0.08" Radius="8" Offset="0,2"/>
+                </Border.Shadow>
+
+                <VerticalStackLayout Spacing="15">
+                    <!-- Payment Method -->
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="15">
+                        <Label Grid.Column="0"
+                               Text="💳"
+                               FontSize="24"
+                               VerticalOptions="Center"/>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                            <Label Text="Payment Method" 
+                                   FontSize="12"
+                                   TextColor="#64748B"/>
+                            <Label Text="{Binding Sale.PaymentMethod}" 
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   TextColor="#3B82F6"/>
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <!-- Customer Info (if exists) -->
+                    <Grid ColumnDefinitions="Auto,*" 
+                          ColumnSpacing="15"
+                          IsVisible="{Binding Sale.Customer, Converter={StaticResource ObjectToBoolConverter}}">
+                        <Label Grid.Column="0"
+                               Text="👤"
+                               FontSize="24"
+                               VerticalOptions="Center"/>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                            <Label Text="Customer" 
+                                   FontSize="12"
+                                   TextColor="#64748B"/>
+                            <Label Text="{Binding Sale.Customer.Name}" 
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   TextColor="#1E293B"/>
+                            <Label Text="{Binding Sale.Customer.PhoneNumber}" 
+                                   FontSize="14"
+                                   TextColor="#64748B"
+                                   IsVisible="{Binding Sale.Customer.PhoneNumber, Converter={StaticResource StringToBoolConverter}}"/>
+                        </VerticalStackLayout>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Action Buttons -->
+            <Grid ColumnDefinitions="*,2*" ColumnSpacing="15" Margin="0,10,0,20">
+                <Button Grid.Column="0"
+                        Text="✏️ Edit"
+                        Command="{Binding EditCommand}"
+                        BackgroundColor="#F1F5F9"
+                        TextColor="#475569"
+                        FontSize="16"
+                        HeightRequest="58"
+                        CornerRadius="12"
+                        BorderWidth="1"
+                        BorderColor="#E2E8F0"/>
+
+                <Button Grid.Column="1"
+                        Text="✓ Confirm Sale"
+                        Command="{Binding ConfirmSaleCommand}"
+                        BackgroundColor="#10B981"
+                        TextColor="White"
+                        FontSize="18"
+                        FontAttributes="Bold"
+                        HeightRequest="58"
+                        CornerRadius="12"
+                        IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}">
+                    <Button.Shadow>
+                        <Shadow Brush="#10B981" Opacity="0.3" Radius="8" Offset="0,4"/>
+                    </Button.Shadow>
+                </Button>
+            </Grid>
+
+            <!-- Loading Indicator -->
+            <Border StrokeShape="RoundRectangle 10"
+                    BackgroundColor="White"
+                    Padding="20"
+                    IsVisible="{Binding IsBusy}">
+                <VerticalStackLayout Spacing="15">
+                    <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                     Color="#10B981"
+                                     HeightRequest="40"/>
+                    <Label Text="Processing sale..." 
+                           FontSize="16"
+                           TextColor="#64748B"
+                           HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

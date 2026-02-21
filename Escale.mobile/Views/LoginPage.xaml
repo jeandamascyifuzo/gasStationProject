@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Escale.mobile.ViewModels"
+             x:Class="Escale.mobile.Views.LoginPage"
+             x:DataType="vm:LoginViewModel"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#F8F9FA">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="30" Spacing="20" VerticalOptions="Center">
+            
+            <!-- Logo Placeholder -->
+            <Border StrokeShape="RoundRectangle 60"
+                    BackgroundColor="#1E3A8A"
+                    HeightRequest="120"
+                    WidthRequest="120"
+                    HorizontalOptions="Center"
+                    Margin="0,0,0,30">
+                <Label Text="ESCALE"
+                       FontSize="24"
+                       FontAttributes="Bold"
+                       TextColor="White"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center"/>
+            </Border>
+
+            <Label Text="Escale Gas Station" 
+                   FontSize="28" 
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"
+                   TextColor="#1E3A8A"/>
+
+            <Label Text="Cashier App" 
+                   FontSize="18" 
+                   HorizontalOptions="Center"
+                   TextColor="#64748B"
+                   Margin="0,0,0,30"/>
+
+            <!-- Username -->
+            <Border StrokeShape="RoundRectangle 10"
+                    Stroke="#E2E8F0"
+                    BackgroundColor="White"
+                    Padding="15,10">
+                <Entry Placeholder="Username"
+                       Text="{Binding Username}"
+                       FontSize="16"
+                       TextColor="#1E293B"/>
+            </Border>
+
+            <!-- Password -->
+            <Border StrokeShape="RoundRectangle 10"
+                    Stroke="#E2E8F0"
+                    BackgroundColor="White"
+                    Padding="15,10">
+                <Entry Placeholder="Password"
+                       Text="{Binding Password}"
+                       IsPassword="True"
+                       FontSize="16"
+                       TextColor="#1E293B"/>
+            </Border>
+
+            <!-- Remember Me -->
+            <HorizontalStackLayout Spacing="10">
+                <CheckBox IsChecked="{Binding RememberMe}"/>
+                <Label Text="Remember me" 
+                       VerticalOptions="Center"
+                       TextColor="#64748B"/>
+            </HorizontalStackLayout>
+
+            <!-- Error Message -->
+            <Label Text="{Binding ErrorMessage}"
+                   TextColor="Red"
+                   IsVisible="{Binding ErrorMessage, Converter={StaticResource StringToBoolConverter}}"
+                   FontSize="14"/>
+
+            <!-- Login Button -->
+            <Button Text="Login"
+                    Command="{Binding LoginCommand}"
+                    BackgroundColor="#1E3A8A"
+                    TextColor="White"
+                    FontSize="18"
+                    FontAttributes="Bold"
+                    HeightRequest="55"
+                    CornerRadius="10"
+                    Margin="0,10,0,0"
+                    IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"/>
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                             IsVisible="{Binding IsBusy}"
+                             Color="#1E3A8A"
+                             HeightRequest="40"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+    
+</ContentPage>

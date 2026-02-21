@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Escale.mobile.ViewModels"
+             x:Class="Escale.mobile.Views.CustomerInfoPage"
+             x:DataType="vm:CustomerInfoViewModel"
+             Title="Customer Details"
+             BackgroundColor="#F8F9FA">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="20">
+
+            <Label Text="NEW SALE - STEP 2/4" 
+                   FontSize="20" 
+                   FontAttributes="Bold"
+                   TextColor="#1E3A8A"/>
+
+            <Label Text="Customer Details (Optional)" 
+                   FontSize="16"
+                   TextColor="#64748B"/>
+
+            <!-- Customer Name -->
+            <Border StrokeShape="RoundRectangle 10"
+                    Stroke="#E2E8F0"
+                    BackgroundColor="White"
+                    Padding="15,10">
+                <Entry Placeholder="Customer Name"
+                       Text="{Binding CustomerName}"
+                       FontSize="16"
+                       TextColor="#1E293B"/>
+            </Border>
+
+            <!-- Phone Number -->
+            <Border StrokeShape="RoundRectangle 10"
+                    Stroke="#E2E8F0"
+                    BackgroundColor="White"
+                    Padding="15,10">
+                <Entry Placeholder="Phone Number"
+                       Text="{Binding PhoneNumber}"
+                       Keyboard="Telephone"
+                       FontSize="16"
+                       TextColor="#1E293B"/>
+            </Border>
+
+            <!-- Buttons -->
+            <Button Text="Skip - Continue as Guest"
+                    Command="{Binding SkipCommand}"
+                    BackgroundColor="#E2E8F0"
+                    TextColor="#475569"
+                    FontSize="16"
+                    HeightRequest="55"
+                    CornerRadius="10"
+                    Margin="0,20,0,0"/>
+
+            <Button Text="Continue to Preview"
+                    Command="{Binding ContinueCommand}"
+                    BackgroundColor="#1E3A8A"
+                    TextColor="White"
+                    FontSize="16"
+                    FontAttributes="Bold"
+                    HeightRequest="55"
+                    CornerRadius="10"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

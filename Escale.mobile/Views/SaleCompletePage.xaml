@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Escale.mobile.ViewModels"
+             x:Class="Escale.mobile.Views.SaleCompletePage"
+             x:DataType="vm:SaleCompleteViewModel"
+             Title="Sale Complete"
+             BackgroundColor="#F8F9FA"
+             Shell.NavBarIsVisible="False">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="25">
+
+            <!-- Success Icon -->
+            <Border StrokeShape="RoundRectangle 50"
+                    BackgroundColor="#DCFCE7"
+                    HeightRequest="100"
+                    WidthRequest="100"
+                    HorizontalOptions="Center"
+                    Margin="0,30,0,0">
+                <Label Text="?" 
+                       FontSize="60"
+                       TextColor="#10B981"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center"/>
+            </Border>
+
+            <Label Text="SALE COMPLETED" 
+                   FontSize="28" 
+                   FontAttributes="Bold"
+                   TextColor="#10B981"
+                   HorizontalOptions="Center"/>
+
+            <!-- EBM Invoice Card -->
+            <Border StrokeShape="RoundRectangle 15"
+                    BackgroundColor="White"
+                    Padding="25"
+                    StrokeThickness="2"
+                    Stroke="#10B981">
+                <Border.Shadow>
+                    <Shadow Brush="Black" Opacity="0.1" Radius="10" Offset="0,2"/>
+                </Border.Shadow>
+
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="EBM INVOICE" 
+                           FontSize="20"
+                           FontAttributes="Bold"
+                           TextColor="#1E3A8A"
+                           HorizontalOptions="Center"/>
+
+                    <Label Text="??????????????" 
+                           FontSize="16"
+                           TextColor="#CBD5E1"
+                           HorizontalOptions="Center"/>
+
+                    <!-- Station Info -->
+                    <Label Text="{Binding Sale.StationName, StringFormat='Station: {0}'}" 
+                           FontSize="14"
+                           TextColor="#64748B"
+                           HorizontalOptions="Center"/>
+
+                    <!-- Receipt Number -->
+                    <Label Text="{Binding Sale.ReceiptNumber, StringFormat='Receipt No: {0}'}" 
+                           FontSize="14"
+                           FontAttributes="Bold"
+                           TextColor="#1E293B"
+                           HorizontalOptions="Center"/>
+
+                    <!-- Date -->
+                    <Label Text="{Binding Sale.TransactionDate, StringFormat='Date: {0:yyyy-MM-dd HH:mm}'}" 
+                           FontSize="14"
+                           TextColor="#64748B"
+                           HorizontalOptions="Center"/>
+
+                    <BoxView HeightRequest="1" BackgroundColor="#E2E8F0" Margin="0,10"/>
+
+                    <!-- Sale Details -->
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
+                        <Label Grid.Row="0" Grid.Column="0"
+                               Text="Fuel:" 
+                               FontSize="14"
+                               TextColor="#64748B"/>
+                        <Label Grid.Row="0" Grid.Column="1"
+                               Text="{Binding Sale.FuelType}" 
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="#1E293B"/>
+
+                        <Label Grid.Row="1" Grid.Column="0"
+                               Text="Liters:" 
+                               FontSize="14"
+                               TextColor="#64748B"/>
+                        <Label Grid.Row="1" Grid.Column="1"
+                               Text="{Binding Sale.Liters, StringFormat='{0:F2} L'}" 
+                               FontSize="14"
+                               TextColor="#1E293B"/>
+
+                        <Label Grid.Row="2" Grid.Column="0"
+                               Text="Price/L:" 
+                               FontSize="14"
+                               TextColor="#64748B"/>
+                        <Label Grid.Row="2" Grid.Column="1"
+                               Text="{Binding Sale.PricePerLiter, StringFormat='RWF {0:N0}'}" 
+                               FontSize="14"
+                               TextColor="#64748B"/>
+
+                        <Label Grid.Row="3" Grid.Column="0"
+                               Text="Total:" 
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               TextColor="#1E3A8A"/>
+                        <Label Grid.Row="3" Grid.Column="1"
+                               Text="{Binding Sale.Total, StringFormat='RWF {0:N0}'}" 
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               TextColor="#10B981"/>
+
+                        <Label Grid.Row="4" Grid.Column="0"
+                               Text="VAT:" 
+                               FontSize="14"
+                               TextColor="#64748B"/>
+                        <Label Grid.Row="4" Grid.Column="1"
+                               Text="{Binding Sale.VAT, StringFormat='RWF {0:N0}'}" 
+                               FontSize="14"
+                               TextColor="#64748B"/>
+                    </Grid>
+
+                    <BoxView HeightRequest="1" BackgroundColor="#E2E8F0" Margin="0,10"/>
+
+                    <!-- Payment Method -->
+                    <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <Label Text="Payment:" 
+                               FontSize="14"
+                               TextColor="#64748B"/>
+                        <Label Text="{Binding Sale.PaymentMethod}" 
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="#3B82F6"/>
+                    </HorizontalStackLayout>
+
+                    <BoxView HeightRequest="1" BackgroundColor="#E2E8F0" Margin="0,10"/>
+
+                    <!-- EBM Code -->
+                    <Label Text="EBM Code:" 
+                           FontSize="14"
+                           TextColor="#64748B"
+                           HorizontalOptions="Center"/>
+                    <Label Text="{Binding Sale.EBMCode}" 
+                           FontSize="12"
+                           FontAttributes="Bold"
+                           FontFamily="Courier"
+                           TextColor="#1E293B"
+                           HorizontalOptions="Center"/>
+
+                    <Label Text="??????????????" 
+                           FontSize="16"
+                           TextColor="#CBD5E1"
+                           HorizontalOptions="Center"
+                           Margin="0,10,0,0"/>
+
+                    <Label Text="Thank you for your business!" 
+                           FontSize="12"
+                           TextColor="#64748B"
+                           HorizontalOptions="Center"
+                           FontAttributes="Italic"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Note -->
+            <Border StrokeShape="RoundRectangle 10"
+                    BackgroundColor="#EFF6FF"
+                    Padding="15">
+                <Label Text="?? Receipt will print automatically via Bluetooth printer" 
+                       FontSize="12"
+                       TextColor="#1E3A8A"
+                       HorizontalOptions="Center"/>
+            </Border>
+
+            <!-- Action Buttons -->
+            <Button Text="??? Print Receipt"
+                    Command="{Binding PrintReceiptCommand}"
+                    BackgroundColor="#3B82F6"
+                    TextColor="White"
+                    FontSize="16"
+                    HeightRequest="55"
+                    CornerRadius="10"/>
+
+            <Button Text="? New Sale"
+                    Command="{Binding NewSaleCommand}"
+                    BackgroundColor="#10B981"
+                    TextColor="White"
+                    FontSize="16"
+                    FontAttributes="Bold"
+                    HeightRequest="55"
+                    CornerRadius="10"/>
+
+            <Button Text="?? Dashboard"
+                    Command="{Binding GoToDashboardCommand}"
+                    BackgroundColor="#64748B"
+                    TextColor="White"
+                    FontSize="16"
+                    HeightRequest="55"
+                    CornerRadius="10"
+                    Margin="0,0,0,20"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

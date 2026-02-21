@@ -1,4 +1,7 @@
-﻿namespace Escale.mobile
+﻿using Escale.mobile.Views;
+using Escale.mobile.Services;
+
+namespace Escale.mobile
 {
     public partial class App : Application
     {
@@ -9,7 +12,18 @@
 
         protected override Window CreateWindow(IActivationState? activationState)
         {
-            return new Window(new AppShell());
+            // Check if user is logged in
+            var isLoggedIn = AppState.Instance.IsLoggedIn;
+            
+            if (isLoggedIn)
+            {
+                return new Window(new AppShell());
+            }
+            else
+            {
+                return new Window(new NavigationPage(
+                    MauiProgram.Services.GetRequiredService<LoginPage>()));
+            }
         }
     }
 }

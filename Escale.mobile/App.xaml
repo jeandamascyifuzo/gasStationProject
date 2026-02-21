@@ -1,6 +1,7 @@
 ﻿<?xml version = "1.0" encoding = "UTF-8" ?>
 <Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:converters="clr-namespace:Escale.mobile.Converters"
              xmlns:local="clr-namespace:Escale.mobile"
              x:Class="Escale.mobile.App">
     <Application.Resources>
@@ -9,6 +10,14 @@
                 <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
                 <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- Converters -->
+            <converters:StringToBoolConverter x:Key="StringToBoolConverter"/>
+            <converters:InvertedBoolConverter x:Key="InvertedBoolConverter"/>
+            <converters:PercentToDecimalConverter x:Key="PercentToDecimalConverter"/>
+            <converters:ObjectToBoolConverter x:Key="ObjectToBoolConverter"/>
+            <converters:BoolToClockButtonColorConverter x:Key="BoolToClockButtonColorConverter"/>
+            <converters:BoolToClockInOutTextConverter x:Key="BoolToClockInOutTextConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -3,12 +3,61 @@
     x:Class="Escale.mobile.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:local="clr-namespace:Escale.mobile"
-    Title="Escale.mobile">
+    xmlns:views="clr-namespace:Escale.mobile.Views"
+    Shell.FlyoutBehavior="Disabled"
+    Shell.NavBarIsVisible="True"
+    Shell.TabBarBackgroundColor="#FFFFFF"
+    Shell.TabBarForegroundColor="#1E3A8A"
+    Shell.TabBarUnselectedColor="#94A3B8"
+    Shell.TabBarTitleColor="#1E293B"
+    Shell.TabBarIsVisible="True"
+    Title="Escale Cashier">
 
-    <ShellContent
-        Title="Home"
-        ContentTemplate="{DataTemplate local:MainPage}"
-        Route="MainPage" />
+    <TabBar>
+        <Tab Title="Dashboard">
+            <Tab.Icon>
+                <FontImageSource Glyph="🏠" Size="28"/>
+            </Tab.Icon>
+            <ShellContent
+                ContentTemplate="{DataTemplate views:DashboardPage}"
+                Route="Dashboard"/>
+        </Tab>
+
+        <Tab Title="New Sale">
+            <Tab.Icon>
+                <FontImageSource Glyph="💰" Size="28"/>
+            </Tab.Icon>
+            <ShellContent
+                ContentTemplate="{DataTemplate views:NewSalePage}"
+                Route="NewSale"/>
+        </Tab>
+
+        <Tab Title="Stock">
+            <Tab.Icon>
+                <FontImageSource Glyph="📊" Size="28"/>
+            </Tab.Icon>
+            <ShellContent
+                ContentTemplate="{DataTemplate views:StockPage}"
+                Route="Stock"/>
+        </Tab>
+
+        <Tab Title="History">
+            <Tab.Icon>
+                <FontImageSource Glyph="📝" Size="28"/>
+            </Tab.Icon>
+            <ShellContent
+                ContentTemplate="{DataTemplate views:TransactionsPage}"
+                Route="Transactions"/>
+        </Tab>
+
+        <Tab Title="Profile">
+            <Tab.Icon>
+                <FontImageSource Glyph="👤" Size="28"/>
+            </Tab.Icon>
+            <ShellContent
+                ContentTemplate="{DataTemplate views:ProfilePage}"
+                Route="Profile"/>
+        </Tab>
+    </TabBar>
 
 </Shell>

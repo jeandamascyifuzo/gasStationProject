@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Escale.mobile.ViewModels"
+             x:Class="Escale.mobile.Views.ProfilePage"
+             x:DataType="vm:ProfileViewModel"
+             Title="Profile"
+             BackgroundColor="#F8F9FA">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="25">
+
+            <!-- User Info Card -->
+            <Border StrokeShape="RoundRectangle 15"
+                    BackgroundColor="White"
+                    Padding="25"
+                    StrokeThickness="0">
+                <Border.Shadow>
+                    <Shadow Brush="Black" Opacity="0.1" Radius="10" Offset="0,2"/>
+                </Border.Shadow>
+                
+                <VerticalStackLayout Spacing="10">
+                    <!-- Avatar -->
+                    <Border StrokeShape="RoundRectangle 40"
+                            BackgroundColor="#EEF2FF"
+                            HeightRequest="80"
+                            WidthRequest="80"
+                            HorizontalOptions="Center">
+                        <Label Text="??" 
+                               FontSize="40"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"/>
+                    </Border>
+
+                    <Label Text="{Binding UserName}" 
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           TextColor="#1E3A8A"
+                           HorizontalOptions="Center"/>
+
+                    <Label Text="{Binding UserRole}" 
+                           FontSize="16"
+                           TextColor="#64748B"
+                           HorizontalOptions="Center"/>
+
+                    <Label Text="{Binding StationName}" 
+                           FontSize="14"
+                           TextColor="#64748B"
+                           HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Today's Stats -->
+            <Border StrokeShape="RoundRectangle 15"
+                    BackgroundColor="White"
+                    Padding="20"
+                    StrokeThickness="0">
+                <Border.Shadow>
+                    <Shadow Brush="Black" Opacity="0.1" Radius="10" Offset="0,2"/>
+                </Border.Shadow>
+
+                <VerticalStackLayout Spacing="15">
+                    <Label Text="Today's Stats" 
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="#1E3A8A"/>
+
+                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                        <HorizontalStackLayout Grid.Row="0" Spacing="10">
+                            <Label Text="�" FontSize="20" TextColor="#10B981"/>
+                            <Label Text="Sales:" FontSize="14" TextColor="#64748B" VerticalOptions="Center"/>
+                            <Label Text="{Binding TodaysTransactions, StringFormat='{0} transactions'}" 
+                                   FontSize="14" 
+                                   FontAttributes="Bold"
+                                   TextColor="#1E293B"
+                                   VerticalOptions="Center"/>
+                        </HorizontalStackLayout>
+
+                        <HorizontalStackLayout Grid.Row="1" Spacing="10">
+                            <Label Text="�" FontSize="20" TextColor="#10B981"/>
+                            <Label Text="Amount:" FontSize="14" TextColor="#64748B" VerticalOptions="Center"/>
+                            <Label Text="{Binding TodaysAmount, StringFormat='RWF {0:N0}'}" 
+                                   FontSize="14" 
+                                   FontAttributes="Bold"
+                                   TextColor="#1E293B"
+                                   VerticalOptions="Center"/>
+                        </HorizontalStackLayout>
+
+                        <HorizontalStackLayout Grid.Row="2" Spacing="10">
+                            <Label Text="�" FontSize="20" TextColor="#10B981"/>
+                            <Label Text="Shift:" FontSize="14" TextColor="#64748B" VerticalOptions="Center"/>
+                            <Label Text="{Binding ShiftStartTime, StringFormat='{0:HH:mm} - Now'}" 
+                                   FontSize="14" 
+                                   FontAttributes="Bold"
+                                   TextColor="#1E293B"
+                                   VerticalOptions="Center"
+                                   IsVisible="{Binding IsClockedIn}"/>
+                            <Label Text="Not clocked in" 
+                                   FontSize="14" 
+                                   TextColor="#F59E0B"
+                                   VerticalOptions="Center"
+                                   IsVisible="{Binding IsClockedIn, Converter={StaticResource InvertedBoolConverter}}"/>
+                        </HorizontalStackLayout>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Actions -->
+            <Label Text="Actions" 
+                   FontSize="18" 
+                   FontAttributes="Bold"
+                   TextColor="#1E3A8A"/>
+
+            <Button Command="{Binding ClockInOutCommand}"
+                    BackgroundColor="{Binding IsClockedIn, Converter={StaticResource BoolToClockButtonColorConverter}}"
+                    TextColor="White"
+                    FontSize="16"
+                    FontAttributes="Bold"
+                    HeightRequest="55"
+                    CornerRadius="10">
+                <Button.Text>
+                    <Binding Path="IsClockedIn">
+                        <Binding.Converter>
+                            <StaticResource Key="BoolToClockInOutTextConverter"/>
+                        </Binding.Converter>
+                    </Binding>
+                </Button.Text>
+            </Button>
+
+            <Button Text="?? Shift Summary"
+                    Command="{Binding ShiftSummaryCommand}"
+                    BackgroundColor="#3B82F6"
+                    TextColor="White"
+                    FontSize="16"
+                    HeightRequest="55"
+                    CornerRadius="10"/>
+
+            <Button Text="?? Change Password"
+                    Command="{Binding ChangePasswordCommand}"
+                    BackgroundColor="#64748B"
+                    TextColor="White"
+                    FontSize="16"
+                    HeightRequest="55"
+                    CornerRadius="10"/>
+
+            <Button Text="?? Logout"
+                    Command="{Binding LogoutCommand}"
+                    BackgroundColor="#EF4444"
+                    TextColor="White"
+                    FontSize="16"
+                    FontAttributes="Bold"
+                    HeightRequest="55"
+                    CornerRadius="10"
+                    Margin="0,20,0,0"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

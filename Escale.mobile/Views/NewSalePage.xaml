@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Escale.mobile.ViewModels"
+             xmlns:models="clr-namespace:Escale.mobile.Models"
+             x:Class="Escale.mobile.Views.NewSalePage"
+             x:DataType="vm:NewSaleViewModel"
+             Title="New Sale"
+             BackgroundColor="#F8F9FA">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="20">
+
+            <Label Text="NEW SALE" 
+                   FontSize="24" 
+                   FontAttributes="Bold"
+                   TextColor="#1E3A8A"/>
+
+            <!-- Fuel Type Dropdown -->
+            <Label Text="Fuel Type" 
+                   FontSize="16" 
+                   FontAttributes="Bold"
+                   TextColor="#1E293B"/>
+
+            <Border StrokeShape="RoundRectangle 10"
+                    Stroke="#E2E8F0"
+                    BackgroundColor="White"
+                    Padding="15,5">
+                <Picker ItemsSource="{Binding FuelTypes}"
+                        SelectedItem="{Binding SelectedFuelType}"
+                        ItemDisplayBinding="{Binding DisplayText}"
+                        Title="Select Fuel Type"
+                        FontSize="16"
+                        TextColor="#1E293B"/>
+            </Border>
+
+            <!-- Price Display -->
+            <Label Text="{Binding SelectedFuelType.PricePerLiter, StringFormat='Price: RWF {0:N0}/L'}" 
+                   FontSize="14"
+                   FontAttributes="Bold"
+                   TextColor="#10B981"
+                   IsVisible="{Binding SelectedFuelType, Converter={StaticResource ObjectToBoolConverter}}"/>
+
+            <!-- Amount Input -->
+            <Label Text="Amount (RWF)" 
+                   FontSize="16" 
+                   FontAttributes="Bold"
+                   TextColor="#1E293B"
+                   Margin="0,10,0,0"/>
+
+            <Border StrokeShape="RoundRectangle 10"
+                    Stroke="#E2E8F0"
+                    BackgroundColor="White"
+                    Padding="15,10">
+                <Entry Placeholder="Enter amount in RWF"
+                       Text="{Binding AmountRWFText}"
+                       Keyboard="Numeric"
+                       FontSize="16"
+                       TextColor="#1E293B"/>
+            </Border>
+
+            <Label Text="OR" 
+                   HorizontalOptions="Center"
+                   FontSize="14"
+                   FontAttributes="Bold"
+                   TextColor="#94A3B8"/>
+
+            <!-- Liters Input -->
+            <Label Text="Liters" 
+                   FontSize="16" 
+                   FontAttributes="Bold"
+                   TextColor="#1E293B"/>
+
+            <Border StrokeShape="RoundRectangle 10"
+                    Stroke="#E2E8F0"
+                    BackgroundColor="White"
+                    Padding="15,10">
+                <Entry Placeholder="Enter liters"
+                       Text="{Binding LitersText}"
+                       Keyboard="Numeric"
+                       FontSize="16"
+                       TextColor="#1E293B"/>
+            </Border>
+
+            <!-- Calculated Value Display -->
+            <Border StrokeShape="RoundRectangle 10"
+                    BackgroundColor="#EEF2FF"
+                    Padding="15"
+                    IsVisible="{Binding CalculationDisplay, Converter={StaticResource StringToBoolConverter}}">
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="Calculation:" 
+                           FontSize="14"
+                           TextColor="#64748B"/>
+                    <Label Text="{Binding CalculationDisplay}" 
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           TextColor="#1E3A8A"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Payment Method Dropdown -->
+            <Label Text="Payment Method" 
+                   FontSize="16" 
+                   FontAttributes="Bold"
+                   TextColor="#1E293B"
+                   Margin="0,10,0,0"/>
+
+            <Border StrokeShape="RoundRectangle 10"
+                    Stroke="#E2E8F0"
+                    BackgroundColor="White"
+                    Padding="15,5">
+                <Picker ItemsSource="{Binding PaymentMethods}"
+                        SelectedItem="{Binding SelectedPaymentMethod}"
+                        Title="Select Payment Method"
+                        FontSize="16"
+                        TextColor="#1E293B"/>
+            </Border>
+
+            <!-- Buttons -->
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="15" Margin="0,20,0,0">
+                <Button Grid.Column="0"
+                        Text="Cancel"
+                        Command="{Binding CancelCommand}"
+                        BackgroundColor="#E2E8F0"
+                        TextColor="#475569"
+                        FontSize="16"
+                        HeightRequest="55"
+                        CornerRadius="10"/>
+
+                <Button Grid.Column="1"
+                        Text="Continue"
+                        Command="{Binding ContinueCommand}"
+                        BackgroundColor="#1E3A8A"
+                        TextColor="White"
+                        FontSize="16"
+                        FontAttributes="Bold"
+                        HeightRequest="55"
+                        CornerRadius="10"/>
+            </Grid>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Escale.mobile.ViewModels"
+             xmlns:models="clr-namespace:Escale.mobile.Models"
+             x:Class="Escale.mobile.Views.CustomerSearchPage"
+             x:DataType="vm:CustomerSearchViewModel"
+             Title="Credit Customer Search"
+             BackgroundColor="#F8F9FA">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="20">
+
+            <Label Text="NEW SALE - CREDIT CUSTOMER" 
+                   FontSize="20" 
+                   FontAttributes="Bold"
+                   TextColor="#1E3A8A"/>
+
+            <Label Text="Search by:" 
+                   FontSize="16"
+                   TextColor="#64748B"/>
+
+            <!-- Plate Number Search -->
+            <Border StrokeShape="RoundRectangle 10"
+                    Stroke="#E2E8F0"
+                    BackgroundColor="White"
+                    Padding="15,10">
+                <Entry Placeholder="Plate Number (e.g., RCA 123 C)"
+                       Text="{Binding SearchTerm}"
+                       FontSize="16"
+                       TextColor="#1E293B"/>
+            </Border>
+
+            <Label Text="OR" 
+                   HorizontalOptions="Center"
+                   FontSize="14"
+                   TextColor="#94A3B8"/>
+
+            <!-- Car PIN Search -->
+            <Border StrokeShape="RoundRectangle 10"
+                    Stroke="#E2E8F0"
+                    BackgroundColor="White"
+                    Padding="15,10">
+                <Entry Placeholder="Car PIN"
+                       Text="{Binding SearchTerm}"
+                       FontSize="16"
+                       TextColor="#1E293B"/>
+            </Border>
+
+            <!-- Search Button -->
+            <Button Text="Search"
+                    Command="{Binding SearchCommand}"
+                    BackgroundColor="#1E3A8A"
+                    TextColor="White"
+                    FontSize="16"
+                    FontAttributes="Bold"
+                    HeightRequest="55"
+                    CornerRadius="10"
+                    IsEnabled="{Binding IsSearching, Converter={StaticResource InvertedBoolConverter}}"/>
+
+            <ActivityIndicator IsRunning="{Binding IsSearching}"
+                             IsVisible="{Binding IsSearching}"
+                             Color="#1E3A8A"
+                             HeightRequest="40"/>
+
+            <!-- Search Results -->
+            <Label Text="Search Results:" 
+                   FontSize="16"
+                   FontAttributes="Bold"
+                   TextColor="#1E3A8A"
+                   IsVisible="{Binding HasSearched}"/>
+
+            <CollectionView ItemsSource="{Binding SearchResults}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:CustomerInfo">
+                        <Border StrokeShape="RoundRectangle 15"
+                                BackgroundColor="White"
+                                Padding="20"
+                                Margin="0,0,0,15"
+                                StrokeThickness="0">
+                            <Border.Shadow>
+                                <Shadow Brush="Black" Opacity="0.1" Radius="10" Offset="0,2"/>
+                            </Border.Shadow>
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer 
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:CustomerSearchViewModel}}, Path=SelectCustomerCommand}"
+                                    CommandParameter="{Binding .}"/>
+                            </Border.GestureRecognizers>
+
+                            <VerticalStackLayout Spacing="8">
+                                <Label Text="{Binding PlateNumber}" 
+                                       FontSize="20"
+                                       FontAttributes="Bold"
+                                       TextColor="#1E3A8A"/>
+
+                                <Label Text="{Binding VehicleModel}" 
+                                       FontSize="16"
+                                       TextColor="#64748B"/>
+
+                                <Label Text="{Binding Name}" 
+                                       FontSize="16"
+                                       TextColor="#1E293B"/>
+
+                                <HorizontalStackLayout Spacing="5">
+                                    <Label Text="Credit Limit:" 
+                                           FontSize="14"
+                                           TextColor="#64748B"/>
+                                    <Label Text="{Binding CreditLimit, StringFormat='RWF {0:N0}'}" 
+                                           FontSize="14"
+                                           FontAttributes="Bold"
+                                           TextColor="#10B981"/>
+                                </HorizontalStackLayout>
+
+                                <HorizontalStackLayout Spacing="5">
+                                    <Label Text="Current Credit:" 
+                                           FontSize="14"
+                                           TextColor="#64748B"/>
+                                    <Label Text="{Binding CurrentCredit, StringFormat='RWF {0:N0}'}" 
+                                           FontSize="14"
+                                           FontAttributes="Bold"
+                                           TextColor="#F59E0B"/>
+                                </HorizontalStackLayout>
+
+                                <Label Text="Tap to Select" 
+                                       FontSize="12"
+                                       TextColor="#3B82F6"
+                                       HorizontalOptions="End"
+                                       Margin="0,5,0,0"/>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout VerticalOptions="Center" Padding="40"
+                                       IsVisible="{Binding HasSearched}">
+                        <Label Text="No customers found" 
+                               FontSize="16"
+                               TextColor="#64748B"
+                               HorizontalOptions="Center"
+                               Margin="0,20,0,0"/>
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+            </CollectionView>
+
+            <!-- Cancel Button -->
+            <Button Text="Cancel"
+                    Command="{Binding CancelCommand}"
+                    BackgroundColor="#E2E8F0"
+                    TextColor="#475569"
+                    FontSize="16"
+                    HeightRequest="55"
+                    CornerRadius="10"
+                    Margin="0,20,0,0"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

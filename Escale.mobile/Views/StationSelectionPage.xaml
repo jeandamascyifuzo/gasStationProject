@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Escale.mobile.ViewModels"
+             xmlns:models="clr-namespace:Escale.mobile.Models"
+             x:Class="Escale.mobile.Views.StationSelectionPage"
+             x:DataType="vm:StationSelectionViewModel"
+             Title="Select Station"
+             BackgroundColor="#F8F9FA">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="20">
+            
+            <Label Text="Select Your Station" 
+                   FontSize="24" 
+                   FontAttributes="Bold"
+                   TextColor="#1E3A8A"
+                   Margin="0,20,0,10"/>
+
+            <CollectionView ItemsSource="{Binding Stations}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:StationInfo">
+                        <Border StrokeShape="RoundRectangle 15"
+                                Stroke="#E2E8F0"
+                                BackgroundColor="White"
+                                Padding="20"
+                                Margin="0,0,0,15">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer 
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:StationSelectionViewModel}}, Path=SelectStationCommand}"
+                                    CommandParameter="{Binding .}"/>
+                            </Border.GestureRecognizers>
+                            
+                            <Grid ColumnDefinitions="60,*,Auto" ColumnSpacing="15">
+                                <Border Grid.Column="0"
+                                        StrokeShape="RoundRectangle 10"
+                                        BackgroundColor="#EEF2FF"
+                                        HeightRequest="60"
+                                        WidthRequest="60">
+                                    <Label Text="?" 
+                                           FontSize="30"
+                                           HorizontalOptions="Center"
+                                           VerticalOptions="Center"/>
+                                </Border>
+
+                                <VerticalStackLayout Grid.Column="1" Spacing="5">
+                                    <Label Text="{Binding Name}" 
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           TextColor="#1E293B"/>
+                                    <Label Text="{Binding Location}" 
+                                           FontSize="14"
+                                           TextColor="#64748B"/>
+                                </VerticalStackLayout>
+
+                                <Label Grid.Column="2"
+                                       Text="?"
+                                       FontSize="24"
+                                       TextColor="#94A3B8"
+                                       VerticalOptions="Center"/>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <HorizontalStackLayout Spacing="10" Margin="0,20,0,0">
+                <CheckBox IsChecked="{Binding RememberChoice}"/>
+                <Label Text="Remember my choice" 
+                       VerticalOptions="Center"
+                       TextColor="#64748B"/>
+            </HorizontalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

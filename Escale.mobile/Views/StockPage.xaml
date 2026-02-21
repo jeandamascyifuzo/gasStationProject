@@ -1,0 +1,111 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Escale.mobile.ViewModels"
+             xmlns:models="clr-namespace:Escale.mobile.Models"
+             x:Class="Escale.mobile.Views.StockPage"
+             x:DataType="vm:StockViewModel"
+             Title="Stock Levels"
+             BackgroundColor="#F8F9FA">
+
+    <RefreshView Command="{Binding RefreshCommand}"
+                 IsRefreshing="{Binding IsRefreshing}">
+        <ScrollView>
+            <VerticalStackLayout Padding="20" Spacing="20">
+
+                <!-- Header -->
+                <Label Text="CURRENT STOCK LEVELS" 
+                       FontSize="20" 
+                       FontAttributes="Bold"
+                       TextColor="#1E3A8A"/>
+
+                <!-- Stock Items -->
+                <CollectionView ItemsSource="{Binding StockLevels}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:StockLevel">
+                            <Border StrokeShape="RoundRectangle 15"
+                                    BackgroundColor="White"
+                                    Padding="20"
+                                    Margin="0,0,0,15"
+                                    StrokeThickness="0">
+                                <Border.Shadow>
+                                    <Shadow Brush="Black" Opacity="0.1" Radius="10" Offset="0,2"/>
+                                </Border.Shadow>
+                                
+                                <VerticalStackLayout Spacing="15">
+                                    <!-- Fuel Type Header -->
+                                    <Label Text="{Binding FuelType}" 
+                                           FontSize="20"
+                                           FontAttributes="Bold"
+                                           TextColor="#1E3A8A"/>
+
+                                    <!-- Level Info -->
+                                    <HorizontalStackLayout Spacing="5">
+                                        <Label Text="{Binding CurrentLevel, StringFormat='{0:N0}'}" 
+                                               FontSize="18"
+                                               FontAttributes="Bold"
+                                               TextColor="#1E293B"/>
+                                        <Label Text="/" 
+                                               FontSize="18"
+                                               TextColor="#64748B"/>
+                                        <Label Text="{Binding Capacity, StringFormat='{0:N0} L'}" 
+                                               FontSize="18"
+                                               TextColor="#64748B"/>
+                                    </HorizontalStackLayout>
+
+                                    <!-- Progress Bar -->
+                                    <ProgressBar Progress="{Binding PercentageRemaining, Converter={StaticResource PercentToDecimalConverter}}"
+                                                ProgressColor="{Binding StatusColor}"
+                                                HeightRequest="10"/>
+
+                                    <!-- Status -->
+                                    <HorizontalStackLayout Spacing="10">
+                                        <Label Text="Status:" 
+                                               FontSize="14"
+                                               TextColor="#64748B"/>
+                                        <Label Text="{Binding Status}" 
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               TextColor="{Binding StatusColor}"/>
+                                        <Label Text="{Binding PercentageRemaining, StringFormat='({0:F1}%)'}" 
+                                               FontSize="14"
+                                               TextColor="#64748B"/>
+                                    </HorizontalStackLayout>
+                                </VerticalStackLayout>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <!-- Last Updated -->
+                <Label Text="{Binding LastUpdated, StringFormat='Last Updated: {0:HH:mm}'}" 
+                       FontSize="12"
+                       TextColor="#64748B"
+                       HorizontalOptions="Center"/>
+
+                <!-- Action Buttons -->
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="15" Margin="0,10,0,0">
+                    <Button Grid.Column="0"
+                            Text="?? View History"
+                            Command="{Binding ViewHistoryCommand}"
+                            BackgroundColor="#64748B"
+                            TextColor="White"
+                            FontSize="14"
+                            HeightRequest="50"
+                            CornerRadius="10"/>
+
+                    <Button Grid.Column="1"
+                            Text="?? Request Reorder"
+                            Command="{Binding RequestReorderCommand}"
+                            BackgroundColor="#10B981"
+                            TextColor="White"
+                            FontSize="14"
+                            HeightRequest="50"
+                            CornerRadius="10"/>
+                </Grid>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+
+</ContentPage>

@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Escale.mobile.ViewModels"
+             xmlns:models="clr-namespace:Escale.mobile.Models"
+             x:Class="Escale.mobile.Views.DashboardPage"
+             x:DataType="vm:DashboardViewModel"
+             Title="Dashboard"
+             BackgroundColor="#F8F9FA">
+
+    <RefreshView Command="{Binding RefreshCommand}"
+                 IsRefreshing="{Binding IsRefreshing}">
+        <ScrollView>
+            <VerticalStackLayout Padding="20" Spacing="20">
+
+                <!-- Header -->
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="{Binding UserName, StringFormat='Welcome, {0}'}" 
+                           FontSize="24" 
+                           FontAttributes="Bold"
+                           TextColor="#1E3A8A"/>
+                    <Label Text="{Binding StationName}" 
+                           FontSize="16"
+                           TextColor="#64748B"/>
+                </VerticalStackLayout>
+
+                <!-- Summary Cards -->
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="15" RowSpacing="15">
+                    
+                    <!-- Today's Sales -->
+                    <Border Grid.Row="0" Grid.Column="0"
+                            StrokeShape="RoundRectangle 15"
+                            BackgroundColor="White"
+                            Padding="20"
+                            StrokeThickness="0">
+                        <Border.Shadow>
+                            <Shadow Brush="Black" Opacity="0.1" Radius="10" Offset="0,2"/>
+                        </Border.Shadow>
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="Today's Sales" 
+                                   FontSize="12"
+                                   TextColor="#64748B"/>
+                            <Label Text="{Binding TodaysSales, StringFormat='RWF {0:N0}'}" 
+                                   FontSize="20"
+                                   FontAttributes="Bold"
+                                   TextColor="#1E3A8A"/>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Transactions -->
+                    <Border Grid.Row="0" Grid.Column="1"
+                            StrokeShape="RoundRectangle 15"
+                            BackgroundColor="White"
+                            Padding="20"
+                            StrokeThickness="0">
+                        <Border.Shadow>
+                            <Shadow Brush="Black" Opacity="0.1" Radius="10" Offset="0,2"/>
+                        </Border.Shadow>
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="Transactions" 
+                                   FontSize="12"
+                                   TextColor="#64748B"/>
+                            <Label Text="{Binding TransactionCount}" 
+                                   FontSize="20"
+                                   FontAttributes="Bold"
+                                   TextColor="#1E3A8A"/>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Low Stock Alert -->
+                    <Border Grid.Row="1" Grid.ColumnSpan="2"
+                            StrokeShape="RoundRectangle 15"
+                            BackgroundColor="#FEF3C7"
+                            Padding="20"
+                            StrokeThickness="0"
+                            IsVisible="{Binding LowStockAlerts.Count}">
+                        <VerticalStackLayout Spacing="10">
+                            <HorizontalStackLayout Spacing="10">
+                                <Label Text="Low Stock Alert" 
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#92400E"/>
+                            </HorizontalStackLayout>
+                            <CollectionView ItemsSource="{Binding LowStockAlerts}">
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="models:StockAlert">
+                                        <Label>
+                                            <Label.FormattedText>
+                                                <FormattedString>
+                                                    <Span Text="{Binding FuelType}" FontAttributes="Bold"/>
+                                                    <Span Text=": "/>
+                                                    <Span Text="{Binding CurrentLevel, StringFormat='{0:N0} L'}"/>
+                                                </FormattedString>
+                                            </Label.FormattedText>
+                                        </Label>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <!-- Quick Actions -->
+                <Label Text="Quick Actions" 
+                       FontSize="18" 
+                       FontAttributes="Bold"
+                       TextColor="#1E3A8A"
+                       Margin="0,10,0,0"/>
+
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="15">
+                    <Button Grid.Column="0"
+                            Text="New Sale"
+                            Command="{Binding NewSaleCommand}"
+                            BackgroundColor="#10B981"
+                            TextColor="White"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            HeightRequest="100"
+                            CornerRadius="15"/>
+
+                    <Button Grid.Column="1"
+                            Text="Check Stock"
+                            Command="{Binding CheckStockCommand}"
+                            BackgroundColor="#3B82F6"
+                            TextColor="White"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            HeightRequest="100"
+                            CornerRadius="15"/>
+                </Grid>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+
+</ContentPage>
