@@ -1,4 +1,7 @@
-using Escale.API.Models;
+using Escale.API.DTOs.Auth;
+using Escale.API.DTOs.Common;
+using Escale.API.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Escale.API.Controllers;
@@ -7,84 +10,44 @@ namespace Escale.API.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private readonly ILogger<AuthController> _logger;
+    private readonly IAuthService _authService;
 
-    public AuthController(ILogger<AuthController> logger)
+    public AuthController(IAuthService authService)
     {
-        _logger = logger;
+        _authService = authService;
     }
 
     [HttpPost("login")]
-    public ActionResult<LoginResponse> Login([FromBody] LoginRequest request)
+    [AllowAnonymous]
+    public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequestDto request)
     {
-        try
-        {
-            _logger.LogInformation($"Login attempt for user: {request.Username}");
-
-            // TODO: Implement real authentication with database
-            // This is a temporary implementation for testing
-            if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
-            {
-                return Ok(new LoginResponse
-                {
-                    Success = false,
-                    Message = "Username and password are required"
-                });
-            }
-
-            // Temporary demo user - replace with real authentication
-            if (request.Username.Equals("admin", StringComparison.OrdinalIgnoreCase) && 
-                request.Password == "admin123")
-            {
-                var response = new LoginResponse
-                {
-                    Success = true,
-                    Token = GenerateToken(),
-                    Message = "Login successful",
-                    User = new UserInfo
-                    {
-                        Id = 1,
-                        Username = request.Username,
-                        FullName = "Admin User",
-                        Role = "Cashier",
-                        AssignedStations = new List<StationInfo>
-                        {
-                            new StationInfo
-                            {
-                                Id = 1,
-                                Name = "Main Station",
-                                Location = "Downtown",
-                                Address = "123 Main St, Kigali"
-                            }
-                        }
-                    }
-                };
-
-                return Ok(response);
-            }
-
-            return Ok(new LoginResponse
-            {
-                Success = false,
-                Message = "Invalid username or password"
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during login");
-            return Ok(new LoginResponse
-            {
-                Success = false,
-                Message = "An error occurred during login"
-            });
-        }
+        var result = await _authService.LoginAsync(request);
+        if (!result.Success) return Unauthorized(result);
+        return Ok(result);
     }
 
-    private string GenerateToken()
+    [HttpPost("register")]
+    [AllowAnonymous]
+    public async Task<ActionResult<LoginResponseDto>> Register([FromBody] RegisterRequestDto request)
     {
-        // TODO: Implement proper JWT token generation
-        // This is a temporary implementation
-        var guid = Guid.NewGuid().ToString();
-        return Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"token_{guid}"));
+        var result = await _authService.RegisterAsync(request);
+        return Ok(result);
+    }
+
+    [HttpPost("refresh-token")]
+    [AllowAnonymous]
+    public async Task<ActionResult<LoginResponseDto>> RefreshToken([FromBody] RefreshTokenRequestDto request)
+    {
+        var result = await _authService.RefreshTokenAsync(request);
+        if (!result.Success) return Unauthorized(result);
+        return Ok(result);
+    }
+
+    [HttpPost("revoke-token")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse>> RevokeToken([FromBody] RefreshTokenRequestDto request)
+    {
+        await _authService.RevokeTokenAsync(request.RefreshToken);
+        return Ok(ApiResponse.SuccessResponse("Token revoked"));
     }
 }
