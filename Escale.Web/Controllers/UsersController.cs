@@ -1,58 +1,139 @@
 using Escale.Web.Models;
+using Escale.Web.Models.Api;
+using Escale.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Escale.Web.Controllers
 {
     public class UsersController : Controller
     {
-        public IActionResult Index()
+        private readonly IApiUserService _userService;
+        private readonly IApiStationService _stationService;
+
+        public UsersController(IApiUserService userService, IApiStationService stationService)
         {
-            // TODO: Replace with actual data from database
+            _userService = userService;
+            _stationService = stationService;
+        }
+
+        public async Task<IActionResult> Index(int page = 1, string? search = null)
+        {
+            var usersTask = _userService.GetAllAsync(page, 20, search);
+            var stationsTask = _stationService.GetAllAsync();
+
+            await Task.WhenAll(usersTask, stationsTask);
+
+            var usersResult = usersTask.Result;
+            var stationsResult = stationsTask.Result;
+
             var model = new UserViewModel
             {
-                Users = new List<User>
+                Users = usersResult.Data?.Items?.Select(u => new User
                 {
-                    new() { Id = 1, Name = "Admin User", Email = "admin@escale.rw", Phone = "+250788111111", Role = "Admin", IsActive = true, LastLogin = DateTime.Now.AddHours(-1) },
-                    new() { Id = 2, Name = "John Doe", Email = "john@escale.rw", Phone = "+250788123456", Role = "Manager", StationId = 1, StationName = "Kigali Central", IsActive = true, LastLogin = DateTime.Now.AddHours(-3) },
-                    new() { Id = 3, Name = "Jane Smith", Email = "jane@escale.rw", Phone = "+250788234567", Role = "Manager", StationId = 2, StationName = "Remera Branch", IsActive = true, LastLogin = DateTime.Now.AddDays(-1) },
-                    new() { Id = 4, Name = "Mike Cashier", Email = "mike@escale.rw", Phone = "+250788345678", Role = "Cashier", StationId = 1, StationName = "Kigali Central", IsActive = true, LastLogin = DateTime.Now.AddHours(-2) }
-                },
-                Stations = new List<Station>
+                    Id = u.Id,
+                    Username = u.Username,
+                    FullName = u.FullName,
+                    Email = u.Email,
+                    Phone = u.Phone,
+                    Role = u.Role,
+                    IsActive = u.IsActive,
+                    LastLoginAt = u.LastLoginAt,
+                    CreatedAt = u.CreatedAt,
+                    AssignedStations = u.AssignedStations.Select(s => new StationInfo
+                    {
+                        Id = s.Id,
+                        Name = s.Name,
+                        Location = s.Location
+                    }).ToList()
+                }).ToList() ?? new(),
+                Stations = stationsResult.Data?.Select(s => new Station
                 {
-                    new() { Id = 1, Name = "Kigali Central Station" },
-                    new() { Id = 2, Name = "Remera Branch" },
-                    new() { Id = 3, Name = "Kimironko Station" }
-                }
+                    Id = s.Id,
+                    Name = s.Name,
+                    Location = s.Location
+                }).ToList() ?? new(),
+                TotalCount = usersResult.Data?.TotalCount ?? 0,
+                Page = usersResult.Data?.Page ?? 1,
+                PageSize = usersResult.Data?.PageSize ?? 20,
+                TotalPages = usersResult.Data?.TotalPages ?? 0
             };
 
             return View(model);
         }
 
         [HttpPost]
-        public IActionResult Create(User user)
+        public async Task<IActionResult> Create(User user)
         {
-            // TODO: Save to database
+            var request = new CreateUserRequestDto
+            {
+                Username = user.Username,
+                Password = user.Password ?? "TempPass123!",
+                FullName = user.FullName,
+                Email = user.Email,
+                Phone = user.Phone,
+                Role = user.Role,
+                StationIds = user.StationIds
+            };
+
+            var result = await _userService.CreateAsync(request);
+            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+                result.Success ? "User created successfully!" : result.Message;
+
             return RedirectToAction("Index");
         }
 
         [HttpPost]
-        public IActionResult Edit(User user)
+        public async Task<IActionResult> Edit(User user)
         {
-            // TODO: Update in database
+            var request = new UpdateUserRequestDto
+            {
+                FullName = user.FullName,
+                Email = user.Email,
+                Phone = user.Phone,
+                Role = user.Role,
+                StationIds = user.StationIds
+            };
+
+            var result = await _userService.UpdateAsync(user.Id, request);
+            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+                result.Success ? "User updated successfully!" : result.Message;
+
             return RedirectToAction("Index");
         }
 
         [HttpPost]
-        public IActionResult ResetPassword(int id)
+        public async Task<IActionResult> ResetPassword(Guid id, string newPassword, string currentPassword)
         {
-            // TODO: Send password reset email
+            var request = new ChangePasswordRequestDto
+            {
+                CurrentPassword = currentPassword,
+                NewPassword = newPassword
+            };
+
+            var result = await _userService.ChangePasswordAsync(id, request);
+            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+                result.Success ? "Password changed successfully!" : result.Message;
+
             return RedirectToAction("Index");
         }
 
         [HttpPost]
-        public IActionResult ToggleStatus(int id)
+        public async Task<IActionResult> Delete(Guid id)
         {
-            // TODO: Toggle user status in database
+            var result = await _userService.DeleteAsync(id);
+            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+                result.Success ? "User deleted successfully!" : result.Message;
+
+            return RedirectToAction("Index");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ToggleStatus(Guid id)
+        {
+            var result = await _userService.ToggleStatusAsync(id);
+            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+                result.Success ? "User status updated!" : result.Message;
+
             return RedirectToAction("Index");
         }
     }

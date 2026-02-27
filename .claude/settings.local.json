@@ -58,7 +58,15 @@
       "Bash(dotnet build:*)",
       "Bash(dotnet ef migrations:*)",
       "Bash(dotnet tool install:*)",
-      "Bash(\"$USERPROFILE/.dotnet/tools/dotnet-ef\" migrations add InitialCreate)"
+      "Bash(\"$USERPROFILE/.dotnet/tools/dotnet-ef\" migrations add InitialCreate)",
+      "Bash(cd /c/Users/cyifu/Desktop/project/GasManagement/Escale.API && dotnet ef database drop -f 2>&1)",
+      "Bash(dotnet tool install --global dotnet-ef 2>&1 || dotnet tool update --global dotnet-ef 2>&1)",
+      "Bash(export PATH=\"$PATH:$HOME/.dotnet/tools\" && cd /c/Users/cyifu/Desktop/project/GasManagement/Escale.API && dotnet ef database drop -f 2>&1)",
+      "Bash(tail:*)",
+      "Bash(export PATH=\"$PATH:$HOME/.dotnet/tools\" && cd /c/Users/cyifu/Desktop/project/GasManagement/Escale.API && dotnet build 2>&1)",
+      "Bash(export PATH=\"$PATH:$HOME/.dotnet/tools\" && cd /c/Users/cyifu/Desktop/project/GasManagement/Escale.API && dotnet ef database drop --force --verbose 2>&1)",
+      "Bash(export PATH=\"$PATH:$HOME/.dotnet/tools\" && cd /c/Users/cyifu/Desktop/project/GasManagement/Escale.API && dotnet ef database update 2>&1)",
+      "Bash(true:*)"
     ]
   }
 }

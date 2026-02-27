@@ -17,18 +17,26 @@
             </div>
         </div>
 
+        @if (!string.IsNullOrEmpty(Model?.ErrorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i>@Model.ErrorMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
         <form asp-controller="Account" asp-action="Login" method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
-            
+
             <div class="mb-4">
-                <label asp-for="Email" class="form-label fw-bold">Email Address</label>
+                <label asp-for="Username" class="form-label fw-bold">Username</label>
                 <div class="input-group input-group-lg">
                     <span class="input-group-text" style="background: rgba(33, 158, 188, 0.1); border-color: var(--border-color);">
-                        <i class="fas fa-envelope" style="color: var(--primary-color);"></i>
+                        <i class="fas fa-user" style="color: var(--primary-color);"></i>
                     </span>
-                    <input asp-for="Email" class="form-control" placeholder="Enter your email" />
+                    <input asp-for="Username" class="form-control" placeholder="Enter your username" />
                 </div>
-                <span asp-validation-for="Email" class="text-danger small"></span>
+                <span asp-validation-for="Username" class="text-danger small"></span>
             </div>
 
             <div class="mb-4">

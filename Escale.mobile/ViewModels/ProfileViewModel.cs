@@ -9,27 +9,30 @@ namespace Escale.mobile.ViewModels;
 public partial class ProfileViewModel : ObservableObject
 {
     private readonly ApiService _apiService;
-    
+
     [ObservableProperty]
     private string userName = string.Empty;
-    
+
     [ObservableProperty]
     private string userRole = string.Empty;
-    
+
     [ObservableProperty]
     private string stationName = string.Empty;
-    
+
     [ObservableProperty]
     private bool isClockedIn;
-    
+
     [ObservableProperty]
     private DateTime? shiftStartTime;
-    
+
     [ObservableProperty]
     private int todaysTransactions;
-    
+
     [ObservableProperty]
     private decimal todaysAmount;
+
+    [ObservableProperty]
+    private bool canSwitchStation;
 
     public ProfileViewModel(ApiService apiService)
     {
@@ -47,6 +50,10 @@ public partial class ProfileViewModel : ObservableObject
             IsClockedIn = AppState.Instance.IsClockedIn;
             ShiftStartTime = AppState.Instance.ShiftStartTime;
 
+            // Admin and Manager can switch stations
+            var role = AppState.Instance.CurrentUser?.Role;
+            CanSwitchStation = role == "Admin" || role == "Manager";
+
             await LoadShiftSummary();
         }
         catch (Exception ex)
@@ -59,13 +66,25 @@ public partial class ProfileViewModel : ObservableObject
     {
         try
         {
-            // Simulate API delay
-            await Task.Delay(500);
-            
-            // Load dummy shift data
-            var random = new Random();
-            TodaysTransactions = random.Next(10, 40);
-            TodaysAmount = random.Next(300000, 1500000);
+            var userId = AppState.Instance.CurrentUser?.Id ?? Guid.Empty;
+            var stationId = AppState.Instance.SelectedStation?.Id ?? Guid.Empty;
+
+            if (userId == Guid.Empty || stationId == Guid.Empty) return;
+
+            var summary = await _apiService.GetShiftSummaryAsync(userId, stationId);
+
+            TodaysTransactions = summary.TransactionCount;
+            TodaysAmount = summary.TotalSales;
+
+            if (summary.ShiftStart != default)
+            {
+                ShiftStartTime = summary.ShiftStart;
+                IsClockedIn = summary.ShiftEnd == null;
+                if (IsClockedIn && !AppState.Instance.IsClockedIn)
+                {
+                    AppState.Instance.ClockIn();
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -76,15 +95,54 @@ public partial class ProfileViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task SwitchStation()
+    {
+        try
+        {
+            if (Shell.Current == null) return;
+
+            var stations = AppState.Instance.CurrentUser?.AssignedStations;
+            if (stations == null || stations.Count == 0)
+            {
+                await Shell.Current.DisplayAlert("No Stations", "No stations assigned to your account.", "OK");
+                return;
+            }
+
+            var stationNames = stations.Select(s => s.Name).ToArray();
+            var selected = await Shell.Current.DisplayActionSheet(
+                "Select Station", "Cancel", null, stationNames);
+
+            if (selected == null || selected == "Cancel") return;
+
+            var station = stations.FirstOrDefault(s => s.Name == selected);
+            if (station != null)
+            {
+                AppState.Instance.SetStation(station);
+                StationName = station.Name;
+
+                // Reload shift data for the new station
+                await LoadShiftSummary();
+
+                await Shell.Current.DisplayAlert("Station Changed",
+                    $"Now operating at: {station.Name}", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Switch station error: {ex}");
+        }
+    }
+
+    [RelayCommand]
     private async Task ClockInOut()
     {
         var isClockingIn = !IsClockedIn;
         var action = isClockingIn ? "clock in" : "clock out";
-        
+
         try
         {
             if (Shell.Current == null) return;
-            
+
             var confirm = await Shell.Current.DisplayAlert(
                 "Confirm",
                 $"Are you sure you want to {action}?",
@@ -93,22 +151,31 @@ public partial class ProfileViewModel : ObservableObject
 
             if (!confirm) return;
 
-            // Simulate API delay
-            await Task.Delay(500);
-            
-            if (isClockingIn)
+            var userId = AppState.Instance.CurrentUser?.Id ?? Guid.Empty;
+            var stationId = AppState.Instance.SelectedStation?.Id ?? Guid.Empty;
+
+            var (success, message) = await _apiService.ClockInOutAsync(userId, stationId, isClockingIn);
+
+            if (success)
             {
-                AppState.Instance.ClockIn();
-                ShiftStartTime = DateTime.Now;
+                if (isClockingIn)
+                {
+                    AppState.Instance.ClockIn();
+                    ShiftStartTime = DateTime.Now;
+                }
+                else
+                {
+                    AppState.Instance.ClockOut();
+                    ShiftStartTime = null;
+                }
+
+                IsClockedIn = isClockingIn;
+                await Shell.Current.DisplayAlert("Success", $"Successfully {action}ed", "OK");
             }
             else
             {
-                AppState.Instance.ClockOut();
-                ShiftStartTime = null;
+                await Shell.Current.DisplayAlert("Error", message, "OK");
             }
-            
-            IsClockedIn = isClockingIn;
-            await Shell.Current.DisplayAlert("Success", $"Successfully {action}ed", "OK");
         }
         catch (Exception ex)
         {
@@ -164,7 +231,7 @@ public partial class ProfileViewModel : ObservableObject
         try
         {
             if (Shell.Current == null) return;
-            
+
             var confirm = await Shell.Current.DisplayAlert(
                 "Logout",
                 "Are you sure you want to logout?",
@@ -174,9 +241,8 @@ public partial class ProfileViewModel : ObservableObject
             if (confirm)
             {
                 AppState.Instance.Logout();
-                
-                // Navigate back to login page by replacing main page
-                Application.Current.MainPage = new NavigationPage(
+
+                Application.Current!.MainPage = new NavigationPage(
                     MauiProgram.Services.GetRequiredService<LoginPage>());
             }
         }

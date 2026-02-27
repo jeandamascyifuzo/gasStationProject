@@ -10,6 +10,7 @@ using Escale.API.DTOs.Shifts;
 using Escale.API.DTOs.Stations;
 using Escale.API.DTOs.Stock;
 using Escale.API.DTOs.Transactions;
+using Escale.API.DTOs.Organizations;
 using Escale.API.DTOs.Users;
 
 namespace Escale.API.Mapping;
@@ -93,5 +94,11 @@ public class MappingProfile : Profile
         // OrganizationSettings
         CreateMap<OrganizationSettings, AppSettingsResponseDto>();
         CreateMap<UpdateSettingsRequestDto, OrganizationSettings>();
+
+        // Organization
+        CreateMap<Organization, OrganizationResponseDto>()
+            .ForMember(d => d.StationCount, o => o.MapFrom(s => s.Stations.Count))
+            .ForMember(d => d.UserCount, o => o.MapFrom(s => s.Users.Count));
+        CreateMap<CreateOrganizationRequestDto, Organization>();
     }
 }

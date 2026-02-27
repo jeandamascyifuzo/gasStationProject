@@ -9,13 +9,13 @@ namespace Escale.mobile.ViewModels;
 public partial class StockViewModel : ObservableObject
 {
     private readonly ApiService _apiService;
-    
+
     [ObservableProperty]
     private ObservableCollection<StockLevel> stockLevels = new();
-    
+
     [ObservableProperty]
     private bool isRefreshing;
-    
+
     [ObservableProperty]
     private DateTime lastUpdated;
 
@@ -36,18 +36,15 @@ public partial class StockViewModel : ObservableObject
         IsRefreshing = true;
         try
         {
-            // Simulate API delay
-            await Task.Delay(800);
-            
-            // Load dummy stock data
-            var levels = GetDummyStockLevels();
-            
+            var stationId = AppState.Instance.SelectedStation?.Id ?? Guid.Empty;
+            var levels = await _apiService.GetStockLevelsAsync(stationId);
+
             StockLevels.Clear();
             foreach (var level in levels)
             {
                 StockLevels.Add(level);
             }
-            
+
             LastUpdated = DateTime.Now;
         }
         catch (Exception ex)
@@ -61,50 +58,6 @@ public partial class StockViewModel : ObservableObject
         finally
         {
             IsRefreshing = false;
-        }
-    }
-
-    private List<StockLevel> GetDummyStockLevels()
-    {
-        try
-        {
-            var random = new Random();
-            return new List<StockLevel>
-            {
-                new StockLevel
-                {
-                    FuelType = "Petrol 95",
-                    CurrentLevel = random.Next(8000, 12000),
-                    Capacity = 15000,
-                    LastUpdated = DateTime.Now
-                },
-                new StockLevel
-                {
-                    FuelType = "Petrol 98",
-                    CurrentLevel = random.Next(6000, 9000),
-                    Capacity = 12000,
-                    LastUpdated = DateTime.Now
-                },
-                new StockLevel
-                {
-                    FuelType = "Diesel",
-                    CurrentLevel = random.Next(2000, 3500),
-                    Capacity = 20000,
-                    LastUpdated = DateTime.Now
-                },
-                new StockLevel
-                {
-                    FuelType = "Kerosene",
-                    CurrentLevel = random.Next(3500, 5000),
-                    Capacity = 10000,
-                    LastUpdated = DateTime.Now
-                }
-            };
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error generating dummy stock: {ex}");
-            return new List<StockLevel>();
         }
     }
 

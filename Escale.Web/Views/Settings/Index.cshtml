@@ -10,367 +10,272 @@
     </div>
 </div>
 
-@if (TempData["SuccessMessage"] != null)
-{
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
+@await Html.PartialAsync("_ApiError")
 
 <!-- Tabs -->
 <div class="card shadow">
     <div class="card-header">
         <ul class="nav nav-tabs card-header-tabs" id="settingsTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="company-tab" data-bs-toggle="tab" data-bs-target="#company" type="button" role="tab">
-                    <i class="fas fa-building me-2"></i>Company
+                <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">
+                    <i class="fas fa-sliders-h me-2"></i>General Settings
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="system-tab" data-bs-toggle="tab" data-bs-target="#system" type="button" role="tab">
-                    <i class="fas fa-server me-2"></i>System
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="notifications-tab" data-bs-toggle="tab" data-bs-target="#notifications" type="button" role="tab">
-                    <i class="fas fa-bell me-2"></i>Notifications
+                <button class="nav-link" id="ebm-tab" data-bs-toggle="tab" data-bs-target="#ebm" type="button" role="tab">
+                    <i class="fas fa-plug me-2"></i>EBM Settings
                 </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="pricing-tab" data-bs-toggle="tab" data-bs-target="#pricing" type="button" role="tab">
-                    <i class="fas fa-tags me-2"></i>Fuel Pricing
+                    <i class="fas fa-tags me-2"></i>Fuel Prices
                 </button>
             </li>
         </ul>
     </div>
     <div class="card-body">
-        <div class="tab-content" id="settingsTabsContent">
-            <!-- Company Settings Tab -->
-            <div class="tab-pane fade show active" id="company" role="tabpanel">
-                <form asp-controller="Settings" asp-action="UpdateCompanySettings" method="post">
+        <form asp-controller="Settings" asp-action="UpdateSettings" method="post" id="settingsForm">
+            <div class="tab-content" id="settingsTabsContent">
+
+                <!-- General Settings Tab -->
+                <div class="tab-pane fade show active" id="general" role="tabpanel">
+                    <h5 class="mb-3">Company Information</h5>
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="companyName" class="form-label">Company Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="companyName" name="CompanyName" value="@Model.CompanySettings.CompanyName" required />
+                            <input type="text" class="form-control" id="companyName" name="CompanyName" value="@Model.CompanyName" required />
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="tin" class="form-label">TIN <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="tin" name="TIN" value="@Model.CompanySettings.TIN" required />
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="companyEmail" class="form-label">Email <span class="text-danger">*</span></label>
-                            <input type="email" class="form-control" id="companyEmail" name="Email" value="@Model.CompanySettings.Email" required />
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="companyPhone" class="form-label">Phone <span class="text-danger">*</span></label>
-                            <input type="tel" class="form-control" id="companyPhone" name="Phone" value="@Model.CompanySettings.Phone" required />
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="companyAddress" class="form-label">Address</label>
-                        <textarea class="form-control" id="companyAddress" name="Address" rows="2">@Model.CompanySettings.Address</textarea>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label for="currency" class="form-label">Currency</label>
                             <select class="form-select" id="currency" name="Currency">
-                                <option value="RWF" selected>RWF - Rwandan Franc</option>
-                                <option value="USD">USD - US Dollar</option>
-                                <option value="EUR">EUR - Euro</option>
+                                <option value="RWF" selected="@(Model.Currency == "RWF")">RWF - Rwandan Franc</option>
+                                <option value="USD" selected="@(Model.Currency == "USD")">USD - US Dollar</option>
+                                <option value="EUR" selected="@(Model.Currency == "EUR")">EUR - Euro</option>
                             </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="taxRate" class="form-label">Tax Rate (%)</label>
+                            <input type="number" class="form-control" id="taxRate" name="TaxRate" value="@Model.TaxRate" step="0.01" min="0" max="100" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="receiptHeader" class="form-label">Receipt Header</label>
+                            <textarea class="form-control" id="receiptHeader" name="ReceiptHeader" rows="2" placeholder="Text printed at the top of receipts">@Model.ReceiptHeader</textarea>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="timeZone" class="form-label">Time Zone</label>
-                            <select class="form-select" id="timeZone" name="TimeZone">
-                                <option value="Africa/Kigali" selected>Africa/Kigali (CAT)</option>
-                                <option value="UTC">UTC</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="logo" class="form-label">Company Logo</label>
-                        <input type="file" class="form-control" id="logo" name="Logo" accept="image/*" />
-                        <small class="text-muted">Recommended size: 200x200px</small>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-2"></i>Save Company Settings
-                    </button>
-                </form>
-            </div>
-
-            <!-- System Settings Tab -->
-            <div class="tab-pane fade" id="system" role="tabpanel">
-                <form asp-controller="Settings" asp-action="UpdateSystemSettings" method="post">
-                    <h5 class="mb-3">General Settings</h5>
-                    
-                    <div class="mb-3">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="maintenanceMode" name="MaintenanceMode" @(Model.SystemSettings.MaintenanceMode ? "checked" : "") />
-                            <label class="form-check-label" for="maintenanceMode">
-                                <strong>Maintenance Mode</strong>
-                                <br /><small class="text-muted">When enabled, only administrators can access the system</small>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="sessionTimeout" class="form-label">Session Timeout (minutes)</label>
-                        <input type="number" class="form-control" id="sessionTimeout" name="SessionTimeout" value="@Model.SystemSettings.SessionTimeout" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="lowStockThreshold" class="form-label">Low Stock Threshold (%)</label>
-                        <input type="number" class="form-control" id="lowStockThreshold" name="LowStockThreshold" value="@Model.SystemSettings.LowStockThreshold" />
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="allowNegativeStock" name="AllowNegativeStock" @(Model.SystemSettings.AllowNegativeStock ? "checked" : "") />
-                            <label class="form-check-label" for="allowNegativeStock">
-                                Allow Negative Stock
-                            </label>
+                            <label for="receiptFooter" class="form-label">Receipt Footer</label>
+                            <textarea class="form-control" id="receiptFooter" name="ReceiptFooter" rows="2" placeholder="Text printed at the bottom of receipts">@Model.ReceiptFooter</textarea>
                         </div>
                     </div>
 
                     <hr class="my-4" />
 
-                    <h5 class="mb-3">Backup Settings</h5>
-                    
-                    <div class="mb-3">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="autoBackup" name="AutoBackup" @(Model.SystemSettings.AutoBackup ? "checked" : "") />
-                            <label class="form-check-label" for="autoBackup">
-                                Enable Auto Backup
-                            </label>
+                    <h5 class="mb-3">Sales & Inventory</h5>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="minimumSaleAmount" class="form-label">Minimum Sale Amount</label>
+                            <div class="input-group">
+                                <span class="input-group-text">@Model.Currency</span>
+                                <input type="number" class="form-control" id="minimumSaleAmount" name="MinimumSaleAmount" value="@Model.MinimumSaleAmount" step="0.01" min="0" />
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="maximumSaleAmount" class="form-label">Maximum Sale Amount</label>
+                            <div class="input-group">
+                                <span class="input-group-text">@Model.Currency</span>
+                                <input type="number" class="form-control" id="maximumSaleAmount" name="MaximumSaleAmount" value="@Model.MaximumSaleAmount" step="0.01" min="0" />
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="lowStockThreshold" class="form-label">Low Stock Threshold</label>
+                            <input type="number" class="form-control" id="lowStockThreshold" name="LowStockThreshold" value="@Model.LowStockThreshold" step="0.01" min="0" />
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="backupFrequency" class="form-label">Backup Frequency</label>
-                        <select class="form-select" id="backupFrequency" name="BackupFrequency">
-                            <option value="Hourly" selected="@(Model.SystemSettings.BackupFrequency == "Hourly")">Hourly</option>
-                            <option value="Daily" selected="@(Model.SystemSettings.BackupFrequency == "Daily")">Daily</option>
-                            <option value="Weekly" selected="@(Model.SystemSettings.BackupFrequency == "Weekly")">Weekly</option>
-                        </select>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="criticalStockThreshold" class="form-label">Critical Stock Threshold</label>
+                            <input type="number" class="form-control" id="criticalStockThreshold" name="CriticalStockThreshold" value="@Model.CriticalStockThreshold" step="0.01" min="0" />
+                        </div>
                     </div>
 
-                    <div class="mb-3">
-                        <button type="button" class="btn btn-warning" onclick="runBackupNow()">
-                            <i class="fas fa-database me-2"></i>Run Backup Now
-                        </button>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="allowNegativeStock" name="AllowNegativeStock" value="true" @(Model.AllowNegativeStock ? "checked" : "") />
+                                <label class="form-check-label" for="allowNegativeStock">
+                                    Allow Negative Stock
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="autoPrintReceipt" name="AutoPrintReceipt" value="true" @(Model.AutoPrintReceipt ? "checked" : "") />
+                                <label class="form-check-label" for="autoPrintReceipt">
+                                    Auto-Print Receipt
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="requireCustomerInfo" name="RequireCustomerInfo" value="true" @(Model.RequireCustomerInfo ? "checked" : "") />
+                                <label class="form-check-label" for="requireCustomerInfo">
+                                    Require Customer Info
+                                </label>
+                            </div>
+                        </div>
                     </div>
+                </div>
 
-                    <hr class="my-4" />
-
+                <!-- EBM Settings Tab -->
+                <div class="tab-pane fade" id="ebm" role="tabpanel">
                     <h5 class="mb-3">EBM Integration</h5>
-                    
+
+                    <div class="row mb-4">
+                        <div class="col-md-8">
+                            <div class="card @(Model.EBMConnected ? "border-success" : "border-warning")">
+                                <div class="card-body d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="fas @(Model.EBMConnected ? "fa-check-circle text-success" : "fa-exclamation-triangle text-warning") fa-2x"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">EBM Connection Status: <strong>@Model.EBMStatus</strong></h6>
+                                        @if (Model.EBMLastSync.HasValue)
+                                        {
+                                            <small class="text-muted">Last synced: @Model.EBMLastSync.Value.ToString("yyyy-MM-dd HH:mm:ss")</small>
+                                        }
+                                        else
+                                        {
+                                            <small class="text-muted">Never synced</small>
+                                        }
+                                    </div>
+                                    <div>
+                                        <form asp-controller="Settings" asp-action="SyncEBM" method="post" class="d-inline">
+                                            <button type="submit" class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-sync-alt me-1"></i>Sync Now
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="mb-3">
                         <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="enableEBM" name="EnableEBM" @(Model.SystemSettings.EnableEBM ? "checked" : "") />
-                            <label class="form-check-label" for="enableEBM">
+                            <input class="form-check-input" type="checkbox" id="ebmEnabled" name="EBMEnabled" value="true" @(Model.EBMEnabled ? "checked" : "") />
+                            <label class="form-check-label" for="ebmEnabled">
                                 <strong>Enable EBM Integration</strong>
-                                <br /><small class="text-muted">Connect to Rwanda Revenue Authority's EBM system</small>
+                                <br /><small class="text-muted">Connect to Rwanda Revenue Authority's Electronic Billing Machine system</small>
                             </label>
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label for="ebmApiUrl" class="form-label">EBM API URL</label>
-                        <input type="url" class="form-control" id="ebmApiUrl" name="EBMApiUrl" value="@Model.SystemSettings.EBMApiUrl" placeholder="https://ebm.obr.gov.rw/api" />
+                        <label for="ebmServerUrl" class="form-label">EBM Server URL</label>
+                        <input type="url" class="form-control" id="ebmServerUrl" name="EBMServerUrl" value="@Model.EBMServerUrl" placeholder="https://ebm.rra.gov.rw/api" />
+                        <small class="text-muted">The base URL of the EBM server endpoint.</small>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="ebmApiKey" class="form-label">EBM API Key</label>
-                        <input type="password" class="form-control" id="ebmApiKey" name="EBMApiKey" value="@Model.SystemSettings.EBMApiKey" placeholder="••••••••" />
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> Enabling EBM integration will send transaction data to the Rwanda Revenue Authority for tax compliance.
                     </div>
-
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-2"></i>Save System Settings
-                    </button>
-                </form>
-            </div>
-
-            <!-- Notification Settings Tab -->
-            <div class="tab-pane fade" id="notifications" role="tabpanel">
-                <form asp-controller="Settings" asp-action="UpdateNotificationSettings" method="post">
-                    <h5 class="mb-3">Notification Channels</h5>
-                    
-                    <div class="mb-3">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="emailNotifications" name="EmailNotifications" @(Model.NotificationSettings.EmailNotifications ? "checked" : "") />
-                            <label class="form-check-label" for="emailNotifications">
-                                Enable Email Notifications
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="smsNotifications" name="SMSNotifications" @(Model.NotificationSettings.SMSNotifications ? "checked" : "") />
-                            <label class="form-check-label" for="smsNotifications">
-                                Enable SMS Notifications
-                            </label>
-                        </div>
-                    </div>
-
-                    <hr class="my-4" />
-
-                    <h5 class="mb-3">Alert Types</h5>
-                    
-                    <div class="mb-3">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="lowStockAlerts" name="LowStockAlerts" @(Model.NotificationSettings.LowStockAlerts ? "checked" : "") />
-                            <label class="form-check-label" for="lowStockAlerts">
-                                Low Stock Alerts
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="dailyReports" name="DailyReports" @(Model.NotificationSettings.DailyReports ? "checked" : "") />
-                            <label class="form-check-label" for="dailyReports">
-                                Daily Reports
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="transactionAlerts" name="TransactionAlerts" @(Model.NotificationSettings.TransactionAlerts ? "checked" : "") />
-                            <label class="form-check-label" for="transactionAlerts">
-                                Transaction Alerts
-                            </label>
-                        </div>
-                    </div>
-
-                    <hr class="my-4" />
-
-                    <h5 class="mb-3">Contact Information</h5>
-                    
-                    <div class="mb-3">
-                        <label for="notificationEmail" class="form-label">Notification Email</label>
-                        <input type="email" class="form-control" id="notificationEmail" name="NotificationEmail" value="@Model.NotificationSettings.NotificationEmail" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="notificationPhone" class="form-label">Notification Phone</label>
-                        <input type="tel" class="form-control" id="notificationPhone" name="NotificationPhone" value="@Model.NotificationSettings.NotificationPhone" placeholder="+250788000000" />
-                    </div>
-
-                    <div class="mb-3">
-                        <button type="button" class="btn btn-warning me-2" onclick="testNotification('Email')">
-                            <i class="fas fa-envelope me-2"></i>Test Email
-                        </button>
-                        <button type="button" class="btn btn-warning" onclick="testNotification('SMS')">
-                            <i class="fas fa-sms me-2"></i>Test SMS
-                        </button>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-2"></i>Save Notification Settings
-                    </button>
-                </form>
-            </div>
-
-            <!-- Fuel Pricing Tab -->
-            <div class="tab-pane fade" id="pricing" role="tabpanel">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5>Current Fuel Prices</h5>
-                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#priceModal">
-                        <i class="fas fa-plus me-2"></i>Update Prices
-                    </button>
                 </div>
 
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
-                        <thead>
-                            <tr>
-                                <th>Fuel Type</th>
-                                <th>Current Price (RWF/L)</th>
-                                <th>Effective Date</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var price in Model.FuelPrices)
-                            {
-                                <tr>
-                                    <td>
-                                        <span class="badge @(price.FuelType == "Petrol" ? "bg-success" : price.FuelType == "Diesel" ? "bg-primary" : "bg-warning")">
-                                            @price.FuelType
-                                        </span>
-                                    </td>
-                                    <td><strong>@price.Price.ToString("N0")</strong></td>
-                                    <td>@price.EffectiveDate.ToString("yyyy-MM-dd")</td>
-                                    <td>
-                                        <span class="badge @(price.IsActive ? "bg-success" : "bg-secondary")">
-                                            @(price.IsActive ? "Active" : "Inactive")
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-sm btn-primary" onclick="editPrice(@price.Id)" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
+                <!-- Fuel Prices Tab -->
+                <div class="tab-pane fade" id="pricing" role="tabpanel">
+                    <h5 class="mb-3">Current Fuel Prices</h5>
 
-                <div class="alert alert-info mt-3">
-                    <i class="fas fa-info-circle me-2"></i>
-                    <strong>Note:</strong> Price changes will take effect from the specified effective date. Historical prices are maintained for reporting purposes.
+                    @if (Model.FuelTypes.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Fuel Type</th>
+                                        <th>Price per Liter (@Model.Currency)</th>
+                                        <th>Status</th>
+                                        <th style="width: 200px;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var fuel in Model.FuelTypes)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <strong>@fuel.Name</strong>
+                                            </td>
+                                            <td>
+                                                <span class="fw-bold" id="price-display-@fuel.Id">@fuel.PricePerLiter.ToString("N2")</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge @(fuel.IsActive ? "bg-success" : "bg-secondary")">
+                                                    @(fuel.IsActive ? "Active" : "Inactive")
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <button type="button" class="btn btn-sm btn-outline-primary"
+                                                        onclick="openEditPriceModal('@fuel.Id', '@fuel.Name', '@fuel.PricePerLiter')">
+                                                    <i class="fas fa-edit me-1"></i>Edit Price
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            No fuel types configured. Please add fuel types in the Fuel Types management section.
+                        </div>
+                    }
+
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> Price changes take effect immediately. To add or remove fuel types, use the
+                        <a asp-controller="FuelTypes" asp-action="Index">Fuel Types</a> management page.
+                    </div>
                 </div>
             </div>
-        </div>
+
+            <!-- Save button (applies to General and EBM tabs) -->
+            <div class="mt-4 pt-3 border-top" id="saveButtonSection">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>Save Settings
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
-<!-- Price Update Modal -->
-<div class="modal fade" id="priceModal" tabindex="-1" aria-labelledby="priceModalLabel" aria-hidden="true">
+<!-- Edit Fuel Price Modal -->
+<div class="modal fade" id="editPriceModal" tabindex="-1" aria-labelledby="editPriceModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="priceModalLabel">Update Fuel Price</h5>
+                <h5 class="modal-title" id="editPriceModalLabel">Update Fuel Price</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="priceForm" asp-controller="Settings" asp-action="UpdateFuelPrice" method="post">
+            <form asp-controller="Settings" asp-action="UpdateFuelPrice" method="post">
                 <div class="modal-body">
-                    <input type="hidden" id="priceId" name="Id" />
-                    
+                    <input type="hidden" id="editFuelId" name="id" />
+
                     <div class="mb-3">
-                        <label for="priceFuelType" class="form-label">Fuel Type <span class="text-danger">*</span></label>
-                        <select class="form-select" id="priceFuelType" name="FuelType" required>
-                            <option value="Petrol">Petrol</option>
-                            <option value="Diesel">Diesel</option>
-                            <option value="Super">Super</option>
-                        </select>
+                        <label class="form-label">Fuel Type</label>
+                        <input type="text" class="form-control" id="editFuelName" readonly />
                     </div>
 
                     <div class="mb-3">
-                        <label for="price" class="form-label">Price per Liter (RWF) <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="price" name="Price" required step="0.01" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="effectiveDate" class="form-label">Effective Date <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control" id="effectiveDate" name="EffectiveDate" required />
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="priceNotes" class="form-label">Notes</label>
-                        <textarea class="form-control" id="priceNotes" name="Notes" rows="2"></textarea>
+                        <label for="editPricePerLiter" class="form-label">Price per Liter (@Model.Currency) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="editPricePerLiter" name="pricePerLiter" required step="0.01" min="0" />
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -386,26 +291,27 @@
 
 @section Scripts {
 <script>
-    function runBackupNow() {
-        if (confirm('This will create a backup of the entire system. Continue?')) {
-            $.post('@Url.Action("RunBackup", "Settings")', function() {
-                location.reload();
-            });
-        }
+    function openEditPriceModal(id, name, currentPrice) {
+        document.getElementById('editFuelId').value = id;
+        document.getElementById('editFuelName').value = name;
+        document.getElementById('editPricePerLiter').value = parseFloat(currentPrice).toFixed(2);
+        var modal = new bootstrap.Modal(document.getElementById('editPriceModal'));
+        modal.show();
     }
 
-    function testNotification(type) {
-        $.post('@Url.Action("TestNotification", "Settings")', { type: type }, function() {
-            alert('Test ' + type + ' notification sent! Check your inbox/phone.');
+    // Show/hide save button based on active tab
+    document.addEventListener('DOMContentLoaded', function () {
+        var settingsTabs = document.getElementById('settingsTabs');
+        var saveSection = document.getElementById('saveButtonSection');
+
+        settingsTabs.addEventListener('shown.bs.tab', function (event) {
+            // Hide save button on Fuel Prices tab (it has its own per-row forms)
+            if (event.target.id === 'pricing-tab') {
+                saveSection.style.display = 'none';
+            } else {
+                saveSection.style.display = '';
+            }
         });
-    }
-
-    function editPrice(id) {
-        // TODO: Load price data via AJAX
-        $('#priceForm').attr('action', '@Url.Action("UpdateFuelPrice", "Settings")');
-        $('#priceModalLabel').text('Update Fuel Price');
-        $('#priceId').val(id);
-        $('#priceModal').modal('show');
-    }
+    });
 </script>
 }

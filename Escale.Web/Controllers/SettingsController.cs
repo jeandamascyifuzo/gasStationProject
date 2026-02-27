@@ -1,101 +1,124 @@
 using Escale.Web.Models;
+using Escale.Web.Models.Api;
+using Escale.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Escale.Web.Controllers
 {
     public class SettingsController : Controller
     {
-        public IActionResult Index()
+        private readonly IApiSettingsService _settingsService;
+        private readonly IApiFuelTypeService _fuelTypeService;
+
+        public SettingsController(IApiSettingsService settingsService, IApiFuelTypeService fuelTypeService)
         {
-            // TODO: Replace with actual data from database
+            _settingsService = settingsService;
+            _fuelTypeService = fuelTypeService;
+        }
+
+        public async Task<IActionResult> Index()
+        {
+            var settingsTask = _settingsService.GetSettingsAsync();
+            var ebmTask = _settingsService.GetEbmStatusAsync();
+            var fuelTypesTask = _fuelTypeService.GetAllAsync();
+
+            await Task.WhenAll(settingsTask, ebmTask, fuelTypesTask);
+
+            var settings = settingsTask.Result;
+            var ebm = ebmTask.Result;
+            var fuelTypes = fuelTypesTask.Result;
+
+            var s = settings.Data ?? new AppSettingsResponseDto();
             var model = new SettingsViewModel
             {
-                CompanySettings = new CompanySettings
+                CompanyName = s.CompanyName,
+                TaxRate = s.TaxRate,
+                Currency = s.Currency,
+                ReceiptHeader = s.ReceiptHeader,
+                ReceiptFooter = s.ReceiptFooter,
+                EBMEnabled = s.EBMEnabled,
+                EBMServerUrl = s.EBMServerUrl,
+                AutoPrintReceipt = s.AutoPrintReceipt,
+                RequireCustomerInfo = s.RequireCustomerInfo,
+                MinimumSaleAmount = s.MinimumSaleAmount,
+                MaximumSaleAmount = s.MaximumSaleAmount,
+                AllowNegativeStock = s.AllowNegativeStock,
+                LowStockThreshold = s.LowStockThreshold,
+                CriticalStockThreshold = s.CriticalStockThreshold,
+                EBMConnected = ebm.Data?.IsConnected ?? false,
+                EBMLastSync = ebm.Data?.LastSyncAt,
+                EBMStatus = ebm.Data?.Status ?? "Unknown",
+                FuelTypes = fuelTypes.Data?.Select(f => new FuelType
                 {
-                    CompanyName = "Escale Gas Management",
-                    TIN = "123456789",
-                    Email = "info@escale.rw",
-                    Phone = "+250788000000",
-                    Address = "KN 4 Ave, Kigali, Rwanda",
-                    Currency = "RWF",
-                    TimeZone = "Africa/Kigali"
-                },
-                SystemSettings = new SystemSettings
-                {
-                    MaintenanceMode = false,
-                    AutoBackup = true,
-                    BackupFrequency = "Daily",
-                    SessionTimeout = 30,
-                    EnableEBM = true,
-                    EBMApiUrl = "https://ebm.obr.gov.rw/api",
-                    AllowNegativeStock = false,
-                    LowStockThreshold = 20
-                },
-                NotificationSettings = new NotificationSettings
-                {
-                    EmailNotifications = true,
-                    SMSNotifications = false,
-                    LowStockAlerts = true,
-                    DailyReports = true,
-                    TransactionAlerts = false,
-                    NotificationEmail = "alerts@escale.rw"
-                },
-                FuelPrices = new List<FuelPrice>
-                {
-                    new() { Id = 1, FuelType = "Petrol", Price = 1450, EffectiveDate = DateTime.Now.AddMonths(-1), IsActive = true },
-                    new() { Id = 2, FuelType = "Diesel", Price = 1380, EffectiveDate = DateTime.Now.AddMonths(-1), IsActive = true },
-                    new() { Id = 3, FuelType = "Super", Price = 1520, EffectiveDate = DateTime.Now.AddMonths(-1), IsActive = true }
-                }
+                    Id = f.Id,
+                    Name = f.Name,
+                    PricePerLiter = f.PricePerLiter,
+                    IsActive = f.IsActive
+                }).ToList() ?? new()
             };
 
             return View(model);
         }
 
         [HttpPost]
-        public IActionResult UpdateCompanySettings(CompanySettings settings)
+        public async Task<IActionResult> UpdateSettings(SettingsViewModel model)
         {
-            // TODO: Update company settings in database
-            TempData["SuccessMessage"] = "Company settings updated successfully!";
+            var request = new UpdateSettingsRequestDto
+            {
+                CompanyName = model.CompanyName,
+                TaxRate = model.TaxRate,
+                Currency = model.Currency,
+                ReceiptHeader = model.ReceiptHeader,
+                ReceiptFooter = model.ReceiptFooter,
+                EBMEnabled = model.EBMEnabled,
+                EBMServerUrl = model.EBMServerUrl,
+                AutoPrintReceipt = model.AutoPrintReceipt,
+                RequireCustomerInfo = model.RequireCustomerInfo,
+                MinimumSaleAmount = model.MinimumSaleAmount,
+                MaximumSaleAmount = model.MaximumSaleAmount,
+                AllowNegativeStock = model.AllowNegativeStock,
+                LowStockThreshold = model.LowStockThreshold,
+                CriticalStockThreshold = model.CriticalStockThreshold
+            };
+
+            var result = await _settingsService.UpdateSettingsAsync(request);
+            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+                result.Success ? "Settings updated successfully!" : result.Message;
+
             return RedirectToAction("Index");
         }
 
         [HttpPost]
-        public IActionResult UpdateSystemSettings(SystemSettings settings)
+        public async Task<IActionResult> SyncEBM()
         {
-            // TODO: Update system settings in database
-            TempData["SuccessMessage"] = "System settings updated successfully!";
+            var result = await _settingsService.SyncEbmAsync();
+            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+                result.Success ? "EBM synchronized successfully!" : result.Message;
+
             return RedirectToAction("Index");
         }
 
         [HttpPost]
-        public IActionResult UpdateNotificationSettings(NotificationSettings settings)
+        public async Task<IActionResult> UpdateFuelPrice(Guid id, decimal pricePerLiter)
         {
-            // TODO: Update notification settings in database
-            TempData["SuccessMessage"] = "Notification settings updated successfully!";
-            return RedirectToAction("Index");
-        }
+            var fuelType = await _fuelTypeService.GetByIdAsync(id);
+            if (!fuelType.Success || fuelType.Data == null)
+            {
+                TempData["ErrorMessage"] = "Fuel type not found.";
+                return RedirectToAction("Index");
+            }
 
-        [HttpPost]
-        public IActionResult UpdateFuelPrice(FuelPrice fuelPrice)
-        {
-            // TODO: Update fuel price in database
-            TempData["SuccessMessage"] = "Fuel price updated successfully!";
-            return RedirectToAction("Index");
-        }
+            var request = new UpdateFuelTypeRequestDto
+            {
+                Name = fuelType.Data.Name,
+                PricePerLiter = pricePerLiter,
+                IsActive = fuelType.Data.IsActive
+            };
 
-        [HttpPost]
-        public IActionResult RunBackup()
-        {
-            // TODO: Implement backup functionality
-            TempData["SuccessMessage"] = "Backup initiated successfully!";
-            return RedirectToAction("Index");
-        }
+            var result = await _fuelTypeService.UpdateAsync(id, request);
+            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+                result.Success ? "Fuel price updated successfully!" : result.Message;
 
-        [HttpPost]
-        public IActionResult TestNotification(string type)
-        {
-            // TODO: Send test notification
-            TempData["SuccessMessage"] = $"Test {type} notification sent!";
             return RedirectToAction("Index");
         }
     }

@@ -106,10 +106,21 @@
             </Border>
 
             <!-- Actions -->
-            <Label Text="Actions" 
-                   FontSize="18" 
+            <Label Text="Actions"
+                   FontSize="18"
                    FontAttributes="Bold"
                    TextColor="#1E3A8A"/>
+
+            <!-- Switch Station - only for Admin/Manager -->
+            <Button Text="Switch Station"
+                    Command="{Binding SwitchStationCommand}"
+                    BackgroundColor="#8B5CF6"
+                    TextColor="White"
+                    FontSize="16"
+                    FontAttributes="Bold"
+                    HeightRequest="55"
+                    CornerRadius="10"
+                    IsVisible="{Binding CanSwitchStation}"/>
 
             <Button Command="{Binding ClockInOutCommand}"
                     BackgroundColor="{Binding IsClockedIn, Converter={StaticResource BoolToClockButtonColorConverter}}"

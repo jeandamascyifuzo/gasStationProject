@@ -36,6 +36,12 @@ public class UpdateSettingsRequestDto
     public decimal CriticalStockThreshold { get; set; }
 }
 
+public class EbmConfigRequestDto
+{
+    public bool EBMEnabled { get; set; }
+    public string? EBMServerUrl { get; set; }
+}
+
 public class EbmStatusDto
 {
     public bool IsConnected { get; set; }

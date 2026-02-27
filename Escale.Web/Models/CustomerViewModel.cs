@@ -4,105 +4,74 @@ namespace Escale.Web.Models
 {
     public class Customer
     {
-        public int Id { get; set; }
-        
+        public Guid Id { get; set; }
+
         [Required]
         public string Name { get; set; } = string.Empty;
-        
-        [Required]
+
         [EmailAddress]
-        public string Email { get; set; } = string.Empty;
-        
+        public string? Email { get; set; }
+
         [Phone]
-        public string Phone { get; set; } = string.Empty;
-        
-        public string? Address { get; set; }
-        
-        public string? CompanyName { get; set; }
-        
+        public string? PhoneNumber { get; set; }
+
         public string? TIN { get; set; }
-        
-        public string CustomerType { get; set; } = "Individual";
-        
+
+        public string Type { get; set; } = "Individual";
+
+        public decimal CreditLimit { get; set; }
+        public decimal CurrentCredit { get; set; }
+
         public bool IsActive { get; set; } = true;
-        
+
         public DateTime CreatedAt { get; set; } = DateTime.Now;
-        
-        public DateTime? UpdatedAt { get; set; }
-        
+
         public List<Car> Cars { get; set; } = new();
-        
+
         public List<Subscription> Subscriptions { get; set; } = new();
     }
 
     public class Car
     {
-        public int Id { get; set; }
-        
-        public int CustomerId { get; set; }
-        
+        public Guid? Id { get; set; }
+
         [Required]
         public string PlateNumber { get; set; } = string.Empty;
-        
-        [Required]
-        public string CarPin { get; set; } = string.Empty;
-        
-        [Required]
-        public string Model { get; set; } = string.Empty;
-        
+
         public string? Make { get; set; }
-        
+
+        public string? Model { get; set; }
+
         public int? Year { get; set; }
-        
-        public string? Color { get; set; }
-        
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
-        
-        public DateTime? UpdatedAt { get; set; }
     }
 
     public class Subscription
     {
-        public int Id { get; set; }
-        
-        public int CustomerId { get; set; }
-        
-        [Required]
-        public string SubscriptionType { get; set; } = string.Empty;
-        
-        [Required]
-        public decimal Amount { get; set; }
-        
-        public bool IsActive { get; set; } = true;
-        
-        public DateTime? ActivatedDate { get; set; }
-        
-        public DateTime? ExpiryDate { get; set; }
-        
-        public string? FuelType { get; set; }
-        
-        public decimal? MonthlyLimit { get; set; }
-        
-        public decimal? CurrentUsage { get; set; }
-        
-        public string? PaymentFrequency { get; set; }
-        
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
-        
-        public DateTime? UpdatedAt { get; set; }
+        public Guid Id { get; set; }
+        public string FuelTypeName { get; set; } = string.Empty;
+        public Guid FuelTypeId { get; set; }
+        public decimal MonthlyLiters { get; set; }
+        public decimal UsedLiters { get; set; }
+        public decimal PricePerLiter { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public string Status { get; set; } = string.Empty;
     }
 
     public class CustomerViewModel
     {
         public List<Customer> Customers { get; set; } = new();
         public List<string> CustomerTypes { get; set; } = new() { "Individual", "Corporate" };
+        public int TotalCount { get; set; }
+        public int Page { get; set; } = 1;
+        public int PageSize { get; set; } = 20;
+        public int TotalPages { get; set; }
+        public string? SearchTerm { get; set; }
     }
 
     public class CustomerDetailsViewModel
     {
         public Customer Customer { get; set; } = new();
-        public List<Car> Cars { get; set; } = new();
-        public List<Subscription> Subscriptions { get; set; } = new();
         public CustomerStats Stats { get; set; } = new();
     }
 

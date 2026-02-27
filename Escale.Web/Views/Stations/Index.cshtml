@@ -1,17 +1,15 @@
 @model Escale.Web.Models.StationViewModel
 @{
     ViewData["Title"] = "Stations";
+    var isSuperAdmin = Context.Session.GetString("UserRole") == "SuperAdmin";
 }
+
+@await Html.PartialAsync("_ApiError")
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 page-header">
     <div>
-        <h1 class="h2"><i class="fas fa-gas-pump me-2"></i>Stations Management</h1>
-        <p class="text-muted mb-0">Manage your gas stations, locations, and operations.</p>
-    </div>
-    <div class="btn-toolbar mb-2 mb-md-0">
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#stationModal" onclick="openStationModal()">
-            <i class="fas fa-plus me-2"></i>Add New Station
-        </button>
+        <h1 class="h2"><i class="fas fa-gas-pump me-2"></i>Stations</h1>
+        <p class="text-muted mb-0">View your gas stations, locations, and operations.</p>
     </div>
 </div>
 
@@ -23,7 +21,6 @@
                     <tr>
                         <th>Name</th>
                         <th>Location</th>
-                        <th>Pumps</th>
                         <th>Manager</th>
                         <th>Status</th>
                         <th>Actions</th>
@@ -35,10 +32,9 @@
                         <tr>
                             <td>@station.Name</td>
                             <td>@station.Location</td>
-                            <td>@station.PumpCount</td>
-                            <td>@station.ManagerName</td>
+                            <td>@(station.ManagerName ?? "Unassigned")</td>
                             <td>
-                                <span class="badge @(station.Status == "Active" ? "bg-success" : "bg-secondary")">
+                                <span class="badge @(station.IsActive ? "bg-success" : "bg-secondary")">
                                     @station.Status
                                 </span>
                             </td>
@@ -46,81 +42,11 @@
                                 <a asp-controller="Stations" asp-action="Details" asp-route-id="@station.Id" class="btn btn-sm btn-info" title="View Details">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <button class="btn btn-sm btn-primary" onclick="editStation(@station.Id)" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger" onclick="deleteStation(@station.Id)" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
                             </td>
                         </tr>
                     }
                 </tbody>
             </table>
-        </div>
-    </div>
-</div>
-
-<!-- Station Modal -->
-<div class="modal fade" id="stationModal" tabindex="-1" aria-labelledby="stationModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="stationModalLabel">Add/Edit Station</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="stationForm" asp-controller="Stations" asp-action="Create" method="post">
-                <div class="modal-body">
-                    <input type="hidden" id="stationId" name="Id" />
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="stationName" class="form-label">Station Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="stationName" name="Name" required />
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="location" class="form-label">Location <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="location" name="Location" required />
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="address" class="form-label">Address</label>
-                        <textarea class="form-control" id="address" name="Address" rows="2"></textarea>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="contactNumber" class="form-label">Contact Number</label>
-                            <input type="tel" class="form-control" id="contactNumber" name="ContactNumber" placeholder="+250788000000" />
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="managerId" class="form-label">Manager</label>
-                            <select class="form-select" id="managerId" name="ManagerId">
-                                <option value="">Select Manager</option>
-                                @foreach (var manager in Model.Managers)
-                                {
-                                    <option value="@manager.Id">@manager.Name</option>
-                                }
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="status" class="form-label">Status</label>
-                        <select class="form-select" id="status" name="Status">
-                            <option value="Active">Active</option>
-                            <option value="Inactive">Inactive</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-2"></i>Save Station
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
 </div>
@@ -133,28 +59,5 @@
             order: [[0, 'asc']]
         });
     });
-
-    function openStationModal() {
-        $('#stationForm').attr('action', '@Url.Action("Create", "Stations")');
-        $('#stationModalLabel').text('Add New Station');
-        $('#stationForm')[0].reset();
-        $('#stationId').val('');
-    }
-
-    function editStation(id) {
-        // TODO: Load station data via AJAX
-        $('#stationForm').attr('action', '@Url.Action("Edit", "Stations")');
-        $('#stationModalLabel').text('Edit Station');
-        $('#stationId').val(id);
-        $('#stationModal').modal('show');
-    }
-
-    function deleteStation(id) {
-        if (confirm('Are you sure you want to delete this station?')) {
-            $.post('@Url.Action("Delete", "Stations")', { id: id }, function() {
-                location.reload();
-            });
-        }
-    }
 </script>
 }

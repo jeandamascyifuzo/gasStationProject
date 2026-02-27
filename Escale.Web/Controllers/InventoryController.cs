@@ -1,179 +1,129 @@
 using Escale.Web.Models;
+using Escale.Web.Models.Api;
+using Escale.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Escale.Web.Controllers
 {
     public class InventoryController : Controller
     {
-        public IActionResult Index()
+        private readonly IApiInventoryService _inventoryService;
+        private readonly IApiStationService _stationService;
+        private readonly IApiFuelTypeService _fuelTypeService;
+
+        public InventoryController(
+            IApiInventoryService inventoryService,
+            IApiStationService stationService,
+            IApiFuelTypeService fuelTypeService)
         {
-            // TODO: Replace with actual data from database
+            _inventoryService = inventoryService;
+            _stationService = stationService;
+            _fuelTypeService = fuelTypeService;
+        }
+
+        public async Task<IActionResult> Index(Guid? stationId = null)
+        {
+            var inventoryTask = _inventoryService.GetAllAsync(stationId);
+            var refillsTask = _inventoryService.GetRefillsAsync(10);
+            var stationsTask = _stationService.GetAllAsync();
+            var fuelTypesTask = _fuelTypeService.GetAllAsync();
+
+            await Task.WhenAll(inventoryTask, refillsTask, stationsTask, fuelTypesTask);
+
+            var inventory = inventoryTask.Result;
+            var refills = refillsTask.Result;
+            var stations = stationsTask.Result;
+            var fuelTypes = fuelTypesTask.Result;
+
+            var items = inventory.Data?.Select(i => new InventoryItem
+            {
+                Id = i.Id,
+                StationId = i.StationId,
+                StationName = i.StationName,
+                FuelTypeId = i.FuelTypeId,
+                FuelType = i.FuelType,
+                CurrentLevel = i.CurrentLevel,
+                Capacity = i.Capacity,
+                ReorderLevel = i.ReorderLevel,
+                PercentageFull = i.PercentageFull,
+                LastRefill = i.LastRefill,
+                NextDeliveryDate = i.NextDeliveryDate,
+                Status = i.Status
+            }).ToList() ?? new();
+
             var model = new InventoryViewModel
             {
-                InventoryItems = new List<InventoryItem>
+                InventoryItems = items,
+                RecentRefills = refills.Data?.Select(r => new RefillRecord
                 {
-                    new() 
-                    { 
-                        Id = 1, 
-                        StationId = 1, 
-                        StationName = "Kigali Central Station", 
-                        FuelTypeId = 1, 
-                        FuelType = "Petrol", 
-                        CurrentLevel = 15000, 
-                        Capacity = 20000, 
-                        ReorderLevel = 5000,
-                        LastRefill = DateTime.Now.AddDays(-3),
-                        LastRefillQuantity = 8000,
-                        NextDeliveryDate = DateTime.Now.AddDays(2),
-                        Status = "Normal"
-                    },
-                    new() 
-                    { 
-                        Id = 2, 
-                        StationId = 1, 
-                        StationName = "Kigali Central Station", 
-                        FuelTypeId = 2, 
-                        FuelType = "Diesel", 
-                        CurrentLevel = 8000, 
-                        Capacity = 15000, 
-                        ReorderLevel = 3000,
-                        LastRefill = DateTime.Now.AddDays(-5),
-                        LastRefillQuantity = 6000,
-                        NextDeliveryDate = DateTime.Now.AddDays(1),
-                        Status = "Normal"
-                    },
-                    new() 
-                    { 
-                        Id = 3, 
-                        StationId = 1, 
-                        StationName = "Kigali Central Station", 
-                        FuelTypeId = 3, 
-                        FuelType = "Super", 
-                        CurrentLevel = 2000, 
-                        Capacity = 10000, 
-                        ReorderLevel = 2500,
-                        LastRefill = DateTime.Now.AddDays(-7),
-                        LastRefillQuantity = 5000,
-                        Status = "Low Stock"
-                    },
-                    new() 
-                    { 
-                        Id = 4, 
-                        StationId = 2, 
-                        StationName = "Remera Branch", 
-                        FuelTypeId = 1, 
-                        FuelType = "Petrol", 
-                        CurrentLevel = 18000, 
-                        Capacity = 25000, 
-                        ReorderLevel = 6000,
-                        LastRefill = DateTime.Now.AddDays(-2),
-                        LastRefillQuantity = 10000,
-                        Status = "Normal"
-                    },
-                    new() 
-                    { 
-                        Id = 5, 
-                        StationId = 2, 
-                        StationName = "Remera Branch", 
-                        FuelTypeId = 2, 
-                        FuelType = "Diesel", 
-                        CurrentLevel = 2500, 
-                        Capacity = 20000, 
-                        ReorderLevel = 5000,
-                        LastRefill = DateTime.Now.AddDays(-8),
-                        LastRefillQuantity = 7000,
-                        NextDeliveryDate = DateTime.Now,
-                        Status = "Critical"
-                    }
-                },
-                RecentRefills = new List<RefillRecord>
+                    Id = r.Id,
+                    StationName = r.StationName,
+                    FuelType = r.FuelType,
+                    Quantity = r.Quantity,
+                    UnitCost = r.UnitCost,
+                    TotalCost = r.TotalCost,
+                    RefillDate = r.RefillDate,
+                    SupplierName = r.SupplierName,
+                    InvoiceNumber = r.InvoiceNumber,
+                    RecordedBy = r.RecordedBy
+                }).ToList() ?? new(),
+                Stations = stations.Data?.Select(s => new Station
                 {
-                    new()
-                    {
-                        Id = 1,
-                        StationId = 1,
-                        StationName = "Kigali Central Station",
-                        FuelType = "Petrol",
-                        Quantity = 8000,
-                        UnitCost = 1200,
-                        TotalCost = 9600000,
-                        RefillDate = DateTime.Now.AddDays(-3),
-                        SupplierName = "Rwanda Fuel Ltd",
-                        InvoiceNumber = "INV-2024-001",
-                        RecordedBy = "John Doe"
-                    },
-                    new()
-                    {
-                        Id = 2,
-                        StationId = 2,
-                        StationName = "Remera Branch",
-                        FuelType = "Petrol",
-                        Quantity = 10000,
-                        UnitCost = 1200,
-                        TotalCost = 12000000,
-                        RefillDate = DateTime.Now.AddDays(-2),
-                        SupplierName = "Rwanda Fuel Ltd",
-                        InvoiceNumber = "INV-2024-002",
-                        RecordedBy = "Jane Smith"
-                    },
-                    new()
-                    {
-                        Id = 3,
-                        StationId = 1,
-                        StationName = "Kigali Central Station",
-                        FuelType = "Diesel",
-                        Quantity = 6000,
-                        UnitCost = 1300,
-                        TotalCost = 7800000,
-                        RefillDate = DateTime.Now.AddDays(-5),
-                        SupplierName = "Total Energy",
-                        InvoiceNumber = "INV-2024-003",
-                        RecordedBy = "John Doe"
-                    }
-                },
-                Stations = new List<Station>
+                    Id = s.Id,
+                    Name = s.Name
+                }).ToList() ?? new(),
+                FuelTypes = fuelTypes.Data?.Select(f => new FuelType
                 {
-                    new() { Id = 1, Name = "Kigali Central Station" },
-                    new() { Id = 2, Name = "Remera Branch" },
-                    new() { Id = 3, Name = "Kimironko Station" }
-                },
-                FuelTypes = new List<FuelType>
-                {
-                    new() { Id = 1, Name = "Petrol", Code = "PET" },
-                    new() { Id = 2, Name = "Diesel", Code = "DSL" },
-                    new() { Id = 3, Name = "Super", Code = "SUP" }
-                },
+                    Id = f.Id,
+                    Name = f.Name
+                }).ToList() ?? new(),
                 Stats = new InventoryStats
                 {
-                    TotalItems = 5,
-                    LowStockItems = 1,
-                    CriticalItems = 1,
-                    TotalCapacity = 90000,
-                    TotalCurrentStock = 45500
-                }
+                    TotalItems = items.Count,
+                    LowStockItems = items.Count(i => i.Status == "Low"),
+                    CriticalItems = items.Count(i => i.Status == "Critical"),
+                    TotalCapacity = items.Sum(i => i.Capacity),
+                    TotalCurrentStock = items.Sum(i => i.CurrentLevel)
+                },
+                SelectedStationId = stationId
             };
 
             return View(model);
         }
 
         [HttpPost]
-        public IActionResult RecordRefill(RefillRecord refill)
+        public async Task<IActionResult> RecordRefill(Guid inventoryItemId, decimal quantity, decimal unitCost, string? supplierName, string? invoiceNumber, DateTime refillDate)
         {
-            // TODO: Save refill to database
+            var request = new CreateRefillRequestDto
+            {
+                InventoryItemId = inventoryItemId,
+                Quantity = quantity,
+                UnitCost = unitCost,
+                SupplierName = supplierName,
+                InvoiceNumber = invoiceNumber,
+                RefillDate = refillDate
+            };
+
+            var result = await _inventoryService.CreateRefillAsync(request);
+            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+                result.Success ? "Refill recorded successfully!" : result.Message;
+
             return RedirectToAction("Index");
         }
 
         [HttpPost]
-        public IActionResult UpdateStock(int id, decimal quantity)
+        public async Task<IActionResult> UpdateReorderLevel(Guid id, decimal reorderLevel)
         {
-            // TODO: Update stock in database
-            return RedirectToAction("Index");
-        }
+            var request = new UpdateReorderLevelRequestDto
+            {
+                Id = id,
+                ReorderLevel = reorderLevel
+            };
 
-        [HttpPost]
-        public IActionResult UpdateReorderLevel(int id, decimal reorderLevel)
-        {
-            // TODO: Update reorder level in database
+            var result = await _inventoryService.UpdateReorderLevelAsync(request);
+            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+                result.Success ? "Reorder level updated!" : result.Message;
+
             return RedirectToAction("Index");
         }
     }

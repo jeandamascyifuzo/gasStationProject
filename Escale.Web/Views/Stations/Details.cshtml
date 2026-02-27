@@ -1,7 +1,11 @@
 @model Escale.Web.Models.StationDetailsViewModel
 @{
     ViewData["Title"] = "Station Details";
+    var userRole = Context.Session.GetString("UserRole");
+    var isAdmin = userRole == "Admin";
 }
+
+@await Html.PartialAsync("_ApiError")
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 page-header">
     <div>
@@ -14,9 +18,6 @@
         </nav>
     </div>
     <div class="btn-toolbar mb-2 mb-md-0">
-        <button type="button" class="btn btn-primary me-2" onclick="editStation(@Model.Station.Id)">
-            <i class="fas fa-edit me-2"></i>Edit Station
-        </button>
         <a asp-controller="Stations" asp-action="Index" class="btn btn-secondary">
             <i class="fas fa-arrow-left me-2"></i>Back to List
         </a>
@@ -25,7 +26,7 @@
 
 <!-- Stats Cards -->
 <div class="row mb-4">
-    <div class="col-md-2">
+    <div class="col-md-3">
         <div class="card bg-primary text-white shadow stats-card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
@@ -40,7 +41,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-2">
+    <div class="col-md-3">
         <div class="card bg-success text-white shadow stats-card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
@@ -55,7 +56,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-2">
+    <div class="col-md-3">
         <div class="card bg-info text-white shadow stats-card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
@@ -65,21 +66,6 @@
                     </div>
                     <div class="icon-wrapper">
                         <i class="fas fa-users fa-lg"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card bg-warning text-dark shadow stats-card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="text-xs mb-1">ACTIVE PUMPS</div>
-                        <div class="h6 mb-0 fw-bold">@Model.Stats.ActivePumps</div>
-                    </div>
-                    <div class="icon-wrapper">
-                        <i class="fas fa-fill-drip fa-lg"></i>
                     </div>
                 </div>
             </div>
@@ -109,11 +95,6 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab">
                     <i class="fas fa-info-circle me-2"></i>Details
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="sales-tab" data-bs-toggle="tab" data-bs-target="#sales" type="button" role="tab">
-                    <i class="fas fa-chart-line me-2"></i>Sales
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -147,11 +128,11 @@
                                 </tr>
                                 <tr>
                                     <th>Address:</th>
-                                    <td>@Model.Station.Address</td>
+                                    <td>@(Model.Station.Address ?? "N/A")</td>
                                 </tr>
                                 <tr>
                                     <th>Contact Number:</th>
-                                    <td>@Model.Station.ContactNumber</td>
+                                    <td>@(Model.Station.ContactNumber ?? "N/A")</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -162,19 +143,19 @@
                             <tbody>
                                 <tr>
                                     <th width="40%">Manager:</th>
-                                    <td>@Model.Station.ManagerName</td>
-                                </tr>
-                                <tr>
-                                    <th>Total Pumps:</th>
-                                    <td>@Model.Station.PumpCount</td>
+                                    <td>@(Model.Station.ManagerName ?? "Unassigned")</td>
                                 </tr>
                                 <tr>
                                     <th>Status:</th>
                                     <td>
-                                        <span class="badge @(Model.Station.Status == "Active" ? "bg-success" : "bg-secondary")">
+                                        <span class="badge @(Model.Station.IsActive ? "bg-success" : "bg-secondary")">
                                             @Model.Station.Status
                                         </span>
                                     </td>
+                                </tr>
+                                <tr>
+                                    <th>Created:</th>
+                                    <td>@Model.Station.CreatedAt.ToString("yyyy-MM-dd")</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -182,65 +163,16 @@
                 </div>
             </div>
 
-            <!-- Sales Tab -->
-            <div class="tab-pane fade" id="sales" role="tabpanel">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5>Sales History</h5>
-                    <div>
-                        <button type="button" class="btn btn-primary btn-sm">
-                            <i class="fas fa-download me-2"></i>Export
-                        </button>
-                    </div>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Fuel Type</th>
-                                <th>Quantity (L)</th>
-                                <th>Total Sales (RWF)</th>
-                                <th>Transactions</th>
-                                <th>Avg. per Transaction</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var sale in Model.Sales)
-                            {
-                                <tr>
-                                    <td>@sale.Date.ToString("yyyy-MM-dd")</td>
-                                    <td>
-                                        <span class="badge @(sale.FuelType == "Petrol" ? "bg-success" : sale.FuelType == "Diesel" ? "bg-primary" : "bg-warning")">
-                                            @sale.FuelType
-                                        </span>
-                                    </td>
-                                    <td>@sale.Quantity.ToString("N2")</td>
-                                    <td>@sale.TotalSales.ToString("N0")</td>
-                                    <td>@sale.TransactionCount</td>
-                                    <td>@((sale.TotalSales / sale.TransactionCount).ToString("N0"))</td>
-                                </tr>
-                            }
-                        </tbody>
-                        <tfoot>
-                            <tr class="table-info">
-                                <th colspan="2">Total</th>
-                                <th>@Model.Sales.Sum(s => s.Quantity).ToString("N2")</th>
-                                <th>@Model.Sales.Sum(s => s.TotalSales).ToString("N0")</th>
-                                <th>@Model.Sales.Sum(s => s.TransactionCount)</th>
-                                <th>-</th>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </div>
-
             <!-- Stock Tab -->
             <div class="tab-pane fade" id="stock" role="tabpanel">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5>Fuel Stock Levels</h5>
-                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#refillModal">
-                        <i class="fas fa-plus me-2"></i>Record Refill
-                    </button>
+                    @if (isAdmin)
+                    {
+                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#refillModal">
+                            <i class="fas fa-plus me-2"></i>Record Refill
+                        </button>
+                    }
                 </div>
                 <div class="row">
                     @foreach (var stock in Model.Stock)
@@ -261,7 +193,7 @@
                                             <small><strong>@stock.CurrentLevel.ToString("N0")L / @stock.Capacity.ToString("N0")L</strong></small>
                                         </div>
                                         <div class="progress" style="height: 25px;">
-                                            <div class="progress-bar @(stock.IsLowStock ? "bg-danger" : stock.PercentageFull > 70 ? "bg-success" : "bg-warning")" 
+                                            <div class="progress-bar @(stock.IsLowStock ? "bg-danger" : stock.PercentageFull > 70 ? "bg-success" : "bg-warning")"
                                                  style="width: @stock.PercentageFull%">
                                                 @stock.PercentageFull.ToString("F1")%
                                             </div>
@@ -274,7 +206,7 @@
                                         </tr>
                                         <tr>
                                             <td>Last Refill:</td>
-                                            <td class="text-end">@stock.LastRefill.ToString("yyyy-MM-dd")</td>
+                                            <td class="text-end">@(stock.LastRefill?.ToString("yyyy-MM-dd") ?? "N/A")</td>
                                         </tr>
                                     </table>
                                 </div>
@@ -288,9 +220,12 @@
             <div class="tab-pane fade" id="employees" role="tabpanel">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5>Station Employees</h5>
-                    <button type="button" class="btn btn-primary btn-sm">
-                        <i class="fas fa-user-plus me-2"></i>Assign Employee
-                    </button>
+                    @if (isAdmin)
+                    {
+                        <a asp-controller="Users" asp-action="Index" class="btn btn-primary btn-sm">
+                            <i class="fas fa-user-plus me-2"></i>Manage Users
+                        </a>
+                    }
                 </div>
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover">
@@ -301,34 +236,34 @@
                                 <th>Phone</th>
                                 <th>Role</th>
                                 <th>Status</th>
-                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var employee in Model.Employees)
+                            @if (Model.Employees.Any())
+                            {
+                                @foreach (var employee in Model.Employees)
+                                {
+                                    <tr>
+                                        <td><strong>@employee.FullName</strong></td>
+                                        <td>@(employee.Email ?? "-")</td>
+                                        <td>@(employee.Phone ?? "-")</td>
+                                        <td>
+                                            <span class="badge @(employee.Role == "Manager" ? "bg-primary" : employee.Role == "Cashier" ? "bg-success" : "bg-secondary")">
+                                                @employee.Role
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge @(employee.IsActive ? "bg-success" : "bg-secondary")">
+                                                @(employee.IsActive ? "Active" : "Inactive")
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
                             {
                                 <tr>
-                                    <td><strong>@employee.Name</strong></td>
-                                    <td>@employee.Email</td>
-                                    <td>@employee.Phone</td>
-                                    <td>
-                                        <span class="badge @(employee.Role == "Manager" ? "bg-primary" : employee.Role == "Cashier" ? "bg-success" : "bg-secondary")">
-                                            @employee.Role
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge @(employee.IsActive ? "bg-success" : "bg-secondary")">
-                                            @(employee.IsActive ? "Active" : "Inactive")
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <a asp-controller="Users" asp-action="Index" class="btn btn-sm btn-info" title="View Profile">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <button class="btn btn-sm btn-danger" onclick="removeEmployee(@employee.Id)" title="Remove">
-                                            <i class="fas fa-user-minus"></i>
-                                        </button>
-                                    </td>
+                                    <td colspan="5" class="text-center text-muted py-3">No employees assigned to this station. Use the Users page to assign employees.</td>
                                 </tr>
                             }
                         </tbody>
@@ -339,65 +274,71 @@
     </div>
 </div>
 
-<!-- Refill Modal -->
-<div class="modal fade" id="refillModal" tabindex="-1" aria-labelledby="refillModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="refillModalLabel">Record Fuel Refill</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+@if (isAdmin)
+{
+    <!-- Refill Modal -->
+    <div class="modal fade" id="refillModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Record Fuel Refill - @Model.Station.Name</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form asp-controller="Inventory" asp-action="RecordRefill" method="post">
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="inventoryItemId" class="form-label">Fuel Tank <span class="text-danger">*</span></label>
+                                <select class="form-select" id="inventoryItemId" name="inventoryItemId" required>
+                                    <option value="">Select Fuel Tank</option>
+                                    @foreach (var stock in Model.Stock)
+                                    {
+                                        <option value="@stock.InventoryItemId">@stock.FuelType (@stock.CurrentLevel.ToString("N0")L / @stock.Capacity.ToString("N0")L)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="refillQuantity" class="form-label">Quantity (Liters) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="refillQuantity" name="quantity" required step="0.01" min="0.01" />
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="refillUnitCost" class="form-label">Unit Cost (RWF) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="refillUnitCost" name="unitCost" required step="0.01" min="0.01" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="refillDate" class="form-label">Refill Date <span class="text-danger">*</span></label>
+                                <input type="datetime-local" class="form-control" id="refillDate" name="refillDate" required />
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="supplierName" class="form-label">Supplier Name</label>
+                                <input type="text" class="form-control" id="supplierName" name="supplierName" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="invoiceNumber" class="form-label">Invoice Number</label>
+                                <input type="text" class="form-control" id="invoiceNumber" name="invoiceNumber" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Record Refill
+                        </button>
+                    </div>
+                </form>
             </div>
-            <form id="refillForm" method="post">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="fuelType" class="form-label">Fuel Type <span class="text-danger">*</span></label>
-                        <select class="form-select" id="fuelType" name="FuelType" required>
-                            <option value="">Select Fuel Type</option>
-                            @foreach (var stock in Model.Stock)
-                            {
-                                <option value="@stock.FuelType">@stock.FuelType</option>
-                            }
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="quantity" class="form-label">Quantity (Liters) <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="quantity" name="Quantity" required />
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="refillDate" class="form-label">Refill Date <span class="text-danger">*</span></label>
-                        <input type="datetime-local" class="form-control" id="refillDate" name="RefillDate" required />
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="notes" class="form-label">Notes</label>
-                        <textarea class="form-control" id="notes" name="Notes" rows="2"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-2"></i>Record Refill
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
-</div>
+}
 
 @section Scripts {
 <script>
-    function editStation(id) {
-        // TODO: Load station data via AJAX
-        alert('Edit station functionality - to be implemented');
-    }
-
-    function removeEmployee(id) {
-        if (confirm('Are you sure you want to remove this employee from the station?')) {
-            // TODO: Remove employee via AJAX
-            alert('Remove employee functionality - to be implemented');
-        }
-    }
+    $(document).ready(function() {
+        $('#refillDate').val(new Date().toISOString().slice(0, 16));
+    });
 </script>
 }

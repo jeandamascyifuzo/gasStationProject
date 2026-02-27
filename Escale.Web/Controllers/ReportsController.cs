@@ -1,26 +1,44 @@
 using Escale.Web.Models;
+using Escale.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Escale.Web.Controllers
 {
     public class ReportsController : Controller
     {
-        public IActionResult Index()
+        private readonly IApiReportService _reportService;
+        private readonly IApiStationService _stationService;
+        private readonly IApiFuelTypeService _fuelTypeService;
+
+        public ReportsController(
+            IApiReportService reportService,
+            IApiStationService stationService,
+            IApiFuelTypeService fuelTypeService)
         {
+            _reportService = reportService;
+            _stationService = stationService;
+            _fuelTypeService = fuelTypeService;
+        }
+
+        public async Task<IActionResult> Index()
+        {
+            var stationsTask = _stationService.GetAllAsync();
+            var fuelTypesTask = _fuelTypeService.GetAllAsync();
+
+            await Task.WhenAll(stationsTask, fuelTypesTask);
+
             var model = new ReportViewModel
             {
-                Stations = new List<Station>
+                Stations = stationsTask.Result.Data?.Select(s => new Station
                 {
-                    new() { Id = 1, Name = "Kigali Central Station" },
-                    new() { Id = 2, Name = "Remera Branch" },
-                    new() { Id = 3, Name = "Kimironko Station" }
-                },
-                FuelTypes = new List<FuelType>
+                    Id = s.Id,
+                    Name = s.Name
+                }).ToList() ?? new(),
+                FuelTypes = fuelTypesTask.Result.Data?.Select(f => new FuelType
                 {
-                    new() { Id = 1, Name = "Petrol", Code = "PET" },
-                    new() { Id = 2, Name = "Diesel", Code = "DSL" },
-                    new() { Id = 3, Name = "Super", Code = "SUP" }
-                },
+                    Id = f.Id,
+                    Name = f.Name
+                }).ToList() ?? new(),
                 StartDate = DateTime.Today.AddDays(-30),
                 EndDate = DateTime.Today
             };
@@ -29,124 +47,62 @@ namespace Escale.Web.Controllers
         }
 
         [HttpGet]
-        public IActionResult GenerateSalesReport(DateTime? startDate, DateTime? endDate, int? stationId, int? fuelTypeId)
+        public async Task<IActionResult> GenerateSalesReport(DateTime? startDate, DateTime? endDate, Guid? stationId)
         {
-            // TODO: Generate actual sales report from database
-            var salesData = new List<SalesReportData>
-            {
-                new()
-                {
-                    Date = DateTime.Today,
-                    Station = "Kigali Central Station",
-                    FuelType = "Petrol",
-                    Quantity = 1200,
-                    TotalSales = 1800000,
-                    TransactionCount = 45,
-                    AveragePerTransaction = 40000
-                },
-                new()
-                {
-                    Date = DateTime.Today,
-                    Station = "Kigali Central Station",
-                    FuelType = "Diesel",
-                    Quantity = 800,
-                    TotalSales = 1200000,
-                    TransactionCount = 32,
-                    AveragePerTransaction = 37500
-                }
-            };
-
-            return Json(salesData);
+            var start = startDate ?? DateTime.Today.AddDays(-30);
+            var end = endDate ?? DateTime.Today;
+            var result = await _reportService.GetSalesReportAsync(start, end, stationId);
+            return Json(result.Data);
         }
 
         [HttpGet]
-        public IActionResult GenerateInventoryReport(DateTime? startDate, DateTime? endDate, int? stationId)
+        public async Task<IActionResult> GenerateInventoryReport(Guid? stationId)
         {
-            // TODO: Generate actual inventory report from database
-            var inventoryData = new List<InventoryReportData>
-            {
-                new()
-                {
-                    Station = "Kigali Central Station",
-                    FuelType = "Petrol",
-                    OpeningStock = 10000,
-                    Received = 8000,
-                    Sold = 3000,
-                    ClosingStock = 15000,
-                    Variance = 0
-                }
-            };
-
-            return Json(inventoryData);
+            var result = await _reportService.GetInventoryReportAsync(stationId);
+            return Json(result.Data);
         }
 
         [HttpGet]
-        public IActionResult GenerateEmployeeReport(DateTime? startDate, DateTime? endDate, int? stationId)
+        public async Task<IActionResult> GenerateEmployeeReport(DateTime? startDate, DateTime? endDate)
         {
-            // TODO: Generate actual employee report from database
-            var employeeData = new List<EmployeeReportData>
-            {
-                new()
-                {
-                    Date = DateTime.Today,
-                    EmployeeName = "Alice Johnson",
-                    Role = "Cashier",
-                    Station = "Kigali Central Station",
-                    TransactionsProcessed = 45,
-                    TotalSales = 1800000
-                }
-            };
-
-            return Json(employeeData);
+            var start = startDate ?? DateTime.Today.AddDays(-30);
+            var end = endDate ?? DateTime.Today;
+            var result = await _reportService.GetEmployeeReportAsync(start, end);
+            return Json(result.Data);
         }
 
         [HttpGet]
-        public IActionResult GenerateCustomerReport(DateTime? startDate, DateTime? endDate)
+        public async Task<IActionResult> GenerateCustomerReport(DateTime? startDate, DateTime? endDate)
         {
-            // TODO: Generate actual customer report from database
-            var customerData = new List<CustomerReportData>
-            {
-                new()
-                {
-                    CustomerName = "Jean Dupont",
-                    CustomerType = "Individual",
-                    TotalCars = 2,
-                    ActiveSubscriptions = 1,
-                    TotalSpent = 450000,
-                    TransactionCount = 25,
-                    LastTransaction = DateTime.Now.AddDays(-2)
-                }
-            };
-
-            return Json(customerData);
+            var start = startDate ?? DateTime.Today.AddDays(-30);
+            var end = endDate ?? DateTime.Today;
+            var result = await _reportService.GetCustomerReportAsync(start, end);
+            return Json(result.Data);
         }
 
         [HttpGet]
-        public IActionResult GenerateFinancialReport(DateTime? startDate, DateTime? endDate)
+        public async Task<IActionResult> GenerateFinancialReport(DateTime? startDate, DateTime? endDate)
         {
-            // TODO: Generate actual financial report from database
-            var financialData = new List<FinancialReportData>
-            {
-                new()
-                {
-                    Date = DateTime.Today,
-                    TotalRevenue = 3000000,
-                    CostOfGoods = 2100000,
-                    GrossProfit = 900000,
-                    Expenses = 300000,
-                    NetProfit = 600000,
-                    ProfitMargin = 20
-                }
-            };
-
-            return Json(financialData);
+            var start = startDate ?? DateTime.Today.AddDays(-30);
+            var end = endDate ?? DateTime.Today;
+            var result = await _reportService.GetFinancialReportAsync(start, end);
+            return Json(result.Data);
         }
 
         [HttpGet]
-        public IActionResult ExportReport(string reportType, DateTime? startDate, DateTime? endDate)
+        public async Task<IActionResult> ExportReport(string reportType, DateTime? startDate, DateTime? endDate)
         {
-            // TODO: Implement export functionality (CSV, PDF, Excel)
-            return RedirectToAction("Index");
+            var start = startDate ?? DateTime.Today.AddDays(-30);
+            var end = endDate ?? DateTime.Today;
+
+            var data = await _reportService.ExportTransactionsAsync(start, end);
+            if (data == null)
+            {
+                TempData["ErrorMessage"] = "Failed to export report.";
+                return RedirectToAction("Index");
+            }
+
+            return File(data, "text/csv", $"{reportType}_report_{start:yyyyMMdd}_{end:yyyyMMdd}.csv");
         }
     }
 }

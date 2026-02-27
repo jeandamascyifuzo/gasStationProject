@@ -9,7 +9,7 @@ public partial class CustomerInfoViewModel : ObservableObject
 {
     [ObservableProperty]
     private string customerName = string.Empty;
-    
+
     [ObservableProperty]
     private string phoneNumber = string.Empty;
 
@@ -27,7 +27,7 @@ public partial class CustomerInfoViewModel : ObservableObject
     private async Task Continue()
     {
         var sale = AppState.Instance.CurrentSale;
-        if (sale != null)
+        if (sale != null && !string.IsNullOrWhiteSpace(CustomerName))
         {
             sale.Customer = new CustomerInfo
             {
@@ -46,10 +46,10 @@ public partial class SalePreviewViewModel : ObservableObject
 
     [ObservableProperty]
     private SaleModel? sale;
-    
+
     [ObservableProperty]
     private bool isBusy;
-    
+
     [ObservableProperty]
     private string stationName = string.Empty;
 
@@ -69,8 +69,6 @@ public partial class SalePreviewViewModel : ObservableObject
         {
             Sale = AppState.Instance.CurrentSale;
             StationName = AppState.Instance.SelectedStation?.Name ?? "Unknown Station";
-            
-            System.Diagnostics.Debug.WriteLine($"Sale Preview - Fuel: {Sale?.FuelType}, Liters: {Sale?.Liters}, Amount: {Sale?.AmountRWF}");
         }
         catch (Exception ex)
         {
@@ -103,16 +101,27 @@ public partial class SalePreviewViewModel : ObservableObject
 
         try
         {
-            // Simulate API delay
-            await Task.Delay(1000);
-            
-            // Generate receipt details
-            Sale.ReceiptNumber = $"RCP{DateTime.Now:yyyyMMddHHmmss}";
-            Sale.EBMCode = $"EBM{new Random().Next(100000, 999999)}";
+            var stationId = AppState.Instance.SelectedStation?.Id ?? Guid.Empty;
+            var (success, message, completedSale) = await _apiService.SubmitSaleAsync(Sale, stationId);
 
-            if (Shell.Current != null)
+            if (success && completedSale != null)
             {
-                await Shell.Current.GoToAsync("SaleComplete");
+                Sale.Id = completedSale.Id;
+                Sale.ReceiptNumber = completedSale.ReceiptNumber;
+                Sale.EBMCode = completedSale.EBMCode;
+                Sale.TransactionDate = completedSale.TransactionDate;
+
+                if (Shell.Current != null)
+                {
+                    await Shell.Current.GoToAsync("SaleComplete");
+                }
+            }
+            else
+            {
+                if (Shell.Current != null)
+                {
+                    await Shell.Current.DisplayAlert("Error", message, "OK");
+                }
             }
         }
         catch (Exception ex)
@@ -135,6 +144,9 @@ public partial class SaleCompleteViewModel : ObservableObject
     [ObservableProperty]
     private SaleModel? sale;
 
+    [ObservableProperty]
+    private string stationName = string.Empty;
+
     public SaleCompleteViewModel()
     {
         LoadSale();
@@ -143,6 +155,7 @@ public partial class SaleCompleteViewModel : ObservableObject
     private void LoadSale()
     {
         Sale = AppState.Instance.CurrentSale;
+        StationName = AppState.Instance.SelectedStation?.Name ?? "Unknown Station";
     }
 
     [RelayCommand]

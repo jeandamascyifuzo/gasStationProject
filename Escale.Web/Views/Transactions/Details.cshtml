@@ -1,0 +1,147 @@
+@model Escale.Web.Models.Transaction
+@{
+    ViewData["Title"] = "Receipt - " + Model.ReceiptNumber;
+}
+
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 page-header">
+    <div>
+        <h1 class="h2"><i class="fas fa-receipt me-2"></i>Transaction Receipt</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-action="Index">Transactions</a></li>
+                <li class="breadcrumb-item active">@Model.ReceiptNumber</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <button type="button" class="btn btn-outline-primary me-2" onclick="window.print()">
+            <i class="fas fa-print me-2"></i>Print
+        </button>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow" id="receiptCard">
+            <div class="card-body p-4">
+                <!-- Receipt Header -->
+                <div class="text-center mb-4">
+                    <h4 class="fw-bold">@Model.StationName</h4>
+                    <p class="text-muted mb-1">Fuel Sale Receipt</p>
+                    <h5 class="text-primary">@Model.ReceiptNumber</h5>
+                </div>
+
+                <hr />
+
+                <!-- Transaction Info -->
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <small class="text-muted">Date & Time</small>
+                        <p class="fw-bold mb-0">@Model.TransactionDate.ToString("yyyy-MM-dd HH:mm:ss")</p>
+                    </div>
+                    <div class="col-6 text-end">
+                        <small class="text-muted">Cashier</small>
+                        <p class="fw-bold mb-0">@Model.CashierName</p>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(Model.CustomerName))
+                {
+                    <div class="mb-3">
+                        <small class="text-muted">Customer</small>
+                        <p class="fw-bold mb-0">@Model.CustomerName</p>
+                    </div>
+                }
+
+                <hr />
+
+                <!-- Line Items -->
+                <table class="table table-borderless mb-0">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <strong>@Model.FuelType</strong><br />
+                                <small class="text-muted">@Model.Liters.ToString("N2") L x @Model.PricePerLiter.ToString("N0") RWF/L</small>
+                            </td>
+                            <td class="text-end">@Model.Subtotal.ToString("N0") RWF</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <hr />
+
+                <table class="table table-borderless mb-0">
+                    <tbody>
+                        <tr>
+                            <td>Subtotal</td>
+                            <td class="text-end">@Model.Subtotal.ToString("N0") RWF</td>
+                        </tr>
+                        <tr>
+                            <td>VAT (18%)</td>
+                            <td class="text-end">@Model.VAT.ToString("N0") RWF</td>
+                        </tr>
+                        <tr class="fw-bold" style="font-size: 1.1em;">
+                            <td>Total</td>
+                            <td class="text-end">@Model.Total.ToString("N0") RWF</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <hr />
+
+                <!-- Payment & EBM -->
+                <div class="row">
+                    <div class="col-6">
+                        <small class="text-muted">Payment Method</small>
+                        <p class="mb-0"><span class="badge bg-info">@Model.PaymentMethod</span></p>
+                    </div>
+                    <div class="col-6 text-end">
+                        <small class="text-muted">EBM Status</small>
+                        <p class="mb-0">
+                            @if (Model.EBMSent)
+                            {
+                                <span class="badge bg-success"><i class="fas fa-check me-1"></i>Sent</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Pending</span>
+                            }
+                        </p>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(Model.EBMCode))
+                {
+                    <div class="mt-2">
+                        <small class="text-muted">EBM Code</small>
+                        <p class="mb-0"><code>@Model.EBMCode</code></p>
+                    </div>
+                }
+
+                <hr />
+
+                <div class="text-center">
+                    <small class="text-muted">Thank you for your purchase!</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<style>
+    @@media print {
+        .sidebar, .page-header, .btn-toolbar, nav, footer { display: none !important; }
+        #receiptCard { border: none !important; box-shadow: none !important; }
+    }
+</style>
+}

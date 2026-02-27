@@ -1,41 +1,74 @@
 using Escale.Web.Models;
+using Escale.Web.Models.Api;
+using Escale.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Escale.Web.Controllers
 {
     public class FuelTypesController : Controller
     {
-        public IActionResult Index()
+        private readonly IApiFuelTypeService _fuelTypeService;
+
+        public FuelTypesController(IApiFuelTypeService fuelTypeService)
         {
-            // TODO: Replace with actual data from database
-            var model = new List<FuelType>
+            _fuelTypeService = fuelTypeService;
+        }
+
+        public async Task<IActionResult> Index()
+        {
+            var result = await _fuelTypeService.GetAllAsync();
+            var model = result.Data?.Select(f => new FuelType
             {
-                new() { Id = 1, Name = "Petrol", Code = "PET", SellingPrice = 1430, CostPrice = 1350, VATRate = 18, IsActive = true },
-                new() { Id = 2, Name = "Diesel", Code = "DSL", SellingPrice = 1390, CostPrice = 1320, VATRate = 18, IsActive = true },
-                new() { Id = 3, Name = "Super", Code = "SUP", SellingPrice = 1520, CostPrice = 1440, VATRate = 18, IsActive = true }
-            };
+                Id = f.Id,
+                Name = f.Name,
+                PricePerLiter = f.PricePerLiter,
+                IsActive = f.IsActive,
+                CreatedAt = f.CreatedAt
+            }).ToList() ?? new();
 
             return View(model);
         }
 
         [HttpPost]
-        public IActionResult Create(FuelType fuelType)
+        public async Task<IActionResult> Create(string name, decimal pricePerLiter)
         {
-            // TODO: Save to database
+            var request = new CreateFuelTypeRequestDto
+            {
+                Name = name,
+                PricePerLiter = pricePerLiter
+            };
+
+            var result = await _fuelTypeService.CreateAsync(request);
+            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+                result.Success ? "Fuel type created successfully!" : result.Message;
+
             return RedirectToAction("Index");
         }
 
         [HttpPost]
-        public IActionResult Edit(FuelType fuelType)
+        public async Task<IActionResult> Edit(Guid id, string name, decimal pricePerLiter, bool isActive)
         {
-            // TODO: Update in database
+            var request = new UpdateFuelTypeRequestDto
+            {
+                Name = name,
+                PricePerLiter = pricePerLiter,
+                IsActive = isActive
+            };
+
+            var result = await _fuelTypeService.UpdateAsync(id, request);
+            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+                result.Success ? "Fuel type updated successfully!" : result.Message;
+
             return RedirectToAction("Index");
         }
 
         [HttpPost]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(Guid id)
         {
-            // TODO: Delete from database
+            var result = await _fuelTypeService.DeleteAsync(id);
+            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+                result.Success ? "Fuel type deleted successfully!" : result.Message;
+
             return RedirectToAction("Index");
         }
     }

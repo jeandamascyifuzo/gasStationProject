@@ -62,6 +62,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<ISettingsService, SettingsService>();
+        services.AddScoped<IOrganizationService, OrganizationService>();
         return services;
     }
 

@@ -1,111 +1,137 @@
 using Escale.Web.Models;
+using Escale.Web.Models.Api;
+using Escale.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Escale.Web.Controllers
 {
     public class StationsController : Controller
     {
-        public IActionResult Index()
+        private readonly IApiStationService _stationService;
+        private readonly IApiUserService _userService;
+        private readonly IApiInventoryService _inventoryService;
+
+        public StationsController(
+            IApiStationService stationService,
+            IApiUserService userService,
+            IApiInventoryService inventoryService)
         {
-            // TODO: Replace with actual data from database
+            _stationService = stationService;
+            _userService = userService;
+            _inventoryService = inventoryService;
+        }
+
+        public async Task<IActionResult> Index()
+        {
+            var stationsTask = _stationService.GetAllAsync();
+            var usersTask = _userService.GetAllAsync(1, 100);
+
+            await Task.WhenAll(stationsTask, usersTask);
+
+            var stations = stationsTask.Result;
+            var users = usersTask.Result;
+
+            var managers = users.Data?.Items?
+                .Where(u => u.Role == "Manager" || u.Role == "Admin")
+                .Select(u => new User
+                {
+                    Id = u.Id,
+                    FullName = u.FullName,
+                    Email = u.Email,
+                    Role = u.Role
+                }).ToList() ?? new();
+
             var model = new StationViewModel
             {
-                Stations = new List<Station>
+                Stations = stations.Data?.Select(s => new Station
                 {
-                    new() { Id = 1, Name = "Kigali Central Station", Location = "Kigali", Address = "KN 4 Ave", ContactNumber = "+250788123456", ManagerName = "John Doe", Status = "Active", PumpCount = 4 },
-                    new() { Id = 2, Name = "Remera Branch", Location = "Remera", Address = "KG 11 Ave", ContactNumber = "+250788234567", ManagerName = "Jane Smith", Status = "Active", PumpCount = 6 },
-                    new() { Id = 3, Name = "Kimironko Station", Location = "Kimironko", Address = "KG 5 Ave", ContactNumber = "+250788345678", ManagerName = "Bob Johnson", Status = "Active", PumpCount = 3 }
-                },
-                Managers = new List<User>
+                    Id = s.Id,
+                    Name = s.Name,
+                    Location = s.Location,
+                    Address = s.Address,
+                    ContactNumber = s.PhoneNumber,
+                    ManagerId = s.ManagerId,
+                    ManagerName = s.Manager,
+                    IsActive = s.IsActive,
+                    CreatedAt = s.CreatedAt
+                }).ToList() ?? new(),
+                Managers = managers
+            };
+
+            return View(model);
+        }
+
+        public async Task<IActionResult> Details(Guid id)
+        {
+            var stationTask = _stationService.GetByIdAsync(id);
+            var inventoryTask = _inventoryService.GetAllAsync(id);
+            var usersTask = _userService.GetAllAsync(1, 100);
+
+            await Task.WhenAll(stationTask, inventoryTask, usersTask);
+
+            var stationResult = stationTask.Result;
+            var inventoryResult = inventoryTask.Result;
+            var usersResult = usersTask.Result;
+
+            if (!stationResult.Success || stationResult.Data == null)
+            {
+                TempData["ErrorMessage"] = stationResult.Message;
+                return RedirectToAction("Index");
+            }
+
+            var s = stationResult.Data;
+            var station = new Station
+            {
+                Id = s.Id,
+                Name = s.Name,
+                Location = s.Location,
+                Address = s.Address,
+                ContactNumber = s.PhoneNumber,
+                ManagerId = s.ManagerId,
+                ManagerName = s.Manager,
+                IsActive = s.IsActive,
+                CreatedAt = s.CreatedAt
+            };
+
+            var stock = inventoryResult.Data?.Select(i => new StationStock
+            {
+                InventoryItemId = i.Id,
+                FuelType = i.FuelType,
+                CurrentLevel = i.CurrentLevel,
+                Capacity = i.Capacity,
+                ReorderLevel = i.ReorderLevel,
+                LastRefill = i.LastRefill,
+                PercentageFull = i.PercentageFull
+            }).ToList() ?? new();
+
+            var employees = usersResult.Data?.Items?
+                .Where(u => u.AssignedStations.Any(st => st.Id == id))
+                .Select(u => new User
                 {
-                    new() { Id = 1, Name = "John Doe", Email = "john@escale.rw", Role = "Manager" },
-                    new() { Id = 2, Name = "Jane Smith", Email = "jane@escale.rw", Role = "Manager" },
-                    new() { Id = 3, Name = "Bob Johnson", Email = "bob@escale.rw", Role = "Manager" }
+                    Id = u.Id,
+                    FullName = u.FullName,
+                    Email = u.Email,
+                    Phone = u.Phone,
+                    Role = u.Role,
+                    IsActive = u.IsActive
+                }).ToList() ?? new();
+
+            var model = new StationDetailsViewModel
+            {
+                Station = station,
+                Stock = stock,
+                Employees = employees,
+                Stats = new StationStats
+                {
+                    TodaysSales = s.TodaySales,
+                    TodaysTransactions = s.TodayTransactionCount,
+                    TotalEmployees = s.EmployeeCount,
+                    LowStockItems = stock.Count(st => st.IsLowStock)
                 }
             };
 
             return View(model);
         }
 
-        public IActionResult Details(int id)
-        {
-            // TODO: Replace with actual data from database
-            var station = new Station
-            {
-                Id = id,
-                Name = "Kigali Central Station",
-                Location = "Kigali",
-                Address = "KN 4 Ave",
-                ContactNumber = "+250788123456",
-                ManagerId = 1,
-                ManagerName = "John Doe",
-                Status = "Active",
-                PumpCount = 4
-            };
-
-            var sales = new List<StationSale>
-            {
-                new() { Date = DateTime.Today, FuelType = "Petrol", Quantity = 1200, TotalSales = 1800000, TransactionCount = 45 },
-                new() { Date = DateTime.Today, FuelType = "Diesel", Quantity = 800, TotalSales = 1200000, TransactionCount = 32 },
-                new() { Date = DateTime.Today.AddDays(-1), FuelType = "Petrol", Quantity = 1150, TotalSales = 1725000, TransactionCount = 42 },
-                new() { Date = DateTime.Today.AddDays(-1), FuelType = "Diesel", Quantity = 750, TotalSales = 1125000, TransactionCount = 28 }
-            };
-
-            var stock = new List<StationStock>
-            {
-                new() { FuelType = "Petrol", CurrentLevel = 15000, Capacity = 20000, ReorderLevel = 5000, LastRefill = DateTime.Now.AddDays(-3) },
-                new() { FuelType = "Diesel", CurrentLevel = 8000, Capacity = 15000, ReorderLevel = 3000, LastRefill = DateTime.Now.AddDays(-5) },
-                new() { FuelType = "Super", CurrentLevel = 3000, Capacity = 10000, ReorderLevel = 2000, LastRefill = DateTime.Now.AddDays(-7) }
-            };
-
-            var employees = new List<User>
-            {
-                new() { Id = 1, Name = "John Doe", Email = "john@escale.rw", Role = "Manager", Phone = "+250788123456", IsActive = true },
-                new() { Id = 2, Name = "Alice Johnson", Email = "alice@escale.rw", Role = "Cashier", Phone = "+250788234567", IsActive = true },
-                new() { Id = 3, Name = "Bob Smith", Email = "bob@escale.rw", Role = "Cashier", Phone = "+250788345678", IsActive = true },
-                new() { Id = 4, Name = "Carol White", Email = "carol@escale.rw", Role = "Pump Attendant", Phone = "+250788456789", IsActive = false }
-            };
-
-            var stats = new StationStats
-            {
-                TodaysSales = 3000000,
-                TodaysTransactions = 77,
-                TotalEmployees = 4,
-                ActivePumps = 4,
-                LowStockItems = 1
-            };
-
-            var model = new StationDetailsViewModel
-            {
-                Station = station,
-                Sales = sales,
-                Stock = stock,
-                Employees = employees,
-                Stats = stats
-            };
-
-            return View(model);
-        }
-
-        [HttpPost]
-        public IActionResult Create(Station station)
-        {
-            // TODO: Save to database
-            return RedirectToAction("Index");
-        }
-
-        [HttpPost]
-        public IActionResult Edit(Station station)
-        {
-            // TODO: Update in database
-            return RedirectToAction("Index");
-        }
-
-        [HttpPost]
-        public IActionResult Delete(int id)
-        {
-            // TODO: Delete from database
-            return RedirectToAction("Index");
-        }
     }
 }

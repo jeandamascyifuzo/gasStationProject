@@ -27,6 +27,14 @@ public class CurrentUserService : ICurrentUserService
     {
         get
         {
+            // SuperAdmin can target any organization via X-Organization-Id header
+            if (IsSuperAdmin)
+            {
+                var headerValue = _httpContextAccessor.HttpContext?.Request.Headers["X-Organization-Id"].FirstOrDefault();
+                if (!string.IsNullOrEmpty(headerValue) && Guid.TryParse(headerValue, out var headerOrgId))
+                    return headerOrgId;
+            }
+
             var claim = User?.FindFirst("OrganizationId")?.Value;
             return claim != null && Guid.TryParse(claim, out var id) ? id : null;
         }
@@ -35,4 +43,5 @@ public class CurrentUserService : ICurrentUserService
     public string? Role => User?.FindFirst(ClaimTypes.Role)?.Value;
     public string? Username => User?.FindFirst(ClaimTypes.Name)?.Value;
     public bool IsAuthenticated => User?.Identity?.IsAuthenticated ?? false;
+    public bool IsSuperAdmin => Role == "SuperAdmin";
 }

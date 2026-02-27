@@ -9,7 +9,7 @@ public partial class StationSelectionViewModel : ObservableObject
 {
     [ObservableProperty]
     private List<StationInfo> stations = new();
-    
+
     [ObservableProperty]
     private bool rememberChoice;
 
@@ -32,11 +32,11 @@ public partial class StationSelectionViewModel : ObservableObject
     private async Task SelectStation(StationInfo station)
     {
         AppState.Instance.SetStation(station);
-        
+
         if (RememberChoice)
         {
             Preferences.Set("RememberStationChoice", true);
-            Preferences.Set("PreferredStationId", station.Id);
+            Preferences.Set("PreferredStationId", station.Id.ToString());
         }
 
         await Shell.Current.GoToAsync("///Dashboard");

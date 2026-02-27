@@ -33,7 +33,7 @@ public class StationsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "SuperAdmin")]
     public async Task<ActionResult<ApiResponse<StationResponseDto>>> CreateStation([FromBody] CreateStationRequestDto request)
     {
         var result = await _stationService.CreateStationAsync(request);
@@ -41,7 +41,7 @@ public class StationsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "SuperAdmin")]
     public async Task<ActionResult<ApiResponse<StationResponseDto>>> UpdateStation(Guid id, [FromBody] UpdateStationRequestDto request)
     {
         var result = await _stationService.UpdateStationAsync(id, request);
@@ -49,7 +49,7 @@ public class StationsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "SuperAdmin")]
     public async Task<ActionResult<ApiResponse>> DeleteStation(Guid id)
     {
         await _stationService.DeleteStationAsync(id);

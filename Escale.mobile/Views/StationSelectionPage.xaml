@@ -11,11 +11,16 @@
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="20">
             
-            <Label Text="Select Your Station" 
-                   FontSize="24" 
+            <Label Text="Select Your Station"
+                   FontSize="24"
                    FontAttributes="Bold"
                    TextColor="#1E3A8A"
-                   Margin="0,20,0,10"/>
+                   Margin="0,20,0,0"/>
+
+            <Label Text="Choose which station you want to operate at today."
+                   FontSize="14"
+                   TextColor="#64748B"
+                   Margin="0,0,0,10"/>
 
             <CollectionView ItemsSource="{Binding Stations}">
                 <CollectionView.ItemTemplate>

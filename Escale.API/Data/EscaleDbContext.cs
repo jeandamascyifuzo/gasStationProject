@@ -75,7 +75,17 @@ public class EscaleDbContext : DbContext
         }
 
         // Auto-set OrganizationId on new TenantEntity records
-        if (orgId != null && Guid.TryParse(orgId, out var organizationId))
+        // For SuperAdmin, check X-Organization-Id header first
+        var effectiveOrgId = orgId;
+        var userRole = _httpContextAccessor?.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        if (userRole == "SuperAdmin")
+        {
+            var headerOrgId = _httpContextAccessor?.HttpContext?.Request.Headers["X-Organization-Id"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(headerOrgId))
+                effectiveOrgId = headerOrgId;
+        }
+
+        if (effectiveOrgId != null && Guid.TryParse(effectiveOrgId, out var organizationId))
         {
             foreach (var entry in ChangeTracker.Entries<TenantEntity>())
             {

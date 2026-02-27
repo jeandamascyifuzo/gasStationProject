@@ -10,31 +10,31 @@ public partial class NewSaleViewModel : ObservableObject
 {
     private readonly ApiService _apiService;
     private bool _isUpdating = false;
-    
+
     [ObservableProperty]
     private ObservableCollection<FuelTypeOption> fuelTypes = new();
-    
+
     [ObservableProperty]
     private FuelTypeOption? selectedFuelType;
-    
+
     [ObservableProperty]
     private string amountRWFText = string.Empty;
-    
+
     [ObservableProperty]
     private string litersText = string.Empty;
-    
+
     [ObservableProperty]
     private string selectedPaymentMethod = "Cash";
-    
+
     [ObservableProperty]
     private bool isBusy;
-    
+
     [ObservableProperty]
     private string calculationDisplay = string.Empty;
-    
+
     public ObservableCollection<string> PaymentMethods { get; } = new()
     {
-        "Cash", "Mobile Money", "Card", "Credit"
+        "Cash", "MobileMoney", "Card", "Credit"
     };
 
     public NewSaleViewModel(ApiService apiService)
@@ -72,14 +72,12 @@ public partial class NewSaleViewModel : ObservableObject
         {
             _isUpdating = true;
 
-            // Calculate from amount to liters
             if (!string.IsNullOrWhiteSpace(AmountRWFText) && decimal.TryParse(AmountRWFText, out var amount))
             {
                 var calculatedLiters = amount / SelectedFuelType.PricePerLiter;
                 LitersText = calculatedLiters.ToString("F2");
                 CalculationDisplay = $"{amount:N0} RWF = {calculatedLiters:F2} Liters";
             }
-            // Calculate from liters to amount
             else if (!string.IsNullOrWhiteSpace(LitersText) && decimal.TryParse(LitersText, out var litersValue))
             {
                 var calculatedAmount = litersValue * SelectedFuelType.PricePerLiter;
@@ -106,10 +104,9 @@ public partial class NewSaleViewModel : ObservableObject
     {
         try
         {
-            await Task.Delay(500);
-            
-            var types = GetDummyFuelTypes();
-            
+            IsBusy = true;
+            var types = await _apiService.GetFuelTypesAsync();
+
             FuelTypes.Clear();
             foreach (var type in types)
             {
@@ -124,48 +121,9 @@ public partial class NewSaleViewModel : ObservableObject
                 await Shell.Current.DisplayAlert("Error", $"Failed to load fuel types: {ex.Message}", "OK");
             }
         }
-    }
-
-    private List<FuelTypeOption> GetDummyFuelTypes()
-    {
-        try
+        finally
         {
-            return new List<FuelTypeOption>
-            {
-                new FuelTypeOption
-                {
-                    Name = "Petrol 95",
-                    PricePerLiter = 1450,
-                    Icon = "?",
-                    BadgeColor = Colors.Red
-                },
-                new FuelTypeOption
-                {
-                    Name = "Petrol 98",
-                    PricePerLiter = 1550,
-                    Icon = "?",
-                    BadgeColor = Colors.Green
-                },
-                new FuelTypeOption
-                {
-                    Name = "Diesel",
-                    PricePerLiter = 1380,
-                    Icon = "??",
-                    BadgeColor = Colors.Orange
-                },
-                new FuelTypeOption
-                {
-                    Name = "Kerosene",
-                    PricePerLiter = 1200,
-                    Icon = "???",
-                    BadgeColor = Colors.Blue
-                }
-            };
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error creating fuel types: {ex}");
-            return new List<FuelTypeOption>();
+            IsBusy = false;
         }
     }
 
@@ -209,6 +167,7 @@ public partial class NewSaleViewModel : ObservableObject
             if (sale != null)
             {
                 sale.FuelType = SelectedFuelType.Name;
+                sale.FuelTypeId = SelectedFuelType.Id;
                 sale.PricePerLiter = SelectedFuelType.PricePerLiter;
                 sale.AmountRWF = amountValue;
                 sale.Liters = litersValue;

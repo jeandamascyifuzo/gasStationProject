@@ -15,6 +15,26 @@
     </div>
 </div>
 
+@await Html.PartialAsync("_ApiError")
+
+<!-- Station Filter -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <form method="get" asp-action="Index">
+            <div class="input-group">
+                <label class="input-group-text"><i class="fas fa-filter"></i></label>
+                <select class="form-select" name="stationId" onchange="this.form.submit()">
+                    <option value="">All Stations</option>
+                    @foreach (var station in Model.Stations)
+                    {
+                        <option value="@station.Id" selected="@(Model.SelectedStationId == station.Id ? "selected" : null)">@station.Name</option>
+                    }
+                </select>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Stats Cards -->
 <div class="row mb-4">
     <div class="col-md-3">
@@ -69,7 +89,7 @@
                     <div>
                         <div class="text-xs mb-1">STOCK LEVEL</div>
                         <div class="h4 mb-0 fw-bold">
-                            @((Model.Stats.TotalCurrentStock / Model.Stats.TotalCapacity * 100).ToString("F1"))%
+                            @(Model.Stats.TotalCapacity > 0 ? (Model.Stats.TotalCurrentStock / Model.Stats.TotalCapacity * 100).ToString("F1") : "0.0")%
                         </div>
                     </div>
                     <div class="icon-wrapper">
@@ -117,7 +137,7 @@
                             <td>@item.Capacity.ToString("N0")L</td>
                             <td>
                                 <div class="progress" style="height: 25px;">
-                                    <div class="progress-bar @(item.IsLowStock ? "bg-danger" : item.PercentageFull > 70 ? "bg-success" : "bg-warning")" 
+                                    <div class="progress-bar @(item.IsLowStock ? "bg-danger" : item.PercentageFull > 70 ? "bg-success" : "bg-warning")"
                                          style="width: @item.PercentageFull%">
                                         @item.PercentageFull.ToString("F1")%
                                     </div>
@@ -129,10 +149,10 @@
                                     @item.Status
                                 </span>
                             </td>
-                            <td>@item.LastRefill.ToString("yyyy-MM-dd")</td>
+                            <td>@(item.LastRefill?.ToString("yyyy-MM-dd") ?? "N/A")</td>
                             <td>@(item.NextDeliveryDate?.ToString("yyyy-MM-dd") ?? "TBD")</td>
                             <td>
-                                <button class="btn btn-sm btn-primary" onclick="updateReorderLevel(@item.Id, @item.ReorderLevel)" title="Set Reorder Level">
+                                <button class="btn btn-sm btn-primary" onclick="openReorderModal('@item.Id', '@item.StationName - @item.FuelType', @item.ReorderLevel)" title="Set Reorder Level">
                                     <i class="fas fa-edit"></i>
                                 </button>
                             </td>
@@ -202,68 +222,80 @@
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="stationId" class="form-label">Station <span class="text-danger">*</span></label>
-                            <select class="form-select" id="stationId" name="StationId" required>
-                                <option value="">Select Station</option>
-                                @foreach (var station in Model.Stations)
+                            <label for="inventoryItemId" class="form-label">Inventory Item <span class="text-danger">*</span></label>
+                            <select class="form-select" id="inventoryItemId" name="inventoryItemId" required>
+                                <option value="">Select Inventory Item</option>
+                                @foreach (var item in Model.InventoryItems)
                                 {
-                                    <option value="@station.Id">@station.Name</option>
+                                    <option value="@item.Id">@item.StationName - @item.FuelType (@item.CurrentLevel.ToString("N0")L / @item.Capacity.ToString("N0")L)</option>
                                 }
                             </select>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="fuelType" class="form-label">Fuel Type <span class="text-danger">*</span></label>
-                            <select class="form-select" id="fuelType" name="FuelType" required>
-                                <option value="">Select Fuel Type</option>
-                                @foreach (var fuel in Model.FuelTypes)
-                                {
-                                    <option value="@fuel.Name">@fuel.Name</option>
-                                }
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="quantity" class="form-label">Quantity (Liters) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="quantity" name="Quantity" required step="0.01" />
+                            <input type="number" class="form-control" id="quantity" name="quantity" required step="0.01" min="0.01" />
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="unitCost" class="form-label">Unit Cost (RWF) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="unitCost" name="UnitCost" required step="0.01" onchange="calculateTotalCost()" />
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="totalCost" class="form-label">Total Cost (RWF)</label>
-                        <input type="number" class="form-control" id="totalCost" name="TotalCost" readonly />
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="supplierName" class="form-label">Supplier Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="supplierName" name="SupplierName" required placeholder="Rwanda Fuel Ltd" />
+                            <label for="unitCost" class="form-label">Unit Cost (RWF) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="unitCost" name="unitCost" required step="0.01" min="0.01" onchange="calculateTotalCost()" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="totalCostDisplay" class="form-label">Total Cost (RWF)</label>
+                            <input type="number" class="form-control" id="totalCostDisplay" readonly />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="supplierName" class="form-label">Supplier Name</label>
+                            <input type="text" class="form-control" id="supplierName" name="supplierName" placeholder="Rwanda Fuel Ltd" />
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="invoiceNumber" class="form-label">Invoice Number</label>
-                            <input type="text" class="form-control" id="invoiceNumber" name="InvoiceNumber" placeholder="INV-2024-001" />
+                            <input type="text" class="form-control" id="invoiceNumber" name="invoiceNumber" placeholder="INV-2024-001" />
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <label for="refillDate" class="form-label">Refill Date <span class="text-danger">*</span></label>
-                        <input type="datetime-local" class="form-control" id="refillDate" name="RefillDate" required />
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="notes" class="form-label">Notes</label>
-                        <textarea class="form-control" id="notes" name="Notes" rows="2"></textarea>
+                        <input type="datetime-local" class="form-control" id="refillDate" name="refillDate" required />
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save me-2"></i>Record Refill
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reorder Level Modal -->
+<div class="modal fade" id="reorderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Update Reorder Level</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-controller="Inventory" asp-action="UpdateReorderLevel" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="id" id="reorderItemId" />
+                    <p class="text-muted">Item: <strong id="reorderItemName"></strong></p>
+                    <div class="mb-3">
+                        <label for="reorderLevel" class="form-label">Reorder Level (Liters) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="reorderLevel" name="reorderLevel" required step="1" min="0" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Save
                     </button>
                 </div>
             </form>
@@ -291,18 +323,16 @@
         var quantity = parseFloat($('#quantity').val()) || 0;
         var unitCost = parseFloat($('#unitCost').val()) || 0;
         var totalCost = quantity * unitCost;
-        $('#totalCost').val(totalCost.toFixed(2));
+        $('#totalCostDisplay').val(totalCost.toFixed(2));
     }
 
     $('#quantity').on('change keyup', calculateTotalCost);
 
-    function updateReorderLevel(id, currentLevel) {
-        var newLevel = prompt('Enter new reorder level (Liters):', currentLevel);
-        if (newLevel !== null && newLevel !== '') {
-            $.post('@Url.Action("UpdateReorderLevel", "Inventory")', { id: id, reorderLevel: newLevel }, function() {
-                location.reload();
-            });
-        }
+    function openReorderModal(id, name, currentLevel) {
+        $('#reorderItemId').val(id);
+        $('#reorderItemName').text(name);
+        $('#reorderLevel').val(currentLevel);
+        $('#reorderModal').modal('show');
     }
 </script>
 }

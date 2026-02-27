@@ -8,7 +8,7 @@ namespace Escale.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,SuperAdmin")]
 public class SettingsController : ControllerBase
 {
     private readonly ISettingsService _settingsService;

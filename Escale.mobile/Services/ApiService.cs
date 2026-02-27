@@ -5,22 +5,226 @@ using Escale.mobile.Models;
 
 namespace Escale.mobile.Services;
 
+/// <summary>
+/// Generic API response wrapper matching the API's ApiResponse<T> format.
+/// </summary>
+public class ApiResponse<T>
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public T? Data { get; set; }
+    public List<string>? Errors { get; set; }
+}
+
+/// <summary>
+/// Sale creation request matching API's CreateSaleRequestDto.
+/// </summary>
+public class CreateSaleRequest
+{
+    public Guid StationId { get; set; }
+    public string FuelType { get; set; } = string.Empty;
+    public Guid? FuelTypeId { get; set; }
+    public decimal Liters { get; set; }
+    public decimal PricePerLiter { get; set; }
+    public string PaymentMethod { get; set; } = string.Empty;
+    public SaleCustomerRequest? Customer { get; set; }
+}
+
+public class SaleCustomerRequest
+{
+    public Guid? Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? PhoneNumber { get; set; }
+    public string? PlateNumber { get; set; }
+}
+
+/// <summary>
+/// Sale response matching API's SaleResponseDto.
+/// </summary>
+public class SaleResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public CompletedSale? Sale { get; set; }
+}
+
+public class CompletedSale
+{
+    public Guid Id { get; set; }
+    public string ReceiptNumber { get; set; } = string.Empty;
+    public string EBMCode { get; set; } = string.Empty;
+    public DateTime TransactionDate { get; set; }
+    public string FuelType { get; set; } = string.Empty;
+    public decimal Liters { get; set; }
+    public decimal PricePerLiter { get; set; }
+    public decimal Subtotal { get; set; }
+    public decimal VAT { get; set; }
+    public decimal Total { get; set; }
+    public string PaymentMethod { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Dashboard summary matching API's DashboardSummaryDto.
+/// </summary>
+public class DashboardSummaryResponse
+{
+    public decimal TodaysSales { get; set; }
+    public int TransactionCount { get; set; }
+    public decimal AverageSale { get; set; }
+    public List<StockAlertResponse> LowStockAlerts { get; set; } = new();
+    public List<RecentTransactionResponse> RecentTransactions { get; set; } = new();
+}
+
+public class StockAlertResponse
+{
+    public string FuelType { get; set; } = string.Empty;
+    public decimal CurrentLevel { get; set; }
+    public decimal Capacity { get; set; }
+    public decimal PercentageFull { get; set; }
+}
+
+public class RecentTransactionResponse
+{
+    public Guid Id { get; set; }
+    public string ReceiptNumber { get; set; } = string.Empty;
+    public DateTime TransactionDate { get; set; }
+    public string FuelType { get; set; } = string.Empty;
+    public decimal Liters { get; set; }
+    public decimal Total { get; set; }
+}
+
+/// <summary>
+/// Fuel type response matching API's FuelTypeResponseDto.
+/// </summary>
+public class FuelTypeResponse
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public decimal PricePerLiter { get; set; }
+    public bool IsActive { get; set; }
+}
+
+/// <summary>
+/// Transaction response matching API's TransactionResponseDto.
+/// </summary>
+public class TransactionResponse
+{
+    public Guid Id { get; set; }
+    public string ReceiptNumber { get; set; } = string.Empty;
+    public DateTime TransactionDate { get; set; }
+    public string FuelType { get; set; } = string.Empty;
+    public decimal Liters { get; set; }
+    public decimal PricePerLiter { get; set; }
+    public decimal Subtotal { get; set; }
+    public decimal VAT { get; set; }
+    public decimal Total { get; set; }
+    public string PaymentMethod { get; set; } = string.Empty;
+    public string? CustomerName { get; set; }
+    public bool EBMSent { get; set; }
+    public string? EBMCode { get; set; }
+    public string CashierName { get; set; } = string.Empty;
+    public string StationName { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Inventory item response matching API's InventoryItemResponseDto.
+/// </summary>
+public class InventoryItemResponse
+{
+    public Guid Id { get; set; }
+    public string FuelType { get; set; } = string.Empty;
+    public decimal CurrentLevel { get; set; }
+    public decimal Capacity { get; set; }
+    public decimal PercentageFull { get; set; }
+    public decimal ReorderLevel { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public DateTime? LastRefill { get; set; }
+}
+
+/// <summary>
+/// Customer response matching API's CustomerResponseDto.
+/// </summary>
+public class CustomerResponse
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? PhoneNumber { get; set; }
+    public string? Email { get; set; }
+    public decimal CreditLimit { get; set; }
+    public decimal CurrentCredit { get; set; }
+    public List<CarResponse> Cars { get; set; } = new();
+}
+
+public class CarResponse
+{
+    public Guid? Id { get; set; }
+    public string PlateNumber { get; set; } = string.Empty;
+    public string? Make { get; set; }
+    public string? Model { get; set; }
+}
+
+/// <summary>
+/// Shift response matching API's ShiftSummaryDto.
+/// </summary>
+public class ShiftSummaryResponse
+{
+    public Guid ShiftId { get; set; }
+    public DateTime StartTime { get; set; }
+    public DateTime? EndTime { get; set; }
+    public string Duration { get; set; } = string.Empty;
+    public int TransactionCount { get; set; }
+    public decimal TotalSales { get; set; }
+    public decimal CashSales { get; set; }
+    public decimal MobileMoneySales { get; set; }
+    public decimal CardSales { get; set; }
+    public decimal CreditSales { get; set; }
+}
+
+/// <summary>
+/// Clock request matching API's ClockRequestDto.
+/// </summary>
+public class ClockRequest
+{
+    public Guid UserId { get; set; }
+    public Guid StationId { get; set; }
+    public bool IsClockIn { get; set; }
+}
+
+/// <summary>
+/// Clock response matching API's ClockResponseDto.
+/// </summary>
+public class ClockResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Paged result matching API's PagedResult<T>.
+/// </summary>
+public class PagedResult<T>
+{
+    public List<T> Items { get; set; } = new();
+    public int TotalCount { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+}
+
 public class ApiService
 {
     private readonly HttpClient _httpClient;
-    private string _baseUrl;
+    private readonly string _baseUrl;
     private string? _authToken;
 
     public ApiService()
     {
 #if DEBUG
-        // In development, bypass SSL certificate validation
         var handler = new HttpClientHandler();
         handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true;
-        
+
         _httpClient = new HttpClient(handler)
         {
-            Timeout = TimeSpan.FromSeconds(60) // Increased timeout
+            Timeout = TimeSpan.FromSeconds(60)
         };
 #else
         _httpClient = new HttpClient
@@ -28,26 +232,20 @@ public class ApiService
             Timeout = TimeSpan.FromSeconds(60)
         };
 #endif
-        
-        // Configure base URL based on platform
+
         _baseUrl = GetBaseUrl();
-        
         System.Diagnostics.Debug.WriteLine($"API Base URL: {_baseUrl}");
     }
 
-    private string GetBaseUrl()
+    private static string GetBaseUrl()
     {
 #if ANDROID
-        // Android emulator uses 10.0.2.2 to access host machine's localhost
         return "https://10.0.2.2:7015/api";
 #elif IOS
-        // iOS simulator can use localhost
         return "https://localhost:7015/api";
 #elif WINDOWS
-        // Windows can use localhost
         return "https://localhost:7015/api";
 #else
-        // Default fallback
         return "https://localhost:7015/api";
 #endif
     }
@@ -55,27 +253,326 @@ public class ApiService
     public void SetAuthToken(string token)
     {
         _authToken = token;
-        _httpClient.DefaultRequestHeaders.Authorization = 
+        _httpClient.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", token);
     }
+
+    // ==================== AUTH ====================
+
+    public async Task<LoginResponse> LoginAsync(LoginModel login)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"Logging in to: {_baseUrl}/auth/login");
+
+            var response = await _httpClient.PostAsJsonAsync($"{_baseUrl}/auth/login", login);
+
+            System.Diagnostics.Debug.WriteLine($"Login response status: {response.StatusCode}");
+
+            var content = await response.Content.ReadAsStringAsync();
+            System.Diagnostics.Debug.WriteLine($"Login response: {content}");
+
+            // LoginResponseDto is returned directly (not wrapped in ApiResponse<T>)
+            var result = JsonSerializer.Deserialize<LoginResponse>(content, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (result?.Success == true && !string.IsNullOrEmpty(result.Token))
+            {
+                SetAuthToken(result.Token);
+            }
+
+            return result ?? new LoginResponse { Success = false, Message = "Invalid response from server" };
+        }
+        catch (TaskCanceledException)
+        {
+            return new LoginResponse
+            {
+                Success = false,
+                Message = $"Connection timeout. Please check:\n\n1. API is running (Escale.API project)\n2. API URL: {_baseUrl}\n3. Firewall/antivirus settings"
+            };
+        }
+        catch (HttpRequestException ex)
+        {
+            return new LoginResponse
+            {
+                Success = false,
+                Message = $"Cannot connect to API at {_baseUrl}\n\nError: {ex.Message}\n\nMake sure the Escale.API project is running."
+            };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Login error: {ex}");
+            return new LoginResponse { Success = false, Message = $"Error: {ex.Message}" };
+        }
+    }
+
+    // ==================== DASHBOARD ====================
+
+    public async Task<DashboardSummaryResponse> GetDashboardSummaryAsync(Guid? stationId)
+    {
+        try
+        {
+            var url = $"{_baseUrl}/dashboard/summary";
+            if (stationId.HasValue)
+                url += $"?stationId={stationId}";
+
+            var response = await _httpClient.GetFromJsonAsync<ApiResponse<DashboardSummaryResponse>>(url);
+            return response?.Data ?? new DashboardSummaryResponse();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error fetching dashboard: {ex.Message}");
+            return new DashboardSummaryResponse();
+        }
+    }
+
+    // ==================== FUEL TYPES ====================
+
+    public async Task<List<FuelTypeOption>> GetFuelTypesAsync()
+    {
+        try
+        {
+            var response = await _httpClient.GetFromJsonAsync<ApiResponse<List<FuelTypeResponse>>>(
+                $"{_baseUrl}/fueltypes");
+
+            if (response?.Data == null) return new List<FuelTypeOption>();
+
+            return response.Data
+                .Where(f => f.IsActive)
+                .Select(f => new FuelTypeOption
+                {
+                    Id = f.Id,
+                    Name = f.Name,
+                    PricePerLiter = f.PricePerLiter,
+                    Icon = f.Name.Contains("Diesel") ? "\u26fd" :
+                           f.Name.Contains("Kerosene") ? "\ud83d\udca7" : "\u26fd",
+                    BadgeColor = f.Name.Contains("Diesel") ? Colors.Orange :
+                                 f.Name.Contains("Kerosene") ? Colors.Blue :
+                                 f.Name.Contains("98") ? Colors.Green : Colors.Red
+                }).ToList();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error fetching fuel types: {ex.Message}");
+            return new List<FuelTypeOption>();
+        }
+    }
+
+    // ==================== SALES ====================
+
+    public async Task<(bool Success, string Message, CompletedSale? Sale)> SubmitSaleAsync(SaleModel sale, Guid stationId)
+    {
+        try
+        {
+            var request = new CreateSaleRequest
+            {
+                StationId = stationId,
+                FuelType = sale.FuelType,
+                FuelTypeId = sale.FuelTypeId,
+                Liters = sale.Liters ?? 0,
+                PricePerLiter = sale.PricePerLiter,
+                PaymentMethod = sale.PaymentMethod,
+                Customer = sale.Customer != null && !sale.Customer.IsWalkIn ? new SaleCustomerRequest
+                {
+                    Id = sale.Customer.Id,
+                    Name = sale.Customer.Name,
+                    PhoneNumber = sale.Customer.PhoneNumber,
+                    PlateNumber = sale.Customer.PlateNumber
+                } : null
+            };
+
+            var response = await _httpClient.PostAsJsonAsync($"{_baseUrl}/sales", request);
+            var content = await response.Content.ReadAsStringAsync();
+
+            System.Diagnostics.Debug.WriteLine($"Sale response: {content}");
+
+            // SaleResponseDto is returned directly (not wrapped in ApiResponse<T>)
+            var result = JsonSerializer.Deserialize<SaleResponse>(content, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (result?.Success == true && result.Sale != null)
+            {
+                return (true, result.Message, result.Sale);
+            }
+
+            return (false, result?.Message ?? $"Sale failed: {response.StatusCode}", null);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error submitting sale: {ex.Message}");
+            return (false, $"Error: {ex.Message}", null);
+        }
+    }
+
+    // ==================== TRANSACTIONS ====================
+
+    public async Task<List<Transaction>> GetTransactionsAsync(Guid stationId, DateTime date)
+    {
+        try
+        {
+            var url = $"{_baseUrl}/transactions?StationId={stationId}&StartDate={date:yyyy-MM-dd}&EndDate={date:yyyy-MM-dd}&PageSize=50";
+            var response = await _httpClient.GetFromJsonAsync<ApiResponse<PagedResult<TransactionResponse>>>(url);
+
+            if (response?.Data?.Items == null) return new List<Transaction>();
+
+            return response.Data.Items.Select(t => new Transaction
+            {
+                Id = t.Id,
+                ReceiptNumber = t.ReceiptNumber,
+                TransactionDate = t.TransactionDate,
+                FuelType = t.FuelType,
+                Liters = t.Liters,
+                Total = t.Total,
+                PaymentMethod = t.PaymentMethod,
+                CustomerName = t.CustomerName,
+                EBMSent = t.EBMSent,
+                EBMCode = t.EBMCode
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error fetching transactions: {ex.Message}");
+            return new List<Transaction>();
+        }
+    }
+
+    // ==================== STOCK / INVENTORY ====================
+
+    public async Task<List<StockLevel>> GetStockLevelsAsync(Guid stationId)
+    {
+        try
+        {
+            var response = await _httpClient.GetFromJsonAsync<ApiResponse<List<InventoryItemResponse>>>(
+                $"{_baseUrl}/inventory?stationId={stationId}");
+
+            if (response?.Data == null) return new List<StockLevel>();
+
+            return response.Data.Select(i => new StockLevel
+            {
+                FuelType = i.FuelType,
+                CurrentLevel = i.CurrentLevel,
+                Capacity = i.Capacity,
+                LastUpdated = i.LastRefill ?? DateTime.Now
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error fetching stock levels: {ex.Message}");
+            return new List<StockLevel>();
+        }
+    }
+
+    // ==================== CUSTOMERS ====================
+
+    public async Task<List<CustomerInfo>> SearchCustomersAsync(string searchTerm)
+    {
+        try
+        {
+            var response = await _httpClient.GetFromJsonAsync<ApiResponse<List<CustomerResponse>>>(
+                $"{_baseUrl}/customers/search?term={Uri.EscapeDataString(searchTerm)}");
+
+            if (response?.Data == null) return new List<CustomerInfo>();
+
+            return response.Data.Select(c => new CustomerInfo
+            {
+                Id = c.Id,
+                Name = c.Name,
+                PhoneNumber = c.PhoneNumber ?? string.Empty,
+                PlateNumber = c.Cars.FirstOrDefault()?.PlateNumber,
+                VehicleModel = c.Cars.FirstOrDefault() != null
+                    ? $"{c.Cars.First().Make} {c.Cars.First().Model}".Trim()
+                    : null,
+                CreditLimit = c.CreditLimit,
+                CurrentCredit = c.CurrentCredit
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error searching customers: {ex.Message}");
+            return new List<CustomerInfo>();
+        }
+    }
+
+    // ==================== SHIFTS ====================
+
+    public async Task<ShiftSummary> GetShiftSummaryAsync(Guid userId, Guid stationId)
+    {
+        try
+        {
+            var response = await _httpClient.GetFromJsonAsync<ApiResponse<ShiftSummaryResponse>>(
+                $"{_baseUrl}/shifts/summary?userId={userId}&stationId={stationId}");
+
+            if (response?.Data == null) return new ShiftSummary();
+
+            var d = response.Data;
+            return new ShiftSummary
+            {
+                ShiftId = d.ShiftId,
+                ShiftStart = d.StartTime,
+                ShiftEnd = d.EndTime,
+                Duration = d.Duration,
+                TransactionCount = d.TransactionCount,
+                TotalSales = d.TotalSales,
+                CashSales = d.CashSales,
+                MobileMoneySales = d.MobileMoneySales,
+                CardSales = d.CardSales,
+                CreditSales = d.CreditSales
+            };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error fetching shift summary: {ex.Message}");
+            return new ShiftSummary();
+        }
+    }
+
+    public async Task<(bool Success, string Message)> ClockInOutAsync(Guid userId, Guid stationId, bool isClockIn)
+    {
+        try
+        {
+            var request = new ClockRequest
+            {
+                UserId = userId,
+                StationId = stationId,
+                IsClockIn = isClockIn
+            };
+
+            var response = await _httpClient.PostAsJsonAsync($"{_baseUrl}/shifts/clock", request);
+            var content = await response.Content.ReadAsStringAsync();
+
+            var result = JsonSerializer.Deserialize<ClockResponse>(content, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            return (result?.Success ?? response.IsSuccessStatusCode,
+                    result?.Message ?? (response.IsSuccessStatusCode ? "Success" : "Failed"));
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error clocking in/out: {ex.Message}");
+            return (false, $"Error: {ex.Message}");
+        }
+    }
+
+    // ==================== CONNECTION TEST ====================
 
     public async Task<(bool Success, string Message)> TestConnectionAsync()
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine($"Testing connection to: {_baseUrl}");
             var response = await _httpClient.GetAsync($"{_baseUrl.Replace("/api", "")}/weatherforecast");
-            
-            if (response.IsSuccessStatusCode)
-            {
-                return (true, "API is reachable");
-            }
-            
-            return (false, $"API returned: {response.StatusCode}");
+            return response.IsSuccessStatusCode
+                ? (true, "API is reachable")
+                : (false, $"API returned: {response.StatusCode}");
         }
         catch (TaskCanceledException)
         {
-            return (false, "Connection timeout. Make sure:\n1. The API is running\n2. Using correct URL\n3. Firewall allows connection");
+            return (false, "Connection timeout.");
         }
         catch (HttpRequestException ex)
         {
@@ -84,189 +581,6 @@ public class ApiService
         catch (Exception ex)
         {
             return (false, $"Error: {ex.Message}");
-        }
-    }
-
-    public async Task<LoginResponse> LoginAsync(LoginModel login)
-    {
-        try
-        {
-            System.Diagnostics.Debug.WriteLine($"Attempting login to: {_baseUrl}/auth/login");
-            System.Diagnostics.Debug.WriteLine($"Username: {login.Username}");
-            
-            var response = await _httpClient.PostAsJsonAsync($"{_baseUrl}/auth/login", login);
-            
-            System.Diagnostics.Debug.WriteLine($"Response status: {response.StatusCode}");
-            
-            if (response.IsSuccessStatusCode)
-            {
-                var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
-                if (result?.Success == true && !string.IsNullOrEmpty(result.Token))
-                {
-                    SetAuthToken(result.Token);
-                }
-                return result ?? new LoginResponse { Success = false, Message = "Invalid response" };
-            }
-            
-            var errorContent = await response.Content.ReadAsStringAsync();
-            return new LoginResponse 
-            { 
-                Success = false, 
-                Message = $"Login failed: {response.StatusCode} - {errorContent}" 
-            };
-        }
-        catch (TaskCanceledException)
-        {
-            System.Diagnostics.Debug.WriteLine("Login request timed out");
-            return new LoginResponse 
-            { 
-                Success = false, 
-                Message = $"Connection timeout. Please check:\n\n1. API is running (Escale.API project)\n2. API URL: {_baseUrl}\n3. Firewall/antivirus settings\n\nFor Android Emulator, make sure API runs on https://localhost:7015" 
-            };
-        }
-        catch (HttpRequestException ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Login network error: {ex.Message}");
-            return new LoginResponse 
-            { 
-                Success = false, 
-                Message = $"Cannot connect to API at {_baseUrl}\n\nError: {ex.Message}\n\nMake sure the Escale.API project is running." 
-            };
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Login error: {ex.Message}");
-            return new LoginResponse 
-            { 
-                Success = false, 
-                Message = $"Error: {ex.Message}" 
-            };
-        }
-    }
-
-    public async Task<DashboardSummary> GetDashboardSummaryAsync(int stationId)
-    {
-        try
-        {
-            var response = await _httpClient.GetFromJsonAsync<DashboardSummary>(
-                $"{_baseUrl}/dashboard/summary?stationId={stationId}");
-            return response ?? new DashboardSummary();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error fetching dashboard: {ex.Message}");
-            return new DashboardSummary();
-        }
-    }
-
-    public async Task<List<FuelTypeOption>> GetFuelTypesAsync(int stationId)
-    {
-        try
-        {
-            var response = await _httpClient.GetFromJsonAsync<List<FuelTypeOption>>(
-                $"{_baseUrl}/fueltypes?stationId={stationId}");
-            return response ?? new List<FuelTypeOption>();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error fetching fuel types: {ex.Message}");
-            return new List<FuelTypeOption>();
-        }
-    }
-
-    public async Task<List<CustomerInfo>> SearchCustomersAsync(string searchTerm)
-    {
-        try
-        {
-            var response = await _httpClient.GetFromJsonAsync<List<CustomerInfo>>(
-                $"{_baseUrl}/customers/search?term={Uri.EscapeDataString(searchTerm)}");
-            return response ?? new List<CustomerInfo>();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error searching customers: {ex.Message}");
-            return new List<CustomerInfo>();
-        }
-    }
-
-    public async Task<(bool Success, string Message, SaleModel? Sale)> SubmitSaleAsync(SaleModel sale)
-    {
-        try
-        {
-            var response = await _httpClient.PostAsJsonAsync($"{_baseUrl}/sales", sale);
-            
-            if (response.IsSuccessStatusCode)
-            {
-                var result = await response.Content.ReadFromJsonAsync<SaleModel>();
-                return (true, "Sale completed successfully", result);
-            }
-            
-            var errorMessage = await response.Content.ReadAsStringAsync();
-            return (false, $"Failed to submit sale: {errorMessage}", null);
-        }
-        catch (Exception ex)
-        {
-            return (false, $"Error: {ex.Message}", null);
-        }
-    }
-
-    public async Task<List<Transaction>> GetTransactionsAsync(int stationId, DateTime date)
-    {
-        try
-        {
-            var response = await _httpClient.GetFromJsonAsync<List<Transaction>>(
-                $"{_baseUrl}/transactions?stationId={stationId}&date={date:yyyy-MM-dd}");
-            return response ?? new List<Transaction>();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error fetching transactions: {ex.Message}");
-            return new List<Transaction>();
-        }
-    }
-
-    public async Task<List<StockLevel>> GetStockLevelsAsync(int stationId)
-    {
-        try
-        {
-            var response = await _httpClient.GetFromJsonAsync<List<StockLevel>>(
-                $"{_baseUrl}/stock?stationId={stationId}");
-            return response ?? new List<StockLevel>();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error fetching stock levels: {ex.Message}");
-            return new List<StockLevel>();
-        }
-    }
-
-    public async Task<ShiftSummary> GetShiftSummaryAsync(int userId, int stationId)
-    {
-        try
-        {
-            var response = await _httpClient.GetFromJsonAsync<ShiftSummary>(
-                $"{_baseUrl}/shifts/current?userId={userId}&stationId={stationId}");
-            return response ?? new ShiftSummary();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error fetching shift summary: {ex.Message}");
-            return new ShiftSummary();
-        }
-    }
-
-    public async Task<bool> ClockInOutAsync(int userId, int stationId, bool isClockIn)
-    {
-        try
-        {
-            var response = await _httpClient.PostAsJsonAsync($"{_baseUrl}/shifts/clock", 
-                new { UserId = userId, StationId = stationId, IsClockIn = isClockIn });
-            return response.IsSuccessStatusCode;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error clocking in/out: {ex.Message}");
-            return false;
         }
     }
 }

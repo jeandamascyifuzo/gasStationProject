@@ -5,7 +5,7 @@ namespace Escale.mobile.Services;
 public class AppState
 {
     private static AppState? _instance;
-    public static AppState Instance => _instance ??= new AppState();
+    public static AppState Instance => _instance ?? throw new InvalidOperationException("AppState not initialized. Resolve it from DI first.");
 
     public UserInfo? CurrentUser { get; set; }
     public StationInfo? SelectedStation { get; set; }
@@ -16,6 +16,12 @@ public class AppState
     public bool IsClockedIn => ShiftStartTime.HasValue;
 
     public event EventHandler? StateChanged;
+
+    public AppState()
+    {
+        // Ensure the DI-created instance is the same as the static instance
+        _instance = this;
+    }
 
     public void SetUser(UserInfo user, string token)
     {
@@ -44,7 +50,8 @@ public class AppState
     {
         CurrentSale = new SaleModel
         {
-            TransactionDate = DateTime.Now
+            TransactionDate = DateTime.Now,
+            StationName = SelectedStation?.Name ?? "Unknown Station"
         };
         OnStateChanged();
     }

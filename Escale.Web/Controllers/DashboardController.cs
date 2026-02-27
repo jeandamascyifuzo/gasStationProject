@@ -1,50 +1,97 @@
 using Escale.Web.Models;
+using Escale.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Escale.Web.Controllers
 {
     public class DashboardController : Controller
     {
-        public IActionResult Index()
+        private readonly IApiDashboardService _dashboardService;
+        private readonly IApiStationService _stationService;
+        private readonly IApiReportService _reportService;
+
+        public DashboardController(
+            IApiDashboardService dashboardService,
+            IApiStationService stationService,
+            IApiReportService reportService)
         {
-            // TODO: Replace with actual data from database
+            _dashboardService = dashboardService;
+            _stationService = stationService;
+            _reportService = reportService;
+        }
+
+        public async Task<IActionResult> Index(string period = "today")
+        {
+            // SuperAdmin is platform-level, redirect to Organizations
+            if (HttpContext.Session.GetString("UserRole") == "SuperAdmin")
+                return RedirectToAction("Index", "Organizations");
+
+            DateTime date = DateTime.Today;
+            DateTime chartStart = DateTime.Today.AddDays(-6);
+
+            if (period == "week")
+            {
+                date = DateTime.Today.AddDays(-7);
+                chartStart = DateTime.Today.AddDays(-13);
+            }
+            else if (period == "month")
+            {
+                date = DateTime.Today.AddDays(-30);
+                chartStart = DateTime.Today.AddDays(-30);
+            }
+
+            ViewBag.Period = period;
+
+            var summaryTask = _dashboardService.GetSummaryAsync(date: date);
+            var stationsTask = _stationService.GetAllAsync();
+            var salesReportTask = _reportService.GetSalesReportAsync(
+                chartStart, DateTime.Today);
+
+            await Task.WhenAll(summaryTask, stationsTask, salesReportTask);
+
+            var summary = summaryTask.Result;
+            var stations = stationsTask.Result;
+            var salesReport = salesReportTask.Result;
+
             var model = new DashboardViewModel
             {
-                TotalStations = 12,
-                ActivePumps = 48,
-                TodaysSales = 2450000,
-                LowStockAlerts = 3,
-                SalesChart = new List<DailySales>
-                {
-                    new() { Date = "Mon", Sales = 350000 },
-                    new() { Date = "Tue", Sales = 420000 },
-                    new() { Date = "Wed", Sales = 380000 },
-                    new() { Date = "Thu", Sales = 450000 },
-                    new() { Date = "Fri", Sales = 480000 },
-                    new() { Date = "Sat", Sales = 520000 },
-                    new() { Date = "Sun", Sales = 490000 }
-                },
-                FuelTypeChart = new List<FuelSalesData>
-                {
-                    new() { FuelType = "Petrol", Amount = 1200000 },
-                    new() { FuelType = "Diesel", Amount = 950000 },
-                    new() { FuelType = "Super", Amount = 300000 }
-                },
-                TopStations = new List<StationSalesData>
-                {
-                    new() { StationName = "Kigali Central", Sales = 450000 },
-                    new() { StationName = "Remera Branch", Sales = 380000 },
-                    new() { StationName = "Kimironko", Sales = 320000 },
-                    new() { StationName = "Nyabugogo", Sales = 290000 },
-                    new() { StationName = "Gikondo", Sales = 260000 }
-                },
-                RecentTransactions = new List<RecentTransaction>
-                {
-                    new() { TransactionId = "TXN001", Station = "Kigali Central", FuelType = "Petrol", Quantity = 45.5m, Total = 65000, Time = DateTime.Now.AddMinutes(-5) },
-                    new() { TransactionId = "TXN002", Station = "Remera Branch", FuelType = "Diesel", Quantity = 30.2m, Total = 42000, Time = DateTime.Now.AddMinutes(-12) },
-                    new() { TransactionId = "TXN003", Station = "Kimironko", FuelType = "Super", Quantity = 25.0m, Total = 38000, Time = DateTime.Now.AddMinutes(-18) }
-                }
+                TotalStations = stations.Data?.Count ?? 0,
+                TodaysSales = summary.Data?.TodaysSales ?? 0,
+                TransactionCount = summary.Data?.TransactionCount ?? 0,
+                LowStockAlerts = summary.Data?.LowStockAlerts?.Count ?? 0,
+                AverageSale = summary.Data?.AverageSale ?? 0,
+                RecentTransactions = summary.Data?.RecentTransactions?
+                    .Select(t => new RecentTransaction
+                    {
+                        TransactionId = t.ReceiptNumber,
+                        FuelType = t.FuelType,
+                        Quantity = t.Liters,
+                        Total = t.Total,
+                        Time = t.TransactionDate
+                    }).ToList() ?? new()
             };
+
+            // Sales chart from report
+            if (salesReport.Data?.DailySales != null)
+            {
+                model.SalesChart = salesReport.Data.DailySales
+                    .Select(d => new DailySales
+                    {
+                        Date = d.Date.ToString("ddd"),
+                        Sales = d.Amount
+                    }).ToList();
+            }
+
+            // Fuel type chart from report
+            if (salesReport.Data?.SalesByFuel != null)
+            {
+                model.FuelTypeChart = salesReport.Data.SalesByFuel
+                    .Select(f => new FuelSalesData
+                    {
+                        FuelType = f.FuelType,
+                        Amount = f.Amount
+                    }).ToList();
+            }
 
             return View(model);
         }

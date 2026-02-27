@@ -8,22 +8,22 @@ namespace Escale.mobile.ViewModels;
 public partial class DashboardViewModel : ObservableObject
 {
     private readonly ApiService _apiService;
-    
+
     [ObservableProperty]
     private string userName = string.Empty;
-    
+
     [ObservableProperty]
     private string stationName = string.Empty;
-    
+
     [ObservableProperty]
     private decimal todaysSales;
-    
+
     [ObservableProperty]
     private int transactionCount;
-    
+
     [ObservableProperty]
     private List<StockAlert> lowStockAlerts = new();
-    
+
     [ObservableProperty]
     private bool isRefreshing;
 
@@ -33,45 +33,34 @@ public partial class DashboardViewModel : ObservableObject
         LoadDashboard();
     }
 
-    private void LoadDashboard()
+    private async void LoadDashboard()
     {
         UserName = AppState.Instance.CurrentUser?.FullName ?? "User";
         StationName = AppState.Instance.SelectedStation?.Name ?? "Station";
-        
-        // Load dummy data on initialization
-        LoadDummyData();
+
+        await LoadFromApi();
     }
 
-    private void LoadDummyData()
+    private async Task LoadFromApi()
     {
         try
         {
-            // Generate random sales data
-            var random = new Random();
-            TodaysSales = random.Next(500000, 2000000);
-            TransactionCount = random.Next(15, 50);
-            
-            // Create dummy low stock alerts
-            LowStockAlerts = new List<StockAlert>
+            var stationId = AppState.Instance.SelectedStation?.Id;
+            var summary = await _apiService.GetDashboardSummaryAsync(stationId);
+
+            TodaysSales = summary.TodaysSales;
+            TransactionCount = summary.TransactionCount;
+
+            LowStockAlerts = summary.LowStockAlerts.Select(a => new StockAlert
             {
-                new StockAlert
-                {
-                    FuelType = "Diesel",
-                    CurrentLevel = 2500,
-                    Capacity = 20000
-                },
-                new StockAlert
-                {
-                    FuelType = "Petrol 95",
-                    CurrentLevel = 3200,
-                    Capacity = 15000
-                }
-            };
+                FuelType = a.FuelType,
+                CurrentLevel = a.CurrentLevel,
+                Capacity = a.Capacity
+            }).ToList();
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error loading dummy data: {ex}");
-            // Set default values to prevent null references
+            System.Diagnostics.Debug.WriteLine($"Error loading dashboard: {ex}");
             TodaysSales = 0;
             TransactionCount = 0;
             LowStockAlerts = new List<StockAlert>();
@@ -84,11 +73,9 @@ public partial class DashboardViewModel : ObservableObject
         IsRefreshing = true;
         try
         {
-            // Simulate API delay
-            await Task.Delay(1000);
-            
-            // Refresh with new dummy data
-            LoadDummyData();
+            UserName = AppState.Instance.CurrentUser?.FullName ?? "User";
+            StationName = AppState.Instance.SelectedStation?.Name ?? "Station";
+            await LoadFromApi();
         }
         catch (Exception ex)
         {

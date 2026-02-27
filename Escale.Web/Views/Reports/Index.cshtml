@@ -3,6 +3,8 @@
     ViewData["Title"] = "Reports";
 }
 
+@await Html.PartialAsync("_ApiError")
+
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 page-header">
     <div>
         <h1 class="h2"><i class="fas fa-chart-bar me-2"></i>Reports & Analytics</h1>
@@ -82,30 +84,62 @@
                 Select filters and click the search button to generate a report.
             </div>
             <div id="salesReportContent" style="display: none;">
+                <!-- Summary Cards -->
+                <div class="row mb-4" id="salesSummaryCards">
+                    <div class="col-md-4">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h6>Total Sales</h6>
+                                <h3 id="summaryTotalSales">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h6>Transactions</h6>
+                                <h3 id="summaryTransactionCount">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h6>Period</h6>
+                                <h3 id="summaryPeriod">-</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Sales By Fuel Type -->
+                <h6 class="mb-3">Sales by Fuel Type</h6>
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th>Fuel Type</th>
+                                <th>Liters</th>
+                                <th>Amount (RWF)</th>
+                                <th>Transactions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salesByFuelBody">
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Daily Sales -->
+                <h6 class="mb-3">Daily Sales</h6>
                 <div class="table-responsive">
-                    <table id="salesTable" class="table table-bordered table-hover">
+                    <table class="table table-bordered table-hover">
                         <thead>
                             <tr>
                                 <th>Date</th>
-                                <th>Station</th>
-                                <th>Fuel Type</th>
-                                <th>Quantity (L)</th>
-                                <th>Total Sales (RWF)</th>
+                                <th>Amount (RWF)</th>
                                 <th>Transactions</th>
-                                <th>Avg/Transaction</th>
                             </tr>
                         </thead>
-                        <tbody id="salesTableBody">
+                        <tbody id="dailySalesBody">
                         </tbody>
-                        <tfoot>
-                            <tr class="table-info fw-bold">
-                                <td colspan="3">Total</td>
-                                <td id="totalQuantity">0</td>
-                                <td id="totalSales">0</td>
-                                <td id="totalTransactions">0</td>
-                                <td>-</td>
-                            </tr>
-                        </tfoot>
                     </table>
                 </div>
             </div>
@@ -119,11 +153,12 @@
                         <tr>
                             <th>Station</th>
                             <th>Fuel Type</th>
-                            <th>Opening Stock</th>
-                            <th>Received</th>
-                            <th>Sold</th>
-                            <th>Closing Stock</th>
-                            <th>Variance</th>
+                            <th>Current Level (L)</th>
+                            <th>Capacity (L)</th>
+                            <th>% Full</th>
+                            <th>Status</th>
+                            <th>Refill Count</th>
+                            <th>Refill Cost (RWF)</th>
                         </tr>
                     </thead>
                     <tbody id="inventoryTableBody">
@@ -138,12 +173,12 @@
                 <table class="table table-bordered table-hover">
                     <thead>
                         <tr>
-                            <th>Date</th>
                             <th>Employee</th>
                             <th>Role</th>
-                            <th>Station</th>
-                            <th>Transactions Processed</th>
+                            <th>Transactions</th>
                             <th>Total Sales (RWF)</th>
+                            <th>Shifts</th>
+                            <th>Hours Worked</th>
                         </tr>
                     </thead>
                     <tbody id="employeeTableBody">
@@ -160,11 +195,10 @@
                         <tr>
                             <th>Customer</th>
                             <th>Type</th>
-                            <th>Cars</th>
-                            <th>Active Subscriptions</th>
-                            <th>Total Spent (RWF)</th>
                             <th>Transactions</th>
-                            <th>Last Transaction</th>
+                            <th>Total Spent (RWF)</th>
+                            <th>Total Liters</th>
+                            <th>Current Credit (RWF)</th>
                         </tr>
                     </thead>
                     <tbody id="customerTableBody">
@@ -175,22 +209,57 @@
 
         <!-- Financial Report -->
         <div id="financialReport" style="display: none;">
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Revenue</th>
-                            <th>Cost of Goods</th>
-                            <th>Gross Profit</th>
-                            <th>Expenses</th>
-                            <th>Net Profit</th>
-                            <th>Profit Margin</th>
-                        </tr>
-                    </thead>
-                    <tbody id="financialTableBody">
-                    </tbody>
-                </table>
+            <div id="financialReportContent" style="display: none;">
+                <!-- Financial Summary Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h6>Total Revenue</h6>
+                                <h3 id="finTotalRevenue">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-dark">
+                            <div class="card-body text-center">
+                                <h6>Total VAT</h6>
+                                <h3 id="finTotalVAT">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body text-center">
+                                <h6>Refill Cost</h6>
+                                <h3 id="finRefillCost">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h6>Gross Profit</h6>
+                                <h3 id="finGrossProfit">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Daily Revenue -->
+                <h6 class="mb-3">Daily Revenue</h6>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Amount (RWF)</th>
+                                <th>Transactions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="financialTableBody">
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -198,18 +267,11 @@
 
 @section Scripts {
 <script>
-    $(document).ready(function() {
-        $('#refillsTable').DataTable({
-            pageLength: 10,
-            order: [[0, 'desc']]
-        });
-    });
-
     function changeReportType() {
         var reportType = $('#reportType').val();
-        
+
         $('#salesReport, #inventoryReport, #employeeReport, #customerReport, #financialReport').hide();
-        
+
         switch(reportType) {
             case 'Sales':
                 $('#reportTitle').html('<i class="fas fa-chart-line me-2"></i>Sales Report');
@@ -247,16 +309,16 @@
         var fuelTypeId = $('#fuelType').val();
 
         $('.alert-info').hide();
-        
+
         switch(reportType) {
             case 'Sales':
                 generateSalesReport(startDate, endDate, stationId, fuelTypeId);
                 break;
             case 'Inventory':
-                generateInventoryReport(startDate, endDate, stationId);
+                generateInventoryReport(stationId);
                 break;
             case 'Employee':
-                generateEmployeeReport(startDate, endDate, stationId);
+                generateEmployeeReport(startDate, endDate);
                 break;
             case 'Customer':
                 generateCustomerReport(startDate, endDate);
@@ -268,134 +330,171 @@
     }
 
     function generateSalesReport(startDate, endDate, stationId, fuelTypeId) {
-        $.get('@Url.Action("GenerateSalesReport", "Reports")', 
-            { startDate, endDate, stationId, fuelTypeId }, 
+        $.get('@Url.Action("GenerateSalesReport", "Reports")',
+            { startDate: startDate, endDate: endDate, stationId: stationId },
             function(data) {
-                $('#salesTableBody').empty();
-                var totalQty = 0, totalSales = 0, totalTrans = 0;
-                
-                data.forEach(function(item) {
-                    totalQty += item.quantity;
-                    totalSales += item.totalSales;
-                    totalTrans += item.transactionCount;
-                    
-                    $('#salesTableBody').append(
-                        '<tr>' +
-                        '<td>' + new Date(item.date).toLocaleDateString() + '</td>' +
-                        '<td>' + item.station + '</td>' +
-                        '<td><span class="badge bg-primary">' + item.fuelType + '</span></td>' +
-                        '<td>' + item.quantity.toLocaleString() + '</td>' +
-                        '<td>' + item.totalSales.toLocaleString() + '</td>' +
-                        '<td>' + item.transactionCount + '</td>' +
-                        '<td>' + item.averagePerTransaction.toLocaleString() + '</td>' +
-                        '</tr>'
-                    );
-                });
-                
-                $('#totalQuantity').text(totalQty.toLocaleString());
-                $('#totalSales').text(totalSales.toLocaleString());
-                $('#totalTransactions').text(totalTrans);
-                
+                if (!data) return;
+
+                // Summary
+                $('#summaryTotalSales').text(Number(data.TotalSales).toLocaleString());
+                $('#summaryTransactionCount').text(data.TransactionCount);
+                var start = new Date(data.StartDate).toLocaleDateString();
+                var end = new Date(data.EndDate).toLocaleDateString();
+                $('#summaryPeriod').text(start + ' - ' + end).css('font-size', '0.9rem');
+
+                // Sales by Fuel Type
+                $('#salesByFuelBody').empty();
+                if (data.SalesByFuel) {
+                    data.SalesByFuel.forEach(function(item) {
+                        $('#salesByFuelBody').append(
+                            '<tr>' +
+                            '<td><span class="badge bg-primary">' + item.FuelType + '</span></td>' +
+                            '<td>' + Number(item.Liters).toLocaleString() + '</td>' +
+                            '<td>' + Number(item.Amount).toLocaleString() + '</td>' +
+                            '<td>' + item.TransactionCount + '</td>' +
+                            '</tr>'
+                        );
+                    });
+                }
+
+                // Daily Sales
+                $('#dailySalesBody').empty();
+                if (data.DailySales) {
+                    data.DailySales.forEach(function(item) {
+                        $('#dailySalesBody').append(
+                            '<tr>' +
+                            '<td>' + new Date(item.Date).toLocaleDateString() + '</td>' +
+                            '<td>' + Number(item.Amount).toLocaleString() + '</td>' +
+                            '<td>' + item.TransactionCount + '</td>' +
+                            '</tr>'
+                        );
+                    });
+                }
+
                 $('#salesReportContent').show();
             }
-        );
+        ).fail(function() {
+            toastr.error('Failed to load sales report.');
+        });
     }
 
-    function generateInventoryReport(startDate, endDate, stationId) {
-        $.get('@Url.Action("GenerateInventoryReport", "Reports")', 
-            { startDate, endDate, stationId }, 
+    function generateInventoryReport(stationId) {
+        $.get('@Url.Action("GenerateInventoryReport", "Reports")',
+            { stationId: stationId },
             function(data) {
                 $('#inventoryTableBody').empty();
+                if (!data) return;
                 data.forEach(function(item) {
+                    var statusClass = item.Status === 'Critical' ? 'bg-danger' :
+                                      item.Status === 'Low' ? 'bg-warning text-dark' : 'bg-success';
                     $('#inventoryTableBody').append(
                         '<tr>' +
-                        '<td>' + item.station + '</td>' +
-                        '<td>' + item.fuelType + '</td>' +
-                        '<td>' + item.openingStock.toLocaleString() + '</td>' +
-                        '<td>' + item.received.toLocaleString() + '</td>' +
-                        '<td>' + item.sold.toLocaleString() + '</td>' +
-                        '<td>' + item.closingStock.toLocaleString() + '</td>' +
-                        '<td class="' + (item.variance !== 0 ? 'text-danger' : '') + '">' + item.variance.toLocaleString() + '</td>' +
+                        '<td>' + item.StationName + '</td>' +
+                        '<td>' + item.FuelType + '</td>' +
+                        '<td>' + Number(item.CurrentLevel).toLocaleString() + '</td>' +
+                        '<td>' + Number(item.Capacity).toLocaleString() + '</td>' +
+                        '<td>' + Number(item.PercentageFull).toFixed(1) + '%</td>' +
+                        '<td><span class="badge ' + statusClass + '">' + item.Status + '</span></td>' +
+                        '<td>' + item.RefillCount + '</td>' +
+                        '<td>' + Number(item.TotalRefillCost).toLocaleString() + '</td>' +
                         '</tr>'
                     );
                 });
             }
-        );
+        ).fail(function() {
+            toastr.error('Failed to load inventory report.');
+        });
     }
 
-    function generateEmployeeReport(startDate, endDate, stationId) {
-        $.get('@Url.Action("GenerateEmployeeReport", "Reports")', 
-            { startDate, endDate, stationId }, 
+    function generateEmployeeReport(startDate, endDate) {
+        $.get('@Url.Action("GenerateEmployeeReport", "Reports")',
+            { startDate: startDate, endDate: endDate },
             function(data) {
                 $('#employeeTableBody').empty();
+                if (!data) return;
                 data.forEach(function(item) {
                     $('#employeeTableBody').append(
                         '<tr>' +
-                        '<td>' + new Date(item.date).toLocaleDateString() + '</td>' +
-                        '<td>' + item.employeeName + '</td>' +
-                        '<td><span class="badge bg-primary">' + item.role + '</span></td>' +
-                        '<td>' + item.station + '</td>' +
-                        '<td>' + item.transactionsProcessed + '</td>' +
-                        '<td>' + item.totalSales.toLocaleString() + '</td>' +
+                        '<td>' + item.FullName + '</td>' +
+                        '<td><span class="badge bg-primary">' + item.Role + '</span></td>' +
+                        '<td>' + item.TransactionCount + '</td>' +
+                        '<td>' + Number(item.TotalSales).toLocaleString() + '</td>' +
+                        '<td>' + item.ShiftCount + '</td>' +
+                        '<td>' + Number(item.TotalHoursWorked).toFixed(1) + '</td>' +
                         '</tr>'
                     );
                 });
             }
-        );
+        ).fail(function() {
+            toastr.error('Failed to load employee report.');
+        });
     }
 
     function generateCustomerReport(startDate, endDate) {
-        $.get('@Url.Action("GenerateCustomerReport", "Reports")', 
-            { startDate, endDate }, 
+        $.get('@Url.Action("GenerateCustomerReport", "Reports")',
+            { startDate: startDate, endDate: endDate },
             function(data) {
                 $('#customerTableBody').empty();
+                if (!data) return;
                 data.forEach(function(item) {
                     $('#customerTableBody').append(
                         '<tr>' +
-                        '<td>' + item.customerName + '</td>' +
-                        '<td><span class="badge bg-info">' + item.customerType + '</span></td>' +
-                        '<td>' + item.totalCars + '</td>' +
-                        '<td>' + item.activeSubscriptions + '</td>' +
-                        '<td>' + item.totalSpent.toLocaleString() + '</td>' +
-                        '<td>' + item.transactionCount + '</td>' +
-                        '<td>' + new Date(item.lastTransaction).toLocaleDateString() + '</td>' +
+                        '<td>' + item.Name + '</td>' +
+                        '<td><span class="badge bg-info">' + item.Type + '</span></td>' +
+                        '<td>' + item.TransactionCount + '</td>' +
+                        '<td>' + Number(item.TotalSpent).toLocaleString() + '</td>' +
+                        '<td>' + Number(item.TotalLiters).toLocaleString() + '</td>' +
+                        '<td>' + Number(item.CurrentCredit).toLocaleString() + '</td>' +
                         '</tr>'
                     );
                 });
             }
-        );
+        ).fail(function() {
+            toastr.error('Failed to load customer report.');
+        });
     }
 
     function generateFinancialReport(startDate, endDate) {
-        $.get('@Url.Action("GenerateFinancialReport", "Reports")', 
-            { startDate, endDate }, 
+        $.get('@Url.Action("GenerateFinancialReport", "Reports")',
+            { startDate: startDate, endDate: endDate },
             function(data) {
+                if (!data) return;
+
+                // Summary cards
+                $('#finTotalRevenue').text(Number(data.TotalRevenue).toLocaleString());
+                $('#finTotalVAT').text(Number(data.TotalVAT).toLocaleString());
+                $('#finRefillCost').text(Number(data.TotalRefillCost).toLocaleString());
+                $('#finGrossProfit').text(Number(data.GrossProfit).toLocaleString());
+
+                // Daily Revenue
                 $('#financialTableBody').empty();
-                data.forEach(function(item) {
-                    $('#financialTableBody').append(
-                        '<tr>' +
-                        '<td>' + new Date(item.date).toLocaleDateString() + '</td>' +
-                        '<td>' + item.totalRevenue.toLocaleString() + '</td>' +
-                        '<td>' + item.costOfGoods.toLocaleString() + '</td>' +
-                        '<td>' + item.grossProfit.toLocaleString() + '</td>' +
-                        '<td>' + item.expenses.toLocaleString() + '</td>' +
-                        '<td class="' + (item.netProfit > 0 ? 'text-success' : 'text-danger') + '"><strong>' + item.netProfit.toLocaleString() + '</strong></td>' +
-                        '<td>' + item.profitMargin.toFixed(1) + '%</td>' +
-                        '</tr>'
-                    );
-                });
+                if (data.DailyRevenue) {
+                    data.DailyRevenue.forEach(function(item) {
+                        $('#financialTableBody').append(
+                            '<tr>' +
+                            '<td>' + new Date(item.Date).toLocaleDateString() + '</td>' +
+                            '<td>' + Number(item.Amount).toLocaleString() + '</td>' +
+                            '<td>' + item.TransactionCount + '</td>' +
+                            '</tr>'
+                        );
+                    });
+                }
+
+                $('#financialReportContent').show();
             }
-        );
+        ).fail(function() {
+            toastr.error('Failed to load financial report.');
+        });
     }
 
     function exportReport() {
         var reportType = $('#reportType').val();
         var startDate = $('#startDate').val();
         var endDate = $('#endDate').val();
-        
-        window.location.href = '@Url.Action("ExportReport", "Reports")' + 
-            '?reportType=' + reportType + 
-            '&startDate=' + startDate + 
+
+        window.location.href = '@Url.Action("ExportReport", "Reports")' +
+            '?reportType=' + reportType +
+            '&startDate=' + startDate +
             '&endDate=' + endDate;
     }
 </script>
