@@ -14,46 +14,36 @@
     Title="Escale Cashier">
 
     <TabBar>
-        <Tab Title="Dashboard">
-            <Tab.Icon>
-                <FontImageSource Glyph="🏠" Size="28"/>
-            </Tab.Icon>
+        <Tab Title="Dashboard"
+             Icon="dashboard.png">
             <ShellContent
                 ContentTemplate="{DataTemplate views:DashboardPage}"
                 Route="Dashboard"/>
         </Tab>
 
-        <Tab Title="New Sale">
-            <Tab.Icon>
-                <FontImageSource Glyph="💰" Size="28"/>
-            </Tab.Icon>
+        <Tab Title="New Sale"
+             Icon="sale.png">
             <ShellContent
                 ContentTemplate="{DataTemplate views:NewSalePage}"
                 Route="NewSale"/>
         </Tab>
 
-        <Tab Title="Stock">
-            <Tab.Icon>
-                <FontImageSource Glyph="📊" Size="28"/>
-            </Tab.Icon>
+        <Tab Title="Stock"
+             Icon="stock.png">
             <ShellContent
                 ContentTemplate="{DataTemplate views:StockPage}"
                 Route="Stock"/>
         </Tab>
 
-        <Tab Title="History">
-            <Tab.Icon>
-                <FontImageSource Glyph="📝" Size="28"/>
-            </Tab.Icon>
+        <Tab Title="History"
+             Icon="history.png">
             <ShellContent
                 ContentTemplate="{DataTemplate views:TransactionsPage}"
                 Route="Transactions"/>
         </Tab>
 
-        <Tab Title="Profile">
-            <Tab.Icon>
-                <FontImageSource Glyph="👤" Size="28"/>
-            </Tab.Icon>
+        <Tab Title="Profile"
+             Icon="profile.png">
             <ShellContent
                 ContentTemplate="{DataTemplate views:ProfilePage}"
                 Route="Profile"/>

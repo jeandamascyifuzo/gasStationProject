@@ -8,7 +8,7 @@ public class AppState
     public static AppState Instance => _instance ?? throw new InvalidOperationException("AppState not initialized. Resolve it from DI first.");
 
     public UserInfo? CurrentUser { get; set; }
-    public StationInfo? SelectedStation { get; set; }
+    public StationInfo? SelectedStation { get; set; }   
     public SaleModel? CurrentSale { get; set; }
     public bool IsLoggedIn => CurrentUser != null && !string.IsNullOrEmpty(AuthToken);
     public string? AuthToken { get; set; }
@@ -78,4 +78,4 @@ public class AppState
     {
         StateChanged?.Invoke(this, EventArgs.Empty);
     }
-}
+};

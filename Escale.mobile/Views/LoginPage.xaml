@@ -9,8 +9,8 @@
 
     <ScrollView>
         <VerticalStackLayout Padding="30" Spacing="20" VerticalOptions="Center">
-            
-            <!-- Logo Placeholder -->
+
+            <!-- Logo -->
             <Border StrokeShape="RoundRectangle 60"
                     BackgroundColor="#1E3A8A"
                     HeightRequest="120"
@@ -25,14 +25,14 @@
                        VerticalOptions="Center"/>
             </Border>
 
-            <Label Text="Escale Gas Station" 
-                   FontSize="28" 
+            <Label Text="Escale Gas Station"
+                   FontSize="28"
                    FontAttributes="Bold"
                    HorizontalOptions="Center"
                    TextColor="#1E3A8A"/>
 
-            <Label Text="Cashier App" 
-                   FontSize="18" 
+            <Label Text="Cashier App"
+                   FontSize="18"
                    HorizontalOptions="Center"
                    TextColor="#64748B"
                    Margin="0,0,0,30"/>
@@ -45,7 +45,8 @@
                 <Entry Placeholder="Username"
                        Text="{Binding Username}"
                        FontSize="16"
-                       TextColor="#1E293B"/>
+                       TextColor="#1E293B"
+                       ReturnType="Next"/>
             </Border>
 
             <!-- Password -->
@@ -57,41 +58,62 @@
                        Text="{Binding Password}"
                        IsPassword="True"
                        FontSize="16"
-                       TextColor="#1E293B"/>
+                       TextColor="#1E293B"
+                       ReturnType="Done"
+                       ReturnCommand="{Binding LoginCommand}"/>
             </Border>
 
             <!-- Remember Me -->
             <HorizontalStackLayout Spacing="10">
                 <CheckBox IsChecked="{Binding RememberMe}"/>
-                <Label Text="Remember me" 
+                <Label Text="Remember me"
                        VerticalOptions="Center"
                        TextColor="#64748B"/>
             </HorizontalStackLayout>
 
             <!-- Error Message -->
-            <Label Text="{Binding ErrorMessage}"
-                   TextColor="Red"
-                   IsVisible="{Binding ErrorMessage, Converter={StaticResource StringToBoolConverter}}"
-                   FontSize="14"/>
+            <Border StrokeShape="RoundRectangle 8"
+                    BackgroundColor="#FEF2F2"
+                    Padding="12"
+                    IsVisible="{Binding ErrorMessage, Converter={StaticResource StringToBoolConverter}}">
+                <Label Text="{Binding ErrorMessage}"
+                       TextColor="#DC2626"
+                       FontSize="14"/>
+            </Border>
 
-            <!-- Login Button -->
-            <Button Text="Login"
-                    Command="{Binding LoginCommand}"
-                    BackgroundColor="#1E3A8A"
-                    TextColor="White"
-                    FontSize="18"
-                    FontAttributes="Bold"
-                    HeightRequest="55"
-                    CornerRadius="10"
-                    Margin="0,10,0,0"
-                    IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"/>
+            <!-- Login Button - shows loading state -->
+            <Grid HeightRequest="55" Margin="0,10,0,0">
+                <!-- Normal Login Button -->
+                <Button Text="Login"
+                        Command="{Binding LoginCommand}"
+                        BackgroundColor="#1E3A8A"
+                        TextColor="White"
+                        FontSize="18"
+                        FontAttributes="Bold"
+                        HeightRequest="55"
+                        CornerRadius="10"
+                        IsVisible="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"/>
 
-            <ActivityIndicator IsRunning="{Binding IsBusy}"
-                             IsVisible="{Binding IsBusy}"
-                             Color="#1E3A8A"
-                             HeightRequest="40"/>
+                <!-- Loading Button -->
+                <Border StrokeShape="RoundRectangle 10"
+                        BackgroundColor="#3B5998"
+                        HeightRequest="55"
+                        IsVisible="{Binding IsBusy}">
+                    <HorizontalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="12">
+                        <ActivityIndicator IsRunning="True"
+                                         Color="White"
+                                         HeightRequest="22"
+                                         WidthRequest="22"/>
+                        <Label Text="Logging in..."
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="White"
+                               VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
+                </Border>
+            </Grid>
 
         </VerticalStackLayout>
     </ScrollView>
-    
+
 </ContentPage>

@@ -28,6 +28,7 @@ public class CreateSaleRequest
     public decimal PricePerLiter { get; set; }
     public string PaymentMethod { get; set; } = string.Empty;
     public SaleCustomerRequest? Customer { get; set; }
+    public Guid? SubscriptionId { get; set; }
 }
 
 public class SaleCustomerRequest
@@ -61,6 +62,8 @@ public class CompletedSale
     public decimal VAT { get; set; }
     public decimal Total { get; set; }
     public string PaymentMethod { get; set; } = string.Empty;
+    public decimal? SubscriptionDeduction { get; set; }
+    public decimal? SubscriptionRemainingBalance { get; set; }
 }
 
 /// <summary>
@@ -161,6 +164,32 @@ public class CarResponse
     public string PlateNumber { get; set; } = string.Empty;
     public string? Make { get; set; }
     public string? Model { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public class LookupCarRequest
+{
+    public string PlateNumber { get; set; } = string.Empty;
+    public string PIN { get; set; } = string.Empty;
+    public decimal? SaleAmount { get; set; }
+}
+
+public class SubscriptionCustomerLookupResponse
+{
+    public Guid CustomerId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string? PhoneNumber { get; set; }
+    public bool CustomerIsActive { get; set; }
+    public Guid CarId { get; set; }
+    public string PlateNumber { get; set; } = string.Empty;
+    public string? CarMake { get; set; }
+    public string? CarModel { get; set; }
+    public bool CarIsActive { get; set; }
+    public Guid? ActiveSubscriptionId { get; set; }
+    public decimal? RemainingBalance { get; set; }
+    public DateTime? SubscriptionExpiryDate { get; set; }
+    public bool HasSufficientBalance { get; set; }
+    public string? ValidationError { get; set; }
 }
 
 /// <summary>
@@ -224,12 +253,12 @@ public class ApiService
 
         _httpClient = new HttpClient(handler)
         {
-            Timeout = TimeSpan.FromSeconds(60)
+            Timeout = TimeSpan.FromSeconds(15)
         };
 #else
         _httpClient = new HttpClient
         {
-            Timeout = TimeSpan.FromSeconds(60)
+            Timeout = TimeSpan.FromSeconds(15)
         };
 #endif
 
@@ -374,6 +403,7 @@ public class ApiService
                 Liters = sale.Liters ?? 0,
                 PricePerLiter = sale.PricePerLiter,
                 PaymentMethod = sale.PaymentMethod,
+                SubscriptionId = sale.SubscriptionId,
                 Customer = sale.Customer != null && !sale.Customer.IsWalkIn ? new SaleCustomerRequest
                 {
                     Id = sale.Customer.Id,
@@ -556,6 +586,47 @@ public class ApiService
         {
             System.Diagnostics.Debug.WriteLine($"Error clocking in/out: {ex.Message}");
             return (false, $"Error: {ex.Message}");
+        }
+    }
+
+    // ==================== SUBSCRIPTIONS ====================
+
+    public async Task<(bool Success, string? Error, SubscriptionCustomerLookupResponse? Data)> LookupSubscriptionCarAsync(string plateNumber, string pin, decimal? saleAmount = null)
+    {
+        try
+        {
+            var request = new LookupCarRequest
+            {
+                PlateNumber = plateNumber,
+                PIN = pin,
+                SaleAmount = saleAmount
+            };
+
+            var response = await _httpClient.PostAsJsonAsync($"{_baseUrl}/subscriptions/lookup", request);
+            var content = await response.Content.ReadAsStringAsync();
+
+            System.Diagnostics.Debug.WriteLine($"Subscription lookup response: {content}");
+
+            var result = JsonSerializer.Deserialize<ApiResponse<SubscriptionCustomerLookupResponse>>(content, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (result?.Success == true && result.Data != null)
+            {
+                if (!string.IsNullOrEmpty(result.Data.ValidationError))
+                {
+                    return (false, result.Data.ValidationError, result.Data);
+                }
+                return (true, null, result.Data);
+            }
+
+            return (false, result?.Message ?? "Lookup failed", null);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error looking up subscription car: {ex.Message}");
+            return (false, $"Error: {ex.Message}", null);
         }
     }
 

@@ -16,34 +16,36 @@
                     Padding="25"
                     StrokeThickness="0">
                 <Border.Shadow>
-                    <Shadow Brush="Black" Opacity="0.1" Radius="10" Offset="0,2"/>
+                    <Shadow Brush="Black" Opacity="0.05" Radius="8" Offset="0,2"/>
                 </Border.Shadow>
-                
+
                 <VerticalStackLayout Spacing="10">
                     <!-- Avatar -->
                     <Border StrokeShape="RoundRectangle 40"
-                            BackgroundColor="#EEF2FF"
+                            BackgroundColor="#1E3A8A"
                             HeightRequest="80"
                             WidthRequest="80"
                             HorizontalOptions="Center">
-                        <Label Text="??" 
-                               FontSize="40"
+                        <Label Text="U"
+                               FontSize="32"
+                               FontAttributes="Bold"
+                               TextColor="White"
                                HorizontalOptions="Center"
                                VerticalOptions="Center"/>
                     </Border>
 
-                    <Label Text="{Binding UserName}" 
+                    <Label Text="{Binding UserName}"
                            FontSize="24"
                            FontAttributes="Bold"
                            TextColor="#1E3A8A"
                            HorizontalOptions="Center"/>
 
-                    <Label Text="{Binding UserRole}" 
+                    <Label Text="{Binding UserRole}"
                            FontSize="16"
                            TextColor="#64748B"
                            HorizontalOptions="Center"/>
 
-                    <Label Text="{Binding StationName}" 
+                    <Label Text="{Binding StationName}"
                            FontSize="14"
                            TextColor="#64748B"
                            HorizontalOptions="Center"/>
@@ -56,47 +58,80 @@
                     Padding="20"
                     StrokeThickness="0">
                 <Border.Shadow>
-                    <Shadow Brush="Black" Opacity="0.1" Radius="10" Offset="0,2"/>
+                    <Shadow Brush="Black" Opacity="0.05" Radius="8" Offset="0,2"/>
                 </Border.Shadow>
 
                 <VerticalStackLayout Spacing="15">
-                    <Label Text="Today's Stats" 
+                    <Label Text="Today's Stats"
                            FontSize="18"
                            FontAttributes="Bold"
                            TextColor="#1E3A8A"/>
 
-                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
                         <HorizontalStackLayout Grid.Row="0" Spacing="10">
-                            <Label Text="�" FontSize="20" TextColor="#10B981"/>
+                            <Border StrokeShape="RoundRectangle 6"
+                                    BackgroundColor="#D1FAE5"
+                                    HeightRequest="28"
+                                    WidthRequest="28"
+                                    Padding="0">
+                                <Label Text="#"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       TextColor="#10B981"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center"/>
+                            </Border>
                             <Label Text="Sales:" FontSize="14" TextColor="#64748B" VerticalOptions="Center"/>
-                            <Label Text="{Binding TodaysTransactions, StringFormat='{0} transactions'}" 
-                                   FontSize="14" 
+                            <Label Text="{Binding TodaysTransactions, StringFormat='{0} transactions'}"
+                                   FontSize="14"
                                    FontAttributes="Bold"
                                    TextColor="#1E293B"
                                    VerticalOptions="Center"/>
                         </HorizontalStackLayout>
 
                         <HorizontalStackLayout Grid.Row="1" Spacing="10">
-                            <Label Text="�" FontSize="20" TextColor="#10B981"/>
+                            <Border StrokeShape="RoundRectangle 6"
+                                    BackgroundColor="#D1FAE5"
+                                    HeightRequest="28"
+                                    WidthRequest="28"
+                                    Padding="0">
+                                <Label Text="$"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       TextColor="#10B981"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center"/>
+                            </Border>
                             <Label Text="Amount:" FontSize="14" TextColor="#64748B" VerticalOptions="Center"/>
-                            <Label Text="{Binding TodaysAmount, StringFormat='RWF {0:N0}'}" 
-                                   FontSize="14" 
+                            <Label Text="{Binding TodaysAmount, StringFormat='RWF {0:N0}'}"
+                                   FontSize="14"
                                    FontAttributes="Bold"
                                    TextColor="#1E293B"
                                    VerticalOptions="Center"/>
                         </HorizontalStackLayout>
 
                         <HorizontalStackLayout Grid.Row="2" Spacing="10">
-                            <Label Text="�" FontSize="20" TextColor="#10B981"/>
+                            <Border StrokeShape="RoundRectangle 6"
+                                    BackgroundColor="#DBEAFE"
+                                    HeightRequest="28"
+                                    WidthRequest="28"
+                                    Padding="0">
+                                <Label Text="T"
+                                       FontSize="14"
+                                       FontAttributes="Bold"
+                                       TextColor="#1E3A8A"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center"/>
+                            </Border>
                             <Label Text="Shift:" FontSize="14" TextColor="#64748B" VerticalOptions="Center"/>
-                            <Label Text="{Binding ShiftStartTime, StringFormat='{0:HH:mm} - Now'}" 
-                                   FontSize="14" 
+                            <Label Text="{Binding ShiftStartTime, StringFormat='{0:HH:mm} - Now'}"
+                                   FontSize="14"
                                    FontAttributes="Bold"
                                    TextColor="#1E293B"
                                    VerticalOptions="Center"
                                    IsVisible="{Binding IsClockedIn}"/>
-                            <Label Text="Not clocked in" 
-                                   FontSize="14" 
+                            <Label Text="Not clocked in"
+                                   FontSize="14"
                                    TextColor="#F59E0B"
                                    VerticalOptions="Center"
                                    IsVisible="{Binding IsClockedIn, Converter={StaticResource InvertedBoolConverter}}"/>
@@ -138,7 +173,7 @@
                 </Button.Text>
             </Button>
 
-            <Button Text="?? Shift Summary"
+            <Button Text="Shift Summary"
                     Command="{Binding ShiftSummaryCommand}"
                     BackgroundColor="#3B82F6"
                     TextColor="White"
@@ -146,7 +181,7 @@
                     HeightRequest="55"
                     CornerRadius="10"/>
 
-            <Button Text="?? Change Password"
+            <Button Text="Change Password"
                     Command="{Binding ChangePasswordCommand}"
                     BackgroundColor="#64748B"
                     TextColor="White"
@@ -154,7 +189,7 @@
                     HeightRequest="55"
                     CornerRadius="10"/>
 
-            <Button Text="?? Logout"
+            <Button Text="Logout"
                     Command="{Binding LogoutCommand}"
                     BackgroundColor="#EF4444"
                     TextColor="White"

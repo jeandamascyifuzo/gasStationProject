@@ -19,6 +19,7 @@ public class TransactionResponseDto
     public string CashierName { get; set; } = string.Empty;
     public string StationName { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
+    public decimal? SubscriptionDeduction { get; set; }
 }
 
 public class TransactionFilterDto

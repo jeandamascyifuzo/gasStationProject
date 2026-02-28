@@ -2,11 +2,11 @@ using Escale.mobile.ViewModels;
 
 namespace Escale.mobile.Views;
 
-public partial class SaleCompletePage : ContentPage
+public partial class SubscriptionCustomerSearchPage : ContentPage
 {
-    private readonly SaleCompleteViewModel _viewModel;
+    private readonly SubscriptionCustomerSearchViewModel _viewModel;
 
-    public SaleCompletePage(SaleCompleteViewModel viewModel)
+    public SubscriptionCustomerSearchPage(SubscriptionCustomerSearchViewModel viewModel)
     {
         InitializeComponent();
         _viewModel = viewModel;

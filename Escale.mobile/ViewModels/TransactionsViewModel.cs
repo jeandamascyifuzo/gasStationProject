@@ -17,38 +17,47 @@ public partial class TransactionsViewModel : ObservableObject
     private bool isRefreshing;
 
     [ObservableProperty]
+    private bool isLoading;
+
+    [ObservableProperty]
+    private bool hasData;
+
+    [ObservableProperty]
+    private decimal totalSales;
+
+    [ObservableProperty]
     private DateTime selectedDate = DateTime.Today;
 
     public TransactionsViewModel(ApiService apiService)
     {
         _apiService = apiService;
-        LoadTransactions();
-    }
-
-    private async void LoadTransactions()
-    {
-        await Refresh();
     }
 
     partial void OnSelectedDateChanged(DateTime value)
     {
-        LoadTransactions();
+        _ = Refresh();
     }
 
     [RelayCommand]
     private async Task Refresh()
     {
-        IsRefreshing = true;
+        if (!IsRefreshing)
+            IsLoading = true;
+
         try
         {
             var stationId = AppState.Instance.SelectedStation?.Id ?? Guid.Empty;
             var items = await _apiService.GetTransactionsAsync(stationId, SelectedDate);
 
             Transactions.Clear();
+            decimal sum = 0;
             foreach (var item in items.OrderByDescending(t => t.TransactionDate))
             {
                 Transactions.Add(item);
+                sum += item.Total;
             }
+            TotalSales = sum;
+            HasData = true;
         }
         catch (Exception ex)
         {
@@ -57,10 +66,12 @@ public partial class TransactionsViewModel : ObservableObject
             {
                 await Shell.Current.DisplayAlert("Error", $"Failed to load transactions: {ex.Message}", "OK");
             }
+            HasData = false;
         }
         finally
         {
             IsRefreshing = false;
+            IsLoading = false;
         }
     }
 
@@ -84,22 +95,6 @@ public partial class TransactionsViewModel : ObservableObject
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"View details error: {ex}");
-        }
-    }
-
-    [RelayCommand]
-    private async Task LoadMore()
-    {
-        try
-        {
-            if (Shell.Current != null)
-            {
-                await Shell.Current.DisplayAlert("Info", "Load more functionality will be implemented", "OK");
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Load more error: {ex}");
         }
     }
 }

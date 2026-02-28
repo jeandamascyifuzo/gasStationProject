@@ -1,4 +1,4 @@
-using Escale.API.Domain.Enums;
+using Escale.API.DTOs.Subscriptions;
 
 namespace Escale.API.DTOs.Customers;
 
@@ -14,8 +14,9 @@ public class CustomerResponseDto
     public decimal CurrentCredit { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
-    public List<CarDto> Cars { get; set; } = new();
-    public List<SubscriptionDto> Subscriptions { get; set; } = new();
+    public List<CarResponseDto> Cars { get; set; } = new();
+    public List<SubscriptionResponseDto> Subscriptions { get; set; } = new();
+    public SubscriptionResponseDto? ActiveSubscription { get; set; }
 }
 
 public class CreateCustomerRequestDto
@@ -47,17 +48,16 @@ public class CarDto
     public string? Make { get; set; }
     public string? Model { get; set; }
     public int? Year { get; set; }
+    public string? PIN { get; set; }
+    public bool IsActive { get; set; } = true;
 }
 
-public class SubscriptionDto
+public class CarResponseDto
 {
     public Guid Id { get; set; }
-    public string FuelTypeName { get; set; } = string.Empty;
-    public Guid FuelTypeId { get; set; }
-    public decimal MonthlyLiters { get; set; }
-    public decimal UsedLiters { get; set; }
-    public decimal PricePerLiter { get; set; }
-    public DateTime StartDate { get; set; }
-    public DateTime EndDate { get; set; }
-    public string Status { get; set; } = string.Empty;
+    public string PlateNumber { get; set; } = string.Empty;
+    public string? Make { get; set; }
+    public string? Model { get; set; }
+    public int? Year { get; set; }
+    public bool IsActive { get; set; }
 }

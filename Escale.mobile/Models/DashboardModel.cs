@@ -14,5 +14,13 @@ public class StockAlert
     public string FuelType { get; set; } = string.Empty;
     public decimal CurrentLevel { get; set; }
     public decimal Capacity { get; set; }
-    public decimal PercentageRemaining => (CurrentLevel / Capacity) * 100;
+    public decimal PercentageRemaining => Capacity > 0 ? (CurrentLevel / Capacity) * 100 : 0;
+}
+
+public class RecentTransaction
+{
+    public string FuelType { get; set; } = string.Empty;
+    public DateTime TransactionDate { get; set; }
+    public decimal Total { get; set; }
+    public decimal Liters { get; set; }
 }

@@ -17,23 +17,22 @@ public partial class StockViewModel : ObservableObject
     private bool isRefreshing;
 
     [ObservableProperty]
+    private bool isLoading;
+
+    [ObservableProperty]
     private DateTime lastUpdated;
 
     public StockViewModel(ApiService apiService)
     {
         _apiService = apiService;
-        LoadStock();
-    }
-
-    private async void LoadStock()
-    {
-        await Refresh();
     }
 
     [RelayCommand]
     private async Task Refresh()
     {
-        IsRefreshing = true;
+        if (!IsRefreshing)
+            IsLoading = true;
+
         try
         {
             var stationId = AppState.Instance.SelectedStation?.Id ?? Guid.Empty;
@@ -58,6 +57,7 @@ public partial class StockViewModel : ObservableObject
         finally
         {
             IsRefreshing = false;
+            IsLoading = false;
         }
     }
 

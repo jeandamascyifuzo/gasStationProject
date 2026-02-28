@@ -332,7 +332,64 @@ public static class DatabaseSeeder
                 Make = GetRandomCarMake(),
                 Model = "Sedan",
                 Year = _random.Next(2018, 2025),
+                PINHash = BCrypt.Net.BCrypt.HashPassword("1234"),
+                IsActive = true,
                 CreatedAt = now
+            });
+        }
+
+        // Subscriptions (seed for orgs with customers)
+        if (customerIds.Count >= 2)
+        {
+            // Inactive (previous) subscription for first customer — audit trail
+            context.Subscriptions.Add(new Subscription
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = orgId,
+                CustomerId = customerIds[0],
+                TopUpAmount = 100000m,
+                PreviousBalance = 0m,
+                TotalAmount = 100000m,
+                RemainingBalance = 25000m,
+                StartDate = now.AddDays(-45),
+                ExpiryDate = null,
+                Status = SubscriptionStatus.Inactive,
+                CreatedAt = now.AddDays(-45)
+            });
+
+            // Active subscription for first customer (topped up from previous)
+            context.Subscriptions.Add(new Subscription
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = orgId,
+                CustomerId = customerIds[0],
+                TopUpAmount = 200000m,
+                PreviousBalance = 25000m,
+                TotalAmount = 225000m,
+                RemainingBalance = 180000m,
+                StartDate = now.AddDays(-10),
+                ExpiryDate = now.AddDays(50),
+                Status = SubscriptionStatus.Active,
+                CreatedAt = now.AddDays(-10)
+            });
+        }
+
+        if (customerIds.Count >= 4)
+        {
+            // Active subscription for a corporate customer
+            context.Subscriptions.Add(new Subscription
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = orgId,
+                CustomerId = customerIds[3],
+                TopUpAmount = 500000m,
+                PreviousBalance = 0m,
+                TotalAmount = 500000m,
+                RemainingBalance = 380000m,
+                StartDate = now.AddDays(-20),
+                ExpiryDate = null,
+                Status = SubscriptionStatus.Active,
+                CreatedAt = now.AddDays(-20)
             });
         }
 
@@ -372,7 +429,8 @@ public static class DatabaseSeeder
         List<Guid> customerIds, Guid cashierId,
         int count, DateTime now)
     {
-        var paymentMethods = Enum.GetValues<PaymentMethod>();
+        // Walk-in transactions only use Cash, MobileMoney, Card (Credit requires subscription)
+        var walkInPayments = new[] { PaymentMethod.Cash, PaymentMethod.MobileMoney, PaymentMethod.Card };
 
         for (int i = 0; i < count; i++)
         {
@@ -384,17 +442,16 @@ public static class DatabaseSeeder
             var ft = fuelTypes[_random.Next(fuelTypes.Count)];
             var liters = Math.Round((decimal)(_random.Next(5, 80) + _random.NextDouble()), 2);
             var pricePerLiter = ft.CurrentPrice;
-            var subtotal = Math.Round(liters * pricePerLiter, 2);
-            var vat = Math.Round(subtotal * BusinessRules.VATRate, 2);
-            var total = subtotal + vat;
-            var payment = paymentMethods[_random.Next(paymentMethods.Length)];
+            var total = Math.Round(liters * pricePerLiter, 2);
+            var vat = Math.Round(total * BusinessRules.VATRate, 2);
+            var subtotal = total - vat;
+            var payment = walkInPayments[_random.Next(walkInPayments.Length)];
 
-            Guid? customerId = null;
+            // Walk-in: just record name on transaction, no customer linking
             string? customerName = null;
-            string? customerPhone = null;
-            if (customerIds.Count > 0 && _random.Next(3) == 0) // ~33% have customer
+            if (_random.Next(3) == 0) // ~33% have a name recorded
             {
-                customerId = customerIds[_random.Next(customerIds.Count)];
+                customerName = $"Walk-in Customer {i + 1}";
             }
 
             var receiptNumber = $"RCP{txDate:yyyyMMddHHmmss}{i:D3}";
@@ -414,9 +471,9 @@ public static class DatabaseSeeder
                 Total = total,
                 PaymentMethod = payment,
                 Status = TransactionStatus.Completed,
-                CustomerId = customerId,
+                CustomerId = null,
                 CustomerName = customerName,
-                CustomerPhone = customerPhone,
+                CustomerPhone = null,
                 CashierId = cashierId,
                 EBMSent = _random.Next(2) == 0,
                 CreatedAt = txDate

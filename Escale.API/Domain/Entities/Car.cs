@@ -8,4 +8,6 @@ public class Car : BaseEntity
     public string? Make { get; set; }
     public string? Model { get; set; }
     public int? Year { get; set; }
+    public string PINHash { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
 }

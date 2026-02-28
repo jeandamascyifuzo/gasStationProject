@@ -2,16 +2,20 @@ using Escale.API.Domain.Enums;
 
 namespace Escale.API.Domain.Entities;
 
-public class Subscription : BaseEntity
+public class Subscription : TenantEntity
 {
     public Guid CustomerId { get; set; }
     public Customer Customer { get; set; } = null!;
-    public Guid FuelTypeId { get; set; }
-    public FuelType FuelType { get; set; } = null!;
-    public decimal MonthlyLiters { get; set; }
-    public decimal UsedLiters { get; set; }
-    public decimal PricePerLiter { get; set; }
+
+    public decimal TotalAmount { get; set; }
+    public decimal RemainingBalance { get; set; }
+    public decimal PreviousBalance { get; set; }
+    public decimal TopUpAmount { get; set; }
+
     public DateTime StartDate { get; set; }
-    public DateTime EndDate { get; set; }
+    public DateTime? ExpiryDate { get; set; }
+
     public SubscriptionStatus Status { get; set; } = SubscriptionStatus.Active;
+
+    public ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
 }

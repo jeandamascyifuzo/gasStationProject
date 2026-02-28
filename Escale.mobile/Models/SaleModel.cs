@@ -11,12 +11,15 @@ public class SaleModel
     public string PaymentMethod { get; set; } = string.Empty;
     public CustomerInfo? Customer { get; set; }
     public string StationName { get; set; } = string.Empty;
-    public decimal Subtotal => (Liters ?? 0) * PricePerLiter;
-    public decimal VAT => Subtotal * 0.18m;
-    public decimal Total => Subtotal + VAT;
+    public decimal Total => (Liters ?? 0) * PricePerLiter;
+    public decimal VAT => Math.Round(Total * 0.18m, 0);
+    public decimal Subtotal => Total - VAT;
     public DateTime TransactionDate { get; set; } = DateTime.Now;
     public string? EBMCode { get; set; }
     public string? ReceiptNumber { get; set; }
+    public Guid? SubscriptionId { get; set; }
+    public decimal? SubscriptionDeduction { get; set; }
+    public decimal? SubscriptionRemainingBalance { get; set; }
 }
 
 public class FuelTypeOption
@@ -39,5 +42,10 @@ public class CustomerInfo
     public string? VehicleModel { get; set; }
     public decimal? CreditLimit { get; set; }
     public decimal? CurrentCredit { get; set; }
+    public Guid? CarId { get; set; }
+    public Guid? ActiveSubscriptionId { get; set; }
+    public decimal? SubscriptionBalance { get; set; }
+    public DateTime? SubscriptionExpiryDate { get; set; }
+    public bool HasActiveSubscription => ActiveSubscriptionId.HasValue && ActiveSubscriptionId != Guid.Empty;
     public bool IsWalkIn => !Id.HasValue || Id == Guid.Empty;
 }

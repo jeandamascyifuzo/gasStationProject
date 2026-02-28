@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Escale.mobile.Models;
 using Escale.mobile.Services;
+using System.Collections.ObjectModel;
 
 namespace Escale.mobile.ViewModels;
 
@@ -22,10 +23,25 @@ public partial class DashboardViewModel : ObservableObject
     private int transactionCount;
 
     [ObservableProperty]
+    private decimal averageSale;
+
+    [ObservableProperty]
     private List<StockAlert> lowStockAlerts = new();
 
     [ObservableProperty]
+    private ObservableCollection<RecentTransaction> recentTransactions = new();
+
+    [ObservableProperty]
+    private bool hasLowStock;
+
+    [ObservableProperty]
     private bool isRefreshing;
+
+    [ObservableProperty]
+    private bool isLoading = true;
+
+    [ObservableProperty]
+    private bool hasData;
 
     public DashboardViewModel(ApiService apiService)
     {
@@ -45,11 +61,15 @@ public partial class DashboardViewModel : ObservableObject
     {
         try
         {
+            if (!IsRefreshing)
+                IsLoading = true;
+
             var stationId = AppState.Instance.SelectedStation?.Id;
             var summary = await _apiService.GetDashboardSummaryAsync(stationId);
 
             TodaysSales = summary.TodaysSales;
             TransactionCount = summary.TransactionCount;
+            AverageSale = summary.AverageSale;
 
             LowStockAlerts = summary.LowStockAlerts.Select(a => new StockAlert
             {
@@ -57,13 +77,37 @@ public partial class DashboardViewModel : ObservableObject
                 CurrentLevel = a.CurrentLevel,
                 Capacity = a.Capacity
             }).ToList();
+
+            HasLowStock = LowStockAlerts.Count > 0;
+
+            RecentTransactions.Clear();
+            foreach (var t in summary.RecentTransactions)
+            {
+                RecentTransactions.Add(new RecentTransaction
+                {
+                    FuelType = t.FuelType,
+                    TransactionDate = t.TransactionDate,
+                    Total = t.Total,
+                    Liters = t.Liters
+                });
+            }
+
+            HasData = true;
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error loading dashboard: {ex}");
             TodaysSales = 0;
             TransactionCount = 0;
+            AverageSale = 0;
             LowStockAlerts = new List<StockAlert>();
+            HasLowStock = false;
+            RecentTransactions.Clear();
+            HasData = false;
+        }
+        finally
+        {
+            IsLoading = false;
         }
     }
 

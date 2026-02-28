@@ -1,4 +1,4 @@
-﻿using Escale.mobile.Views;
+using Escale.mobile.Views;
 using Escale.mobile.Services;
 
 namespace Escale.mobile
@@ -8,13 +8,16 @@ namespace Escale.mobile
         public App()
         {
             InitializeComponent();
+
+            // Eagerly resolve AppState from DI so the static Instance is set
+            MauiProgram.Services.GetRequiredService<AppState>();
         }
 
         protected override Window CreateWindow(IActivationState? activationState)
         {
-            // Check if user is logged in
+            // AppState.Instance is now safe to use
             var isLoggedIn = AppState.Instance.IsLoggedIn;
-            
+
             if (isLoggedIn)
             {
                 return new Window(new AppShell());

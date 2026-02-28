@@ -1,11 +1,11 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:Escale.mobile.ViewModels"
              xmlns:models="clr-namespace:Escale.mobile.Models"
              x:Class="Escale.mobile.Views.TransactionsPage"
              x:DataType="vm:TransactionsViewModel"
-             Title="Transactions"
+             Title="History"
              BackgroundColor="#F8F9FA">
 
     <RefreshView Command="{Binding RefreshCommand}"
@@ -14,114 +14,185 @@
             <VerticalStackLayout Padding="20" Spacing="20">
 
                 <!-- Header -->
-                <Label Text="TODAY'S TRANSACTIONS" 
-                       FontSize="20" 
+                <Label Text="TRANSACTION HISTORY"
+                       FontSize="20"
                        FontAttributes="Bold"
                        TextColor="#1E3A8A"/>
 
-                <!-- Transactions List -->
-                <CollectionView ItemsSource="{Binding Transactions}">
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="models:Transaction">
-                            <Border StrokeShape="RoundRectangle 15"
-                                    BackgroundColor="White"
-                                    Padding="15"
-                                    Margin="0,0,0,10"
-                                    StrokeThickness="0">
-                                <Border.Shadow>
-                                    <Shadow Brush="Black" Opacity="0.1" Radius="10" Offset="0,2"/>
-                                </Border.Shadow>
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer 
-                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:TransactionsViewModel}}, Path=ViewDetailsCommand}"
-                                        CommandParameter="{Binding .}"/>
-                                </Border.GestureRecognizers>
-
-                                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
-                                    <!-- Time and Fuel -->
-                                    <HorizontalStackLayout Grid.Row="0" Spacing="10">
-                                        <Label Text="{Binding TransactionDate, StringFormat='{0:HH:mm}'}" 
-                                               FontSize="14"
-                                               FontAttributes="Bold"
-                                               TextColor="#1E3A8A"/>
-                                        <Label Text="-" 
-                                               FontSize="14"
-                                               TextColor="#64748B"/>
-                                        <Label Text="{Binding FuelType}" 
-                                               FontSize="14"
-                                               FontAttributes="Bold"
-                                               TextColor="#1E293B"/>
-                                        <Label Text="{Binding Liters, StringFormat='{0:F2} L'}" 
-                                               FontSize="14"
-                                               TextColor="#64748B"/>
-                                    </HorizontalStackLayout>
-
-                                    <!-- Amount and Payment -->
-                                    <HorizontalStackLayout Grid.Row="1" Spacing="10">
-                                        <Label Text="{Binding Total, StringFormat='RWF {0:N0}'}" 
-                                               FontSize="16"
-                                               FontAttributes="Bold"
-                                               TextColor="#10B981"/>
-                                        <Label Text="-" 
-                                               FontSize="14"
-                                               TextColor="#64748B"/>
-                                        <Label Text="{Binding PaymentMethod}" 
-                                               FontSize="14"
-                                               TextColor="#64748B"/>
-                                    </HorizontalStackLayout>
-
-                                    <!-- Customer/Plate and EBM Status -->
-                                    <HorizontalStackLayout Grid.Row="2" Spacing="10">
-                                        <Label Text="{Binding PlateNumber}" 
-                                               FontSize="12"
-                                               TextColor="#64748B"
-                                               IsVisible="{Binding PlateNumber, Converter={StaticResource StringToBoolConverter}}"/>
-                                        <Label Text="{Binding CustomerName}" 
-                                               FontSize="12"
-                                               TextColor="#64748B"
-                                               IsVisible="{Binding CustomerName, Converter={StaticResource StringToBoolConverter}}"/>
-                                        <HorizontalStackLayout Spacing="5" HorizontalOptions="End">
-                                            <Label Text="EBM:" 
-                                                   FontSize="12"
-                                                   TextColor="#64748B"/>
-                                            <Label Text="? Sent" 
-                                                   FontSize="12"
-                                                   FontAttributes="Bold"
-                                                   TextColor="#10B981"
-                                                   IsVisible="{Binding EBMSent}"/>
-                                            <Label Text="? Pending" 
-                                                   FontSize="12"
-                                                   TextColor="#F59E0B"
-                                                   IsVisible="{Binding EBMSent, Converter={StaticResource InvertedBoolConverter}}"/>
-                                        </HorizontalStackLayout>
-                                    </HorizontalStackLayout>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                    <CollectionView.EmptyView>
-                        <VerticalStackLayout VerticalOptions="Center" Padding="40">
-                            <Label Text="??" 
-                                   FontSize="60"
-                                   HorizontalOptions="Center"/>
-                            <Label Text="No transactions yet today" 
-                                   FontSize="16"
-                                   TextColor="#64748B"
+                <!-- Date Picker -->
+                <Border StrokeShape="RoundRectangle 10"
+                        Stroke="#E2E8F0"
+                        BackgroundColor="White"
+                        Padding="15,10">
+                    <HorizontalStackLayout Spacing="10">
+                        <Border StrokeShape="RoundRectangle 6"
+                                BackgroundColor="#EEF2FF"
+                                HeightRequest="28"
+                                WidthRequest="28"
+                                Padding="0">
+                            <Label Text="D"
+                                   FontSize="12"
+                                   FontAttributes="Bold"
+                                   TextColor="#1E3A8A"
                                    HorizontalOptions="Center"
-                                   Margin="0,20,0,0"/>
-                        </VerticalStackLayout>
-                    </CollectionView.EmptyView>
-                </CollectionView>
+                                   VerticalOptions="Center"/>
+                        </Border>
+                        <Label Text="Date:"
+                               FontSize="14"
+                               TextColor="#64748B"
+                               VerticalOptions="Center"/>
+                        <DatePicker Date="{Binding SelectedDate}"
+                                    FontSize="14"
+                                    TextColor="#1E293B"/>
+                    </HorizontalStackLayout>
+                </Border>
 
-                <!-- Load More Button -->
-                <Button Text="Load More"
-                        Command="{Binding LoadMoreCommand}"
-                        BackgroundColor="#E2E8F0"
-                        TextColor="#475569"
-                        FontSize="14"
-                        HeightRequest="45"
-                        CornerRadius="10"
-                        IsVisible="{Binding Transactions.Count}"/>
+                <!-- ========== SKELETON LOADING ========== -->
+                <VerticalStackLayout Spacing="15"
+                                    IsVisible="{Binding IsLoading}">
+                    <!-- Skeleton summary -->
+                    <Border StrokeShape="RoundRectangle 10" BackgroundColor="#E2E8F0" Padding="15" HeightRequest="70"/>
+
+                    <!-- Skeleton transaction items -->
+                    <Border StrokeShape="RoundRectangle 15" BackgroundColor="#E2E8F0" Padding="15" StrokeThickness="0" HeightRequest="85"/>
+                    <Border StrokeShape="RoundRectangle 15" BackgroundColor="#E2E8F0" Padding="15" StrokeThickness="0" HeightRequest="85"/>
+                    <Border StrokeShape="RoundRectangle 15" BackgroundColor="#E2E8F0" Padding="15" StrokeThickness="0" HeightRequest="85"/>
+                    <Border StrokeShape="RoundRectangle 15" BackgroundColor="#E2E8F0" Padding="15" StrokeThickness="0" HeightRequest="85"/>
+                </VerticalStackLayout>
+
+                <!-- ========== ACTUAL CONTENT ========== -->
+                <VerticalStackLayout Spacing="15"
+                                    IsVisible="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}">
+
+                    <!-- Summary -->
+                    <Border StrokeShape="RoundRectangle 10"
+                            BackgroundColor="#EEF2FF"
+                            Padding="15">
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <VerticalStackLayout Grid.Column="0" Spacing="2" HorizontalOptions="Center">
+                                <Label Text="Transactions"
+                                       FontSize="12"
+                                       TextColor="#64748B"
+                                       HorizontalOptions="Center"/>
+                                <Label Text="{Binding Transactions.Count}"
+                                       FontSize="20"
+                                       FontAttributes="Bold"
+                                       TextColor="#1E3A8A"
+                                       HorizontalOptions="Center"/>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="2" HorizontalOptions="Center">
+                                <Label Text="Total Sales"
+                                       FontSize="12"
+                                       TextColor="#64748B"
+                                       HorizontalOptions="Center"/>
+                                <Label Text="{Binding TotalSales, StringFormat='RWF {0:N0}'}"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#10B981"
+                                       HorizontalOptions="Center"/>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+
+                    <!-- Transactions List -->
+                    <CollectionView ItemsSource="{Binding Transactions}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="models:Transaction">
+                                <Border StrokeShape="RoundRectangle 15"
+                                        BackgroundColor="White"
+                                        Padding="15"
+                                        Margin="0,0,0,10"
+                                        StrokeThickness="0">
+                                    <Border.Shadow>
+                                        <Shadow Brush="Black" Opacity="0.05" Radius="6" Offset="0,2"/>
+                                    </Border.Shadow>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:TransactionsViewModel}}, Path=ViewDetailsCommand}"
+                                            CommandParameter="{Binding .}"/>
+                                    </Border.GestureRecognizers>
+
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                        <!-- Fuel Icon -->
+                                        <Border Grid.Column="0"
+                                                StrokeShape="RoundRectangle 8"
+                                                BackgroundColor="#EEF2FF"
+                                                HeightRequest="44"
+                                                WidthRequest="44"
+                                                Padding="0">
+                                            <Label Text="F"
+                                                   FontSize="16"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#1E3A8A"
+                                                   HorizontalOptions="Center"
+                                                   VerticalOptions="Center"/>
+                                        </Border>
+
+                                        <!-- Details -->
+                                        <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
+                                            <Label Text="{Binding FuelType}"
+                                                   FontSize="15"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#1E293B"/>
+                                            <HorizontalStackLayout Spacing="6">
+                                                <Label Text="{Binding TransactionDate, StringFormat='{0:HH:mm}'}"
+                                                       FontSize="12"
+                                                       TextColor="#94A3B8"/>
+                                                <Label Text="|"
+                                                       FontSize="12"
+                                                       TextColor="#CBD5E1"/>
+                                                <Label Text="{Binding Liters, StringFormat='{0:F1} L'}"
+                                                       FontSize="12"
+                                                       TextColor="#94A3B8"/>
+                                                <Label Text="|"
+                                                       FontSize="12"
+                                                       TextColor="#CBD5E1"/>
+                                                <Label Text="{Binding PaymentMethod}"
+                                                       FontSize="12"
+                                                       TextColor="#94A3B8"/>
+                                            </HorizontalStackLayout>
+                                            <HorizontalStackLayout Spacing="6">
+                                                <Label Text="{Binding CustomerName, TargetNullValue='Walk-in'}"
+                                                       FontSize="11"
+                                                       TextColor="#94A3B8"/>
+                                                <Label Text="|"
+                                                       FontSize="11"
+                                                       TextColor="#CBD5E1"/>
+                                                <Label Text="EBM Sent"
+                                                       FontSize="11"
+                                                       FontAttributes="Bold"
+                                                       TextColor="#10B981"
+                                                       IsVisible="{Binding EBMSent}"/>
+                                                <Label Text="EBM Pending"
+                                                       FontSize="11"
+                                                       TextColor="#F59E0B"
+                                                       IsVisible="{Binding EBMSent, Converter={StaticResource InvertedBoolConverter}}"/>
+                                            </HorizontalStackLayout>
+                                        </VerticalStackLayout>
+
+                                        <!-- Amount -->
+                                        <Label Grid.Column="2"
+                                               Text="{Binding Total, StringFormat='RWF {0:N0}'}"
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               TextColor="#10B981"
+                                               VerticalOptions="Center"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                        <CollectionView.EmptyView>
+                            <VerticalStackLayout VerticalOptions="Center" Padding="40">
+                                <Label Text="No transactions found"
+                                       FontSize="16"
+                                       TextColor="#64748B"
+                                       HorizontalOptions="Center"
+                                       Margin="0,20,0,0"/>
+                            </VerticalStackLayout>
+                        </CollectionView.EmptyView>
+                    </CollectionView>
+
+                </VerticalStackLayout>
 
             </VerticalStackLayout>
         </ScrollView>

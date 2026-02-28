@@ -27,4 +27,7 @@ public class Transaction : TenantEntity
     public Shift? Shift { get; set; }
     public bool EBMSent { get; set; }
     public string? EBMCode { get; set; }
+    public Guid? SubscriptionId { get; set; }
+    public Subscription? Subscription { get; set; }
+    public decimal? SubscriptionDeduction { get; set; }
 }

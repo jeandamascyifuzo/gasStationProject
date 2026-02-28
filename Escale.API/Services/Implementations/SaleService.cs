@@ -43,28 +43,92 @@ public class SaleService : ISaleService
         if (fuelType == null)
             throw new ArgumentException("Invalid fuel type");
 
-        // Calculate amounts
-        var subtotal = request.Liters * request.PricePerLiter;
-        var vatAmount = Math.Round(subtotal * BusinessRules.VATRate, 2);
-        var total = subtotal + vatAmount;
+        // Calculate amounts (price per liter is tax-inclusive)
+        var total = request.Liters * request.PricePerLiter;
+        var vatAmount = Math.Round(total * BusinessRules.VATRate, 2);
+        var subtotal = total - vatAmount;
 
-        // Generate receipt number
+        // Generate receipt number and EBM code
         var receiptNumber = $"RCP{DateTime.UtcNow:yyyyMMddHHmmssfff}";
-
-        // Generate EBM code
         var ebmCode = $"EBM{Random.Shared.Next(100000, 999999)}";
 
         // Get active shift
         var activeShift = await _unitOfWork.Shifts.Query()
             .FirstOrDefaultAsync(s => s.UserId == userId && s.StationId == request.StationId && s.IsActive);
 
-        // Resolve customer
-        Guid? customerId = request.Customer?.Id;
+        // Parse payment method
+        var paymentMethod = Enum.TryParse<PaymentMethod>(request.PaymentMethod.Replace(" ", ""), true, out var pm)
+            ? pm : PaymentMethod.Cash;
+
+        // Subscription deduction tracking
+        Guid? subscriptionId = null;
+        decimal? subscriptionDeduction = null;
+        decimal? remainingBalanceAfter = null;
+
+        // Walk-in customer info (Cash, Card, MobileMoney)
+        // Just record name/phone on the transaction — no customer entity linking
+        Guid? customerId = null;
         string? customerName = request.Customer?.Name;
         string? customerPhone = request.Customer?.PhoneNumber;
 
-        // Parse payment method
-        var paymentMethod = Enum.TryParse<PaymentMethod>(request.PaymentMethod.Replace(" ", ""), true, out var pm) ? pm : PaymentMethod.Cash;
+        if (paymentMethod == PaymentMethod.Credit)
+        {
+            // Credit = subscription customer: enforce all validation
+            if (!request.SubscriptionId.HasValue)
+                throw new ArgumentException("SubscriptionId is required for Credit payment");
+
+            if (request.Customer?.Id == null || request.Customer.Id == Guid.Empty)
+                throw new ArgumentException("Customer is required for Credit payment");
+
+            // Verify customer exists and is active
+            var customer = await _unitOfWork.Customers.Query()
+                .FirstOrDefaultAsync(c => c.Id == request.Customer.Id.Value && c.OrganizationId == orgId);
+
+            if (customer == null)
+                throw new InvalidOperationException("Customer not found");
+
+            if (!customer.IsActive)
+                throw new InvalidOperationException("Customer account is not active");
+
+            customerId = customer.Id;
+            customerName = customer.Name;
+            customerPhone = customer.PhoneNumber;
+
+            // Validate subscription
+            var subscription = await _unitOfWork.Subscriptions.Query()
+                .FirstOrDefaultAsync(s => s.Id == request.SubscriptionId.Value
+                                       && s.OrganizationId == orgId
+                                       && s.Status == SubscriptionStatus.Active);
+
+            if (subscription == null)
+                throw new InvalidOperationException("No active subscription found");
+
+            if (subscription.CustomerId != customer.Id)
+                throw new InvalidOperationException("Subscription does not belong to this customer");
+
+            // Check expiry
+            if (subscription.ExpiryDate.HasValue && subscription.ExpiryDate.Value < DateTime.UtcNow)
+            {
+                subscription.Status = SubscriptionStatus.Expired;
+                _unitOfWork.Subscriptions.Update(subscription);
+                await _unitOfWork.SaveChangesAsync();
+                throw new InvalidOperationException("Subscription has expired");
+            }
+
+            // Check balance
+            if (subscription.RemainingBalance < total)
+                throw new InvalidOperationException(
+                    $"Insufficient subscription balance. Available: {subscription.RemainingBalance:N0} RWF, Required: {total:N0} RWF");
+
+            // Deduct from subscription balance
+            subscription.RemainingBalance -= total;
+            subscription.UpdatedAt = DateTime.UtcNow;
+            _unitOfWork.Subscriptions.Update(subscription);
+
+            subscriptionId = subscription.Id;
+            subscriptionDeduction = total;
+            remainingBalanceAfter = subscription.RemainingBalance;
+        }
 
         var transaction = new Transaction
         {
@@ -86,7 +150,9 @@ public class SaleService : ISaleService
             CashierId = userId,
             ShiftId = activeShift?.Id,
             EBMSent = true,
-            EBMCode = ebmCode
+            EBMCode = ebmCode,
+            SubscriptionId = subscriptionId,
+            SubscriptionDeduction = subscriptionDeduction
         };
 
         await _unitOfWork.Transactions.AddAsync(transaction);
@@ -99,17 +165,6 @@ public class SaleService : ISaleService
         {
             inventoryItem.CurrentLevel = Math.Max(0, inventoryItem.CurrentLevel - request.Liters);
             _unitOfWork.InventoryItems.Update(inventoryItem);
-        }
-
-        // Handle credit
-        if (paymentMethod == PaymentMethod.Credit && customerId.HasValue)
-        {
-            var customer = await _unitOfWork.Customers.GetByIdAsync(customerId.Value);
-            if (customer != null)
-            {
-                customer.CurrentCredit += total;
-                _unitOfWork.Customers.Update(customer);
-            }
         }
 
         await _unitOfWork.SaveChangesAsync();
@@ -130,7 +185,9 @@ public class SaleService : ISaleService
                 Subtotal = subtotal,
                 VAT = vatAmount,
                 Total = total,
-                PaymentMethod = paymentMethod.ToString()
+                PaymentMethod = paymentMethod.ToString(),
+                SubscriptionDeduction = subscriptionDeduction,
+                SubscriptionRemainingBalance = remainingBalanceAfter
             }
         };
     }

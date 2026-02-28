@@ -66,7 +66,9 @@
       "Bash(export PATH=\"$PATH:$HOME/.dotnet/tools\" && cd /c/Users/cyifu/Desktop/project/GasManagement/Escale.API && dotnet build 2>&1)",
       "Bash(export PATH=\"$PATH:$HOME/.dotnet/tools\" && cd /c/Users/cyifu/Desktop/project/GasManagement/Escale.API && dotnet ef database drop --force --verbose 2>&1)",
       "Bash(export PATH=\"$PATH:$HOME/.dotnet/tools\" && cd /c/Users/cyifu/Desktop/project/GasManagement/Escale.API && dotnet ef database update 2>&1)",
-      "Bash(true:*)"
+      "Bash(true:*)",
+      "Bash(export PATH=\"$PATH:$HOME/.dotnet/tools:/usr/bin:/bin:/c/Windows/system32\" && cd /c/Users/cyifu/Desktop/project/GasManagement/Escale.API && dotnet ef migrations add SubscriptionRedesign 2>&1)",
+      "Bash(taskkill:*)"
     ]
   }
 }

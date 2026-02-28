@@ -9,6 +9,7 @@ public class CreateSaleRequestDto
     public decimal PricePerLiter { get; set; }
     public string PaymentMethod { get; set; } = string.Empty;
     public SaleCustomerDto? Customer { get; set; }
+    public Guid? SubscriptionId { get; set; }
 }
 
 public class SaleCustomerDto
@@ -39,4 +40,6 @@ public class CompletedSaleDto
     public decimal VAT { get; set; }
     public decimal Total { get; set; }
     public string PaymentMethod { get; set; } = string.Empty;
+    public decimal? SubscriptionDeduction { get; set; }
+    public decimal? SubscriptionRemainingBalance { get; set; }
 }

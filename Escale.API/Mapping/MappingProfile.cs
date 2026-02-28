@@ -1,5 +1,6 @@
 using AutoMapper;
 using Escale.API.Domain.Entities;
+using Escale.API.Domain.Enums;
 using Escale.API.DTOs.Auth;
 using Escale.API.DTOs.Customers;
 using Escale.API.DTOs.Dashboard;
@@ -9,6 +10,7 @@ using Escale.API.DTOs.Settings;
 using Escale.API.DTOs.Shifts;
 using Escale.API.DTOs.Stations;
 using Escale.API.DTOs.Stock;
+using Escale.API.DTOs.Subscriptions;
 using Escale.API.DTOs.Transactions;
 using Escale.API.DTOs.Organizations;
 using Escale.API.DTOs.Users;
@@ -47,17 +49,23 @@ public class MappingProfile : Profile
 
         // Customer
         CreateMap<Customer, CustomerResponseDto>()
-            .ForMember(d => d.Type, o => o.MapFrom(s => s.Type.ToString()));
+            .ForMember(d => d.Type, o => o.MapFrom(s => s.Type.ToString()))
+            .ForMember(d => d.ActiveSubscription, o => o.MapFrom(s =>
+                s.Subscriptions
+                    .Where(sub => sub.Status == SubscriptionStatus.Active && !sub.IsDeleted)
+                    .OrderByDescending(sub => sub.StartDate)
+                    .FirstOrDefault()));
         CreateMap<CreateCustomerRequestDto, Customer>();
         CreateMap<UpdateCustomerRequestDto, Customer>();
 
         // Car
-        CreateMap<Car, CarDto>();
-        CreateMap<CarDto, Car>();
+        CreateMap<Car, CarResponseDto>();
+        CreateMap<CarDto, Car>()
+            .ForMember(d => d.PINHash, o => o.Ignore());
 
         // Subscription
-        CreateMap<Subscription, SubscriptionDto>()
-            .ForMember(d => d.FuelTypeName, o => o.MapFrom(s => s.FuelType.Name))
+        CreateMap<Subscription, SubscriptionResponseDto>()
+            .ForMember(d => d.CustomerName, o => o.MapFrom(s => s.Customer != null ? s.Customer.Name : string.Empty))
             .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()));
 
         // Transaction

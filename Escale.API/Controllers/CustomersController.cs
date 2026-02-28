@@ -59,4 +59,25 @@ public class CustomersController : ControllerBase
         await _customerService.DeleteCustomerAsync(id);
         return Ok(ApiResponse.SuccessResponse("Customer deleted"));
     }
+
+    [HttpPost("{customerId}/cars")]
+    public async Task<ActionResult<ApiResponse<CarResponseDto>>> AddCar(Guid customerId, [FromBody] CarDto request)
+    {
+        var result = await _customerService.AddCarAsync(customerId, request);
+        return Ok(ApiResponse<CarResponseDto>.SuccessResponse(result, "Car added"));
+    }
+
+    [HttpPut("{customerId}/cars/{carId}")]
+    public async Task<ActionResult<ApiResponse<CarResponseDto>>> UpdateCar(Guid customerId, Guid carId, [FromBody] CarDto request)
+    {
+        var result = await _customerService.UpdateCarAsync(customerId, carId, request);
+        return Ok(ApiResponse<CarResponseDto>.SuccessResponse(result, "Car updated"));
+    }
+
+    [HttpDelete("{customerId}/cars/{carId}")]
+    public async Task<ActionResult<ApiResponse>> DeactivateCar(Guid customerId, Guid carId)
+    {
+        await _customerService.DeactivateCarAsync(customerId, carId);
+        return Ok(ApiResponse.SuccessResponse("Car deactivated"));
+    }
 }

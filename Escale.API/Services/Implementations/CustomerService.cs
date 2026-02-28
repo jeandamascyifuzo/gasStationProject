@@ -27,7 +27,7 @@ public class CustomerService : ICustomerService
         var orgId = _currentUser.OrganizationId!.Value;
         var query = _unitOfWork.Customers.Query()
             .Include(c => c.Cars)
-            .Include(c => c.Subscriptions).ThenInclude(s => s.FuelType)
+            .Include(c => c.Subscriptions)
             .Where(c => c.OrganizationId == orgId);
 
         if (!string.IsNullOrEmpty(request.SearchTerm))
@@ -58,7 +58,7 @@ public class CustomerService : ICustomerService
         var orgId = _currentUser.OrganizationId!.Value;
         var customer = await _unitOfWork.Customers.Query()
             .Include(c => c.Cars)
-            .Include(c => c.Subscriptions).ThenInclude(s => s.FuelType)
+            .Include(c => c.Subscriptions)
             .FirstOrDefaultAsync(c => c.Id == id && c.OrganizationId == orgId)
             ?? throw new KeyNotFoundException("Customer not found");
         return _mapper.Map<CustomerResponseDto>(customer);
@@ -70,6 +70,7 @@ public class CustomerService : ICustomerService
         var lower = term.ToLower();
         var customers = await _unitOfWork.Customers.Query()
             .Include(c => c.Cars)
+            .Include(c => c.Subscriptions)
             .Where(c => c.OrganizationId == orgId &&
                         (c.Name.ToLower().Contains(lower) ||
                          (c.PhoneNumber != null && c.PhoneNumber.Contains(term)) ||
@@ -102,13 +103,18 @@ public class CustomerService : ICustomerService
         {
             foreach (var carDto in request.Cars)
             {
+                if (string.IsNullOrWhiteSpace(carDto.PIN))
+                    throw new ArgumentException($"PIN is required for car {carDto.PlateNumber}");
+
                 await _unitOfWork.Cars.AddAsync(new Car
                 {
                     CustomerId = customer.Id,
                     PlateNumber = carDto.PlateNumber,
                     Make = carDto.Make,
                     Model = carDto.Model,
-                    Year = carDto.Year
+                    Year = carDto.Year,
+                    PINHash = BCrypt.Net.BCrypt.HashPassword(carDto.PIN),
+                    IsActive = carDto.IsActive
                 });
             }
             await _unitOfWork.SaveChangesAsync();
@@ -144,6 +150,73 @@ public class CustomerService : ICustomerService
             .FirstOrDefaultAsync(c => c.Id == id && c.OrganizationId == orgId)
             ?? throw new KeyNotFoundException("Customer not found");
         _unitOfWork.Customers.Remove(customer);
+        await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task<CarResponseDto> AddCarAsync(Guid customerId, CarDto request)
+    {
+        var orgId = _currentUser.OrganizationId!.Value;
+        var customer = await _unitOfWork.Customers.Query()
+            .FirstOrDefaultAsync(c => c.Id == customerId && c.OrganizationId == orgId)
+            ?? throw new KeyNotFoundException("Customer not found");
+
+        if (string.IsNullOrWhiteSpace(request.PIN))
+            throw new ArgumentException("PIN is required");
+
+        var car = new Car
+        {
+            CustomerId = customerId,
+            PlateNumber = request.PlateNumber,
+            Make = request.Make,
+            Model = request.Model,
+            Year = request.Year,
+            PINHash = BCrypt.Net.BCrypt.HashPassword(request.PIN),
+            IsActive = request.IsActive
+        };
+
+        await _unitOfWork.Cars.AddAsync(car);
+        await _unitOfWork.SaveChangesAsync();
+
+        return _mapper.Map<CarResponseDto>(car);
+    }
+
+    public async Task<CarResponseDto> UpdateCarAsync(Guid customerId, Guid carId, CarDto request)
+    {
+        var orgId = _currentUser.OrganizationId!.Value;
+
+        var car = await _unitOfWork.Cars.Query()
+            .Include(c => c.Customer)
+            .FirstOrDefaultAsync(c => c.Id == carId && c.CustomerId == customerId && c.Customer.OrganizationId == orgId)
+            ?? throw new KeyNotFoundException("Car not found");
+
+        car.PlateNumber = request.PlateNumber;
+        car.Make = request.Make;
+        car.Model = request.Model;
+        car.Year = request.Year;
+        car.IsActive = request.IsActive;
+
+        if (!string.IsNullOrWhiteSpace(request.PIN))
+        {
+            car.PINHash = BCrypt.Net.BCrypt.HashPassword(request.PIN);
+        }
+
+        _unitOfWork.Cars.Update(car);
+        await _unitOfWork.SaveChangesAsync();
+
+        return _mapper.Map<CarResponseDto>(car);
+    }
+
+    public async Task DeactivateCarAsync(Guid customerId, Guid carId)
+    {
+        var orgId = _currentUser.OrganizationId!.Value;
+
+        var car = await _unitOfWork.Cars.Query()
+            .Include(c => c.Customer)
+            .FirstOrDefaultAsync(c => c.Id == carId && c.CustomerId == customerId && c.Customer.OrganizationId == orgId)
+            ?? throw new KeyNotFoundException("Car not found");
+
+        car.IsActive = false;
+        _unitOfWork.Cars.Update(car);
         await _unitOfWork.SaveChangesAsync();
     }
 }

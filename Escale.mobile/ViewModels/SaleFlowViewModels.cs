@@ -17,10 +17,34 @@ public partial class CustomerInfoViewModel : ObservableObject
     {
     }
 
+    /// <summary>
+    /// Reset form when navigated to, so previous customer data doesn't linger.
+    /// </summary>
+    public void OnNavigatedTo()
+    {
+        var sale = AppState.Instance.CurrentSale;
+        if (sale?.Customer != null)
+        {
+            CustomerName = sale.Customer.Name;
+            PhoneNumber = sale.Customer.PhoneNumber ?? string.Empty;
+        }
+        else
+        {
+            CustomerName = string.Empty;
+            PhoneNumber = string.Empty;
+        }
+    }
+
     [RelayCommand]
     private async Task Skip()
     {
-        await Shell.Current.GoToAsync("../SalePreview");
+        // Clear any customer data — this is a walk-in sale
+        var sale = AppState.Instance.CurrentSale;
+        if (sale != null)
+        {
+            sale.Customer = null;
+        }
+        await Shell.Current.GoToAsync("SalePreview");
     }
 
     [RelayCommand]
@@ -36,7 +60,7 @@ public partial class CustomerInfoViewModel : ObservableObject
             };
         }
 
-        await Shell.Current.GoToAsync("../SalePreview");
+        await Shell.Current.GoToAsync("SalePreview");
     }
 }
 
@@ -52,6 +76,9 @@ public partial class SalePreviewViewModel : ObservableObject
 
     [ObservableProperty]
     private string stationName = string.Empty;
+
+    [ObservableProperty]
+    private decimal balanceAfterSale;
 
     public SalePreviewViewModel(ApiService apiService)
     {
@@ -69,6 +96,11 @@ public partial class SalePreviewViewModel : ObservableObject
         {
             Sale = AppState.Instance.CurrentSale;
             StationName = AppState.Instance.SelectedStation?.Name ?? "Unknown Station";
+
+            if (Sale?.SubscriptionId != null && Sale.Customer?.SubscriptionBalance != null)
+            {
+                BalanceAfterSale = (Sale.Customer.SubscriptionBalance ?? 0) - Sale.Total;
+            }
         }
         catch (Exception ex)
         {
@@ -97,10 +129,23 @@ public partial class SalePreviewViewModel : ObservableObject
     {
         if (Sale == null) return;
 
-        IsBusy = true;
-
         try
         {
+            // Show confirmation dialog before submitting
+            var confirm = await Shell.Current!.DisplayAlert(
+                "Confirm Sale",
+                $"Fuel: {Sale.FuelType}\n" +
+                $"Liters: {Sale.Liters:F2} L\n" +
+                $"Total: RWF {Sale.Total:N0}\n" +
+                $"Payment: {Sale.PaymentMethod}\n\n" +
+                "Do you want to confirm this sale?",
+                "Confirm",
+                "Cancel");
+
+            if (!confirm) return;
+
+            IsBusy = true;
+
             var stationId = AppState.Instance.SelectedStation?.Id ?? Guid.Empty;
             var (success, message, completedSale) = await _apiService.SubmitSaleAsync(Sale, stationId);
 
@@ -110,18 +155,14 @@ public partial class SalePreviewViewModel : ObservableObject
                 Sale.ReceiptNumber = completedSale.ReceiptNumber;
                 Sale.EBMCode = completedSale.EBMCode;
                 Sale.TransactionDate = completedSale.TransactionDate;
+                Sale.SubscriptionDeduction = completedSale.SubscriptionDeduction;
+                Sale.SubscriptionRemainingBalance = completedSale.SubscriptionRemainingBalance;
 
-                if (Shell.Current != null)
-                {
-                    await Shell.Current.GoToAsync("SaleComplete");
-                }
+                await Shell.Current!.GoToAsync("SaleComplete");
             }
             else
             {
-                if (Shell.Current != null)
-                {
-                    await Shell.Current.DisplayAlert("Error", message, "OK");
-                }
+                await Shell.Current!.DisplayAlert("Error", message, "OK");
             }
         }
         catch (Exception ex)
@@ -149,10 +190,12 @@ public partial class SaleCompleteViewModel : ObservableObject
 
     public SaleCompleteViewModel()
     {
-        LoadSale();
     }
 
-    private void LoadSale()
+    /// <summary>
+    /// Called from code-behind OnNavigatedTo to load fresh sale data.
+    /// </summary>
+    public void OnNavigatedTo()
     {
         Sale = AppState.Instance.CurrentSale;
         StationName = AppState.Instance.SelectedStation?.Name ?? "Unknown Station";
@@ -161,20 +204,40 @@ public partial class SaleCompleteViewModel : ObservableObject
     [RelayCommand]
     private async Task PrintReceipt()
     {
-        await Shell.Current.DisplayAlert("Print", "Printing receipt...", "OK");
+        await Shell.Current!.DisplayAlert("Print", "Printing receipt...", "OK");
     }
 
     [RelayCommand]
     private async Task NewSale()
     {
-        AppState.Instance.ClearCurrentSale();
-        await Shell.Current.GoToAsync("///NewSale");
+        try
+        {
+            // Clear completed sale and start fresh
+            AppState.Instance.ClearCurrentSale();
+
+            // Navigate to NewSale tab (absolute route resets the stack)
+            await Shell.Current!.GoToAsync("///NewSale");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"NewSale navigation error: {ex}");
+        }
     }
 
     [RelayCommand]
     private async Task GoToDashboard()
     {
-        AppState.Instance.ClearCurrentSale();
-        await Shell.Current.GoToAsync("///Dashboard");
+        try
+        {
+            // Clear completed sale
+            AppState.Instance.ClearCurrentSale();
+
+            // Navigate to Dashboard tab (absolute route resets the stack)
+            await Shell.Current!.GoToAsync("///Dashboard");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Dashboard navigation error: {ex}");
+        }
     }
 }

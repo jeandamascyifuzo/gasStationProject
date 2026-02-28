@@ -30,5 +30,7 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.HasOne(x => x.Customer).WithMany(c => c.Transactions).HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.SetNull);
         builder.HasOne(x => x.Cashier).WithMany(u => u.ProcessedTransactions).HasForeignKey(x => x.CashierId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(x => x.Shift).WithMany(s => s.Transactions).HasForeignKey(x => x.ShiftId).OnDelete(DeleteBehavior.SetNull);
+        builder.Property(x => x.SubscriptionDeduction).HasPrecision(18, 2);
+        builder.HasOne(x => x.Subscription).WithMany(s => s.Transactions).HasForeignKey(x => x.SubscriptionId).OnDelete(DeleteBehavior.SetNull);
     }
 }

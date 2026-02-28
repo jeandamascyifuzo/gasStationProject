@@ -20,28 +20,12 @@
                    FontSize="16"
                    TextColor="#64748B"/>
 
-            <!-- Plate Number Search -->
+            <!-- Search by name, phone, or plate number -->
             <Border StrokeShape="RoundRectangle 10"
                     Stroke="#E2E8F0"
                     BackgroundColor="White"
                     Padding="15,10">
-                <Entry Placeholder="Plate Number (e.g., RCA 123 C)"
-                       Text="{Binding SearchTerm}"
-                       FontSize="16"
-                       TextColor="#1E293B"/>
-            </Border>
-
-            <Label Text="OR" 
-                   HorizontalOptions="Center"
-                   FontSize="14"
-                   TextColor="#94A3B8"/>
-
-            <!-- Car PIN Search -->
-            <Border StrokeShape="RoundRectangle 10"
-                    Stroke="#E2E8F0"
-                    BackgroundColor="White"
-                    Padding="15,10">
-                <Entry Placeholder="Car PIN"
+                <Entry Placeholder="Name, phone, or plate number"
                        Text="{Binding SearchTerm}"
                        FontSize="16"
                        TextColor="#1E293B"/>

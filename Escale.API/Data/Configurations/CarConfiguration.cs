@@ -13,6 +13,9 @@ public class CarConfiguration : IEntityTypeConfiguration<Car>
         builder.Property(x => x.PlateNumber).HasMaxLength(20).IsRequired();
         builder.Property(x => x.Make).HasMaxLength(100);
         builder.Property(x => x.Model).HasMaxLength(100);
+        builder.Property(x => x.PINHash).HasMaxLength(100).IsRequired();
+        builder.Property(x => x.IsActive).HasDefaultValue(true);
+        builder.HasIndex(x => x.PlateNumber);
         builder.HasOne(x => x.Customer).WithMany(c => c.Cars).HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Cascade);
     }
 }

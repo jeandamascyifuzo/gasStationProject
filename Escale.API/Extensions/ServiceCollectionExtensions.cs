@@ -63,6 +63,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<ISettingsService, SettingsService>();
         services.AddScoped<IOrganizationService, OrganizationService>();
+        services.AddScoped<ISubscriptionService, SubscriptionService>();
         return services;
     }
 

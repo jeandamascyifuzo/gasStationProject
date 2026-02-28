@@ -9,6 +9,7 @@ namespace Escale.mobile
             InitializeComponent();
 
             Routing.RegisterRoute("CustomerSearch", typeof(CustomerSearchPage));
+            Routing.RegisterRoute("SubscriptionCustomerSearch", typeof(SubscriptionCustomerSearchPage));
             Routing.RegisterRoute("CustomerInfo", typeof(CustomerInfoPage));
             Routing.RegisterRoute("SalePreview", typeof(SalePreviewPage));
             Routing.RegisterRoute("SaleComplete", typeof(SaleCompletePage));

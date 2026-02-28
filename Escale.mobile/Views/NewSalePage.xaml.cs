@@ -9,4 +9,13 @@ public partial class NewSalePage : ContentPage
         InitializeComponent();
         BindingContext = viewModel;
     }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        if (BindingContext is NewSaleViewModel vm)
+        {
+            await vm.InitializeAsync();
+        }
+    }
 }
