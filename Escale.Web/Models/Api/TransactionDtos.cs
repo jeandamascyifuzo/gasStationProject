@@ -15,7 +15,7 @@ public class TransactionResponseDto
     public string? CustomerName { get; set; }
     public string? CustomerPhone { get; set; }
     public bool EBMSent { get; set; }
-    public string? EBMCode { get; set; }
+    public string? EBMReceiptUrl { get; set; }
     public string CashierName { get; set; } = string.Empty;
     public string StationName { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;

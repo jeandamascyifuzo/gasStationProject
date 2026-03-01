@@ -119,11 +119,14 @@ public class FuelTypeService : IFuelTypeService
         }
         catch (Exception ex)
         {
-            // DB failed — revert EBM by deleting the product
+            // DB failed — revert EBM by deleting the product so nothing is out of sync
             if (!string.IsNullOrEmpty(ebmProductId))
             {
                 _logger.LogWarning("DB save failed, deleting EBM product {ProductId} for org {OrgId}", ebmProductId, orgId);
-                await _ebmService.DeleteProductAsync(orgId, ebmProductId);
+                var reverted = await _ebmService.DeleteProductAsync(orgId, ebmProductId);
+                if (!reverted)
+                    _logger.LogError("CRITICAL: Failed to delete EBM product {ProductId} for org {OrgId}. Product exists in EBM but not in DB. Manual fix required.",
+                        ebmProductId, orgId);
             }
             throw new InvalidOperationException(
                 $"Failed to save fuel type to database. EBM product has been reverted. Error: {ex.Message}");
@@ -138,31 +141,41 @@ public class FuelTypeService : IFuelTypeService
             ?? throw new KeyNotFoundException("Fuel type not found");
 
         var priceChanged = fuelType.CurrentPrice != request.PricePerLiter;
+        var supplyPriceChanged = request.EBMSupplyPrice.HasValue && request.EBMSupplyPrice != fuelType.EBMSupplyPrice;
         var oldPrice = fuelType.CurrentPrice;
         var ebmVariantId = request.EBMVariantId ?? fuelType.EBMVariantId;
         var ebmSupplyPrice = request.EBMSupplyPrice ?? fuelType.EBMSupplyPrice ?? 0;
+        var oldSupplyPrice = fuelType.EBMSupplyPrice ?? 0;
         bool ebmPriceUpdated = false;
 
-        // EBM FIRST — sync new price to EBM before saving to DB
-        if (priceChanged && !string.IsNullOrEmpty(ebmVariantId))
+        // Check if EBM is enabled for this org
+        var orgSettings = await _unitOfWork.OrganizationSettings.Query()
+            .FirstOrDefaultAsync(s => s.OrganizationId == orgId);
+        var ebmEnabled = orgSettings?.EBMEnabled == true;
+
+        // If EBM is enabled and price changed, EBM update is REQUIRED — no partial save
+        if ((priceChanged || supplyPriceChanged) && ebmEnabled)
         {
-            var orgSettings = await _unitOfWork.OrganizationSettings.Query()
-                .FirstOrDefaultAsync(s => s.OrganizationId == orgId);
+            if (string.IsNullOrEmpty(ebmVariantId))
+                throw new InvalidOperationException(
+                    "EBM is enabled but this fuel type has no EBM Variant ID. " +
+                    "Please delete and re-create the fuel type to register it with EBM.");
 
-            if (orgSettings?.EBMEnabled == true)
-            {
-                var ebmSuccess = await _ebmService.UpdatePriceAsync(orgId, ebmVariantId,
-                    request.PricePerLiter, ebmSupplyPrice);
+            _logger.LogInformation("Updating EBM price for fuel type {FuelTypeId}: RetailPrice={RetailPrice}, SupplyPrice={SupplyPrice}, VariantId={VariantId}",
+                id, request.PricePerLiter, ebmSupplyPrice, ebmVariantId);
 
-                if (!ebmSuccess)
-                    throw new InvalidOperationException(
-                        "Failed to update price in EBM. Price was NOT changed. Please try again.");
+            var ebmSuccess = await _ebmService.UpdatePriceAsync(orgId, ebmVariantId,
+                request.PricePerLiter, ebmSupplyPrice);
 
-                ebmPriceUpdated = true;
-            }
+            if (!ebmSuccess)
+                throw new InvalidOperationException(
+                    "Failed to update price in EBM. No changes were saved. Please try again.");
+
+            _logger.LogInformation("EBM price update succeeded for fuel type {FuelTypeId}", id);
+            ebmPriceUpdated = true;
         }
 
-        // EBM succeeded — now save to DB
+        // EBM succeeded (or not needed) — now save to DB
         try
         {
             if (priceChanged)
@@ -188,18 +201,22 @@ public class FuelTypeService : IFuelTypeService
 
             fuelType.Name = request.Name;
             fuelType.IsActive = request.IsActive;
-            fuelType.EBMVariantId = request.EBMVariantId;
-            fuelType.EBMSupplyPrice = request.EBMSupplyPrice;
+            fuelType.EBMVariantId = request.EBMVariantId ?? fuelType.EBMVariantId;
+            fuelType.EBMSupplyPrice = request.EBMSupplyPrice ?? fuelType.EBMSupplyPrice;
             _unitOfWork.FuelTypes.Update(fuelType);
             await _unitOfWork.SaveChangesAsync();
         }
         catch (Exception ex)
         {
-            // DB failed — revert EBM price back to old value
+            // DB failed — revert EBM price back to old values so nothing is out of sync
             if (ebmPriceUpdated)
             {
-                _logger.LogWarning("DB save failed, reverting EBM price for fuel type {FuelTypeId} back to {OldPrice}", id, oldPrice);
-                await _ebmService.UpdatePriceAsync(orgId, ebmVariantId!, oldPrice, ebmSupplyPrice);
+                _logger.LogWarning("DB save failed, reverting EBM price for fuel type {FuelTypeId} back to RetailPrice={OldPrice}, SupplyPrice={OldSupplyPrice}",
+                    id, oldPrice, oldSupplyPrice);
+                var reverted = await _ebmService.UpdatePriceAsync(orgId, ebmVariantId!, oldPrice, oldSupplyPrice);
+                if (!reverted)
+                    _logger.LogError("CRITICAL: Failed to revert EBM price for fuel type {FuelTypeId}. EBM has RetailPrice={NewPrice} but DB has RetailPrice={OldPrice}. Manual fix required.",
+                        id, request.PricePerLiter, oldPrice);
             }
             throw new InvalidOperationException(
                 $"Failed to save price update to database. EBM has been reverted. Error: {ex.Message}");

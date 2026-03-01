@@ -26,7 +26,7 @@ public class EBMService : IEBMService
         _logger = logger;
     }
 
-    private const int MaxInvoiceRetries = 10;
+    private const int MaxInvoiceRetries = 20;
 
     public async Task<EBMSellResult> SendSaleReceiptAsync(Guid orgId, string variantId, decimal qty,
         string? customerName, string? customerPhone)
@@ -53,6 +53,8 @@ public class EBMService : IEBMService
             var json = JsonSerializer.Serialize(payload, _jsonOptions);
             var url = $"{settings.EBMServerUrl.TrimEnd('/')}/receipts/sell";
 
+            _logger.LogInformation("EBM sell receipt request for org {OrgId}: {Payload}", orgId, json);
+
             // Retry loop for "Invoice number already exists" (YegoBox bug — resultCd 924)
             for (int attempt = 1; attempt <= MaxInvoiceRetries; attempt++)
             {
@@ -78,7 +80,7 @@ public class EBMService : IEBMService
                 {
                     _logger.LogWarning("EBM invoice duplicate for org {OrgId}, attempt {Attempt}/{Max} — retrying...",
                         orgId, attempt, MaxInvoiceRetries);
-                    await Task.Delay(500 * attempt); // increasing delay: 500ms, 1s, 1.5s...
+                    await Task.Delay(300 * attempt); // increasing delay: 300ms, 600ms, 900ms
                     continue;
                 }
 
@@ -123,7 +125,8 @@ public class EBMService : IEBMService
             {
                 VariantId = variantId,
                 RetailPrice = retailPrice,
-                SupplyPrice = supplyPrice
+                SupplyPrice = supplyPrice,
+                LastTouched = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
             };
 
             var client = _httpClientFactory.CreateClient("EBM");
@@ -150,7 +153,7 @@ public class EBMService : IEBMService
         }
     }
 
-    public async Task<bool> UpdateStockAsync(Guid orgId, string stockId, decimal currentStock)
+    public async Task<bool> UpdateStockAsync(Guid orgId, string stockId, decimal quantity)
     {
         try
         {
@@ -158,27 +161,41 @@ public class EBMService : IEBMService
             if (settings == null || !settings.EBMEnabled || string.IsNullOrEmpty(settings.EBMServerUrl))
                 return false;
 
-            var payload = new EBMUpdateStockPayload
-            {
-                StockId = stockId,
-                CurrentStock = currentStock
-            };
-
             var client = _httpClientFactory.CreateClient("EBM");
-            var json = JsonSerializer.Serialize(payload, _jsonOptions);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var url = $"{settings.EBMServerUrl.TrimEnd('/')}/products/update-stock";
 
-            var response = await client.PostAsync($"{settings.EBMServerUrl.TrimEnd('/')}/products/update-stock", content);
+            // EBM update-stock sets an ABSOLUTE level (must be >= current EBM level).
+            // First attempt: send quantity as the absolute (works if EBM stock is 0).
+            // If EBM has higher stock, parse its current level and retry with ebmCurrent + quantity.
+            var result = await SendStockUpdate(client, url, stockId, quantity);
 
-            if (response.IsSuccessStatusCode)
+            if (result.Success)
             {
-                _logger.LogInformation("EBM stock updated for org {OrgId}, stock {StockId}", orgId, stockId);
+                _logger.LogInformation("EBM stock updated for org {OrgId}, stock {StockId}, set to {Level}", orgId, stockId, quantity);
                 return true;
             }
 
-            var body = await response.Content.ReadAsStringAsync();
+            // Check if it failed because EBM stock is higher — parse and retry
+            var ebmCurrentStock = TryParseExistingStockLevel(result.ResponseBody);
+            if (ebmCurrentStock.HasValue)
+            {
+                var newLevel = ebmCurrentStock.Value + quantity;
+                _logger.LogInformation("EBM stock out of sync (EBM has {EBMLevel}). Retrying with {NewLevel} for stock {StockId}",
+                    ebmCurrentStock.Value, newLevel, stockId);
+
+                var retryResult = await SendStockUpdate(client, url, stockId, newLevel);
+                if (retryResult.Success)
+                {
+                    _logger.LogInformation("EBM stock updated for org {OrgId}, stock {StockId}, set to {Level} (after sync)", orgId, stockId, newLevel);
+                    return true;
+                }
+
+                _logger.LogWarning("EBM stock retry also failed for org {OrgId}: {Body}", orgId, retryResult.ResponseBody);
+                return false;
+            }
+
             _logger.LogWarning("EBM stock update failed for org {OrgId}: {StatusCode} - {Body}",
-                orgId, response.StatusCode, body);
+                orgId, result.StatusCode, result.ResponseBody);
             return false;
         }
         catch (Exception ex)
@@ -186,6 +203,33 @@ public class EBMService : IEBMService
             _logger.LogError(ex, "EBM stock update exception for org {OrgId}", orgId);
             return false;
         }
+    }
+
+    private async Task<(bool Success, int StatusCode, string ResponseBody)> SendStockUpdate(
+        HttpClient client, string url, string stockId, decimal currentStock)
+    {
+        var payload = new EBMUpdateStockPayload { StockId = stockId, CurrentStock = currentStock };
+        var json = JsonSerializer.Serialize(payload, _jsonOptions);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var response = await client.PostAsync(url, content);
+        var body = await response.Content.ReadAsStringAsync();
+        return (response.IsSuccessStatusCode, (int)response.StatusCode, body);
+    }
+
+    private static decimal? TryParseExistingStockLevel(string? responseBody)
+    {
+        if (string.IsNullOrEmpty(responseBody)) return null;
+        try
+        {
+            // Parse: "New stock level (X) cannot be lower than existing stock level (Y)"
+            var match = System.Text.RegularExpressions.Regex.Match(
+                responseBody, @"existing stock level \((\d+\.?\d*)\)");
+            if (match.Success && decimal.TryParse(match.Groups[1].Value,
+                System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var level))
+                return level;
+        }
+        catch { }
+        return null;
     }
 
     public async Task<bool> TestConnectionAsync(Guid orgId)
@@ -222,6 +266,9 @@ public class EBMService : IEBMService
             if (string.IsNullOrEmpty(settings.EBMCategoryId))
                 return new EBMCreateProductResult { Success = false, ErrorMessage = "EBM Category ID not configured. Set it in EBM Configuration." };
 
+            // Parse TIN as long (default 0 if not numeric)
+            long.TryParse(settings.EBMCompanyTIN, out var tin);
+
             var payload = new EBMCreateProductPayload
             {
                 ProductName = productName,
@@ -230,22 +277,52 @@ public class EBMService : IEBMService
                 BranchId = settings.EBMBranchId,
                 Variants = new List<EBMProductVariant>
                 {
-                    new() { VariantName = productName, RetailPrice = retailPrice, SupplyPrice = supplyPrice }
+                    new()
+                    {
+                        Name = productName,
+                        RetailPrice = retailPrice,
+                        SupplyPrice = supplyPrice,
+                        Quantity = 0,
+                        Sku = $"FUEL-{productName.Replace(" ", "-").ToUpper()}",
+                        Barcode = $"FUEL-{productName.Replace(" ", "-").ToUpper()}",
+                        Prc = retailPrice,
+                        DftPrc = retailPrice,
+                        SplyAmt = supplyPrice,
+                        ItemNm = productName,
+                        ItemStdNm = productName,
+                        ProductName = productName,
+                        SpplrItemNm = productName,
+                        BhfId = settings.EBMBranchId ?? "BHF001",
+                        Tin = tin,
+                        RegrNm = settings.EBMCompanyName ?? "System",
+                        RegrId = settings.EBMCompanyTIN ?? "System",
+                        ModrNm = settings.EBMCompanyName ?? "System",
+                        ModrId = settings.EBMCompanyTIN ?? "System",
+                        Unit = "LTR",
+                        PackagingUnit = "PCS",
+                        BarCode = $"FUEL-{productName.Replace(" ", "-").ToUpper()}",
+                        LastTouched = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                        ExpirationDate = "2030-12-31",
+                        DclDe = DateTime.UtcNow.ToString("yyyy-MM-dd"),
+                        CategoryName = "Fuel"
+                    }
                 }
             };
 
             var client = _httpClientFactory.CreateClient("EBM");
 
-            // YegoBox uses snake_case for product creation
+            // YegoBox product creation API uses snake_case — send ALL fields (no omitting nulls)
             var snakeCaseOptions = new JsonSerializerOptions
             {
-                PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+                PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
             };
             var json = JsonSerializer.Serialize(payload, snakeCaseOptions);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             var url = $"{settings.EBMServerUrl.TrimEnd('/')}/products";
+
+            _logger.LogInformation("EBM create product request for org {OrgId}: {Payload}", orgId, json);
+
             var response = await client.PostAsync(url, content);
             var responseBody = await response.Content.ReadAsStringAsync();
 

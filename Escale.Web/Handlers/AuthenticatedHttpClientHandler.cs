@@ -36,6 +36,17 @@ public class AuthenticatedHttpClientHandler : DelegatingHandler
                     request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", newToken);
                     response = await base.SendAsync(request, cancellationToken);
                 }
+                else
+                {
+                    // Refresh failed — clear cookies so the auth filter redirects to login
+                    httpContext.Response.Cookies.Delete(TokenHelper.AccessTokenCookie);
+                    httpContext.Response.Cookies.Delete(TokenHelper.RefreshTokenCookie);
+                }
+            }
+            else
+            {
+                // No refresh token — clear access cookie
+                httpContext.Response.Cookies.Delete(TokenHelper.AccessTokenCookie);
             }
         }
 

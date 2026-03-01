@@ -15,6 +15,8 @@ namespace Escale.Web.Models
 
         public bool IsActive { get; set; } = true;
 
+        public decimal? EBMSupplyPrice { get; set; }
+
         public DateTime CreatedAt { get; set; }
     }
 }

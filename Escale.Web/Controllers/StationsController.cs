@@ -10,15 +10,18 @@ namespace Escale.Web.Controllers
         private readonly IApiStationService _stationService;
         private readonly IApiUserService _userService;
         private readonly IApiInventoryService _inventoryService;
+        private readonly IApiReportService _reportService;
 
         public StationsController(
             IApiStationService stationService,
             IApiUserService userService,
-            IApiInventoryService inventoryService)
+            IApiInventoryService inventoryService,
+            IApiReportService reportService)
         {
             _stationService = stationService;
             _userService = userService;
             _inventoryService = inventoryService;
+            _reportService = reportService;
         }
 
         public async Task<IActionResult> Index()
@@ -133,5 +136,13 @@ namespace Escale.Web.Controllers
             return View(model);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetStationSales(Guid id, DateTime? startDate, DateTime? endDate)
+        {
+            var start = startDate ?? DateTime.Today;
+            var end = endDate ?? DateTime.Today;
+            var result = await _reportService.GetSalesReportAsync(start, end, id);
+            return Json(result.Data);
+        }
     }
 }

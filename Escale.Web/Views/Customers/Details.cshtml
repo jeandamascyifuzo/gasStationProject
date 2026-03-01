@@ -233,12 +233,29 @@
                                             </button>
                                             @if (car.IsActive)
                                             {
-                                                <form asp-action="DeactivateCar" method="post" class="d-inline"
-                                                      onsubmit="return confirm('Deactivate this car?')">
+                                                <form asp-action="DeactivateCar" method="post" class="d-inline confirm-form"
+                                                      data-confirm-title="Deactivate Car"
+                                                      data-confirm-message="Are you sure you want to deactivate <strong>@car.PlateNumber</strong>? This car will no longer be usable for transactions."
+                                                      data-confirm-btn="Deactivate"
+                                                      data-confirm-class="btn-danger">
                                                     <input type="hidden" name="customerId" value="@Model.Customer.Id" />
                                                     <input type="hidden" name="carId" value="@car.Id" />
                                                     <button type="submit" class="btn btn-sm btn-outline-danger" title="Deactivate">
                                                         <i class="fas fa-ban"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <form asp-action="ReactivateCar" method="post" class="d-inline confirm-form"
+                                                      data-confirm-title="Reactivate Car"
+                                                      data-confirm-message="Reactivate <strong>@car.PlateNumber</strong>? This car will be available for transactions again."
+                                                      data-confirm-btn="Reactivate"
+                                                      data-confirm-class="btn-success">
+                                                    <input type="hidden" name="customerId" value="@Model.Customer.Id" />
+                                                    <input type="hidden" name="carId" value="@car.Id" />
+                                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Reactivate">
+                                                        <i class="fas fa-check-circle"></i>
                                                     </button>
                                                 </form>
                                             }
@@ -322,8 +339,11 @@
                                         <td>
                                             @if (sub.Status == "Active")
                                             {
-                                                <form asp-action="CancelSubscription" method="post" class="d-inline"
-                                                      onsubmit="return confirm('Cancel this subscription? Remaining balance: @sub.RemainingBalance.ToString("N0") RWF')">
+                                                <form asp-action="CancelSubscription" method="post" class="d-inline confirm-form"
+                                                      data-confirm-title="Cancel Subscription"
+                                                      data-confirm-message="Are you sure you want to cancel this subscription? Remaining balance: <strong>@sub.RemainingBalance.ToString("N0") RWF</strong> will be forfeited."
+                                                      data-confirm-btn="Cancel Subscription"
+                                                      data-confirm-class="btn-danger">
                                                     <input type="hidden" name="customerId" value="@Model.Customer.Id" />
                                                     <input type="hidden" name="subscriptionId" value="@sub.Id" />
                                                     <button type="submit" class="btn btn-sm btn-outline-danger" title="Cancel">
@@ -430,7 +450,7 @@
                     <div class="mb-3">
                         <label for="topUpAmount" class="form-label">Top Up Amount (RWF) <span class="text-danger">*</span></label>
                         <input type="number" class="form-control" id="topUpAmount" name="topUpAmount"
-                               required min="1" step="100" placeholder="e.g. 50000" />
+                               required min="1" step="any" placeholder="e.g. 50000" />
                     </div>
                     <div class="mb-3">
                         <label for="expiryDate" class="form-label">Expiry Date (Optional)</label>
@@ -450,8 +470,50 @@
     </div>
 </div>
 
+<!-- Confirm Action Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-bold" id="confirmModalTitle">Confirm</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="confirmModalMessage"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">No, Go Back</button>
+                <button type="button" class="btn btn-sm" id="confirmModalBtn" onclick="submitConfirmForm()">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
+    var pendingForm = null;
+
+    document.querySelectorAll('.confirm-form').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            pendingForm = this;
+            document.getElementById('confirmModalTitle').textContent = this.dataset.confirmTitle || 'Confirm';
+            document.getElementById('confirmModalMessage').innerHTML = this.dataset.confirmMessage || 'Are you sure?';
+            var btn = document.getElementById('confirmModalBtn');
+            btn.textContent = this.dataset.confirmBtn || 'Confirm';
+            btn.className = 'btn btn-sm ' + (this.dataset.confirmClass || 'btn-danger');
+            new bootstrap.Modal(document.getElementById('confirmModal')).show();
+        });
+    });
+
+    function submitConfirmForm() {
+        if (pendingForm) {
+            pendingForm.removeEventListener('submit', arguments.callee);
+            var btn = document.getElementById('confirmModalBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Processing...';
+            pendingForm.submit();
+        }
+    }
+
     function generatePin() {
         var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
         var pin = '';

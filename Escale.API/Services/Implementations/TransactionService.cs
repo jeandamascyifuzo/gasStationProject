@@ -32,9 +32,9 @@ public class TransactionService : ITransactionService
         if (filter.StationId.HasValue)
             query = query.Where(t => t.StationId == filter.StationId.Value);
         if (filter.StartDate.HasValue)
-            query = query.Where(t => t.TransactionDate >= filter.StartDate.Value);
+            query = query.Where(t => t.TransactionDate >= filter.StartDate.Value.Date);
         if (filter.EndDate.HasValue)
-            query = query.Where(t => t.TransactionDate <= filter.EndDate.Value);
+            query = query.Where(t => t.TransactionDate < filter.EndDate.Value.Date.AddDays(1));
         if (filter.FuelTypeId.HasValue)
             query = query.Where(t => t.FuelTypeId == filter.FuelTypeId.Value);
 

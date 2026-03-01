@@ -98,6 +98,11 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link" id="sales-tab" data-bs-toggle="tab" data-bs-target="#sales" type="button" role="tab">
+                    <i class="fas fa-chart-line me-2"></i>Sales
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="stock-tab" data-bs-toggle="tab" data-bs-target="#stock" type="button" role="tab">
                     <i class="fas fa-boxes me-2"></i>Stock <span class="badge bg-danger">@Model.Stats.LowStockItems</span>
                 </button>
@@ -159,6 +164,101 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sales Tab -->
+            <div class="tab-pane fade" id="sales" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5>Station Sales</h5>
+                    <div class="btn-group" id="salesPeriodBtns">
+                        <button type="button" class="btn btn-sm btn-primary active" data-period="today">Today</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-period="week">This Week</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-period="month">This Month</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-period="custom">Custom</button>
+                    </div>
+                </div>
+                <div class="row mb-3 d-none" id="customDateRange">
+                    <div class="col-md-4">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" class="form-control form-control-sm" id="salesStartDate" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">End Date</label>
+                        <input type="date" class="form-control form-control-sm" id="salesEndDate" />
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button class="btn btn-sm btn-primary" onclick="loadStationSales()">
+                            <i class="fas fa-search me-1"></i>Apply
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sales Summary Cards -->
+                <div class="row mb-3" id="salesSummaryCards">
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center py-2">
+                                <div class="text-xs text-muted text-uppercase">Total Sales</div>
+                                <div class="h5 mb-0 fw-bold text-primary" id="salesTotal">--</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center py-2">
+                                <div class="text-xs text-muted text-uppercase">Transactions</div>
+                                <div class="h5 mb-0 fw-bold text-success" id="salesTxnCount">--</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center py-2">
+                                <div class="text-xs text-muted text-uppercase">Total Volume</div>
+                                <div class="h5 mb-0 fw-bold text-info" id="salesTotalLiters">--</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sales by Fuel Type -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <h6 class="fw-bold">Sales by Fuel Type</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Fuel Type</th>
+                                        <th class="text-end">Liters</th>
+                                        <th class="text-end">Amount (RWF)</th>
+                                        <th class="text-end">Txns</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="salesByFuelBody">
+                                    <tr><td colspan="4" class="text-center text-muted">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <h6 class="fw-bold">Sales by Payment Method</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Payment Method</th>
+                                        <th class="text-end">Amount (RWF)</th>
+                                        <th class="text-end">Txns</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="salesByPaymentBody">
+                                    <tr><td colspan="3" class="text-center text-muted">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -339,6 +439,107 @@
 <script>
     $(document).ready(function() {
         $('#refillDate').val(new Date().toISOString().slice(0, 16));
+
+        var today = new Date().toISOString().slice(0, 10);
+        $('#salesStartDate').val(today);
+        $('#salesEndDate').val(today);
+
+        // Load sales when Sales tab is shown
+        $('button[data-bs-target="#sales"]').on('shown.bs.tab', function () {
+            loadStationSales();
+        });
+
+        // Period button clicks
+        $('#salesPeriodBtns button').on('click', function() {
+            $('#salesPeriodBtns button').removeClass('btn-primary active').addClass('btn-outline-secondary');
+            $(this).removeClass('btn-outline-secondary').addClass('btn-primary active');
+
+            var period = $(this).data('period');
+            var now = new Date();
+            var start = new Date();
+
+            if (period === 'today') {
+                start = now;
+                $('#customDateRange').addClass('d-none');
+            } else if (period === 'week') {
+                start.setDate(now.getDate() - 7);
+                $('#customDateRange').addClass('d-none');
+            } else if (period === 'month') {
+                start.setDate(now.getDate() - 30);
+                $('#customDateRange').addClass('d-none');
+            } else if (period === 'custom') {
+                $('#customDateRange').removeClass('d-none');
+                return;
+            }
+
+            $('#salesStartDate').val(start.toISOString().slice(0, 10));
+            $('#salesEndDate').val(now.toISOString().slice(0, 10));
+            loadStationSales();
+        });
     });
+
+    function loadStationSales() {
+        var startDate = $('#salesStartDate').val();
+        var endDate = $('#salesEndDate').val();
+
+        $.get('@Url.Action("GetStationSales", "Stations")', {
+            id: '@Model.Station.Id',
+            startDate: startDate,
+            endDate: endDate
+        }, function(data) {
+            if (!data) {
+                $('#salesTotal').text('0 RWF');
+                $('#salesTxnCount').text('0');
+                $('#salesTotalLiters').text('0L');
+                $('#salesByFuelBody').html('<tr><td colspan="4" class="text-center text-muted">No data available</td></tr>');
+                $('#salesByPaymentBody').html('<tr><td colspan="3" class="text-center text-muted">No data available</td></tr>');
+                return;
+            }
+
+            // Summary
+            $('#salesTotal').text(Number(data.TotalSales || 0).toLocaleString() + ' RWF');
+            $('#salesTxnCount').text(Number(data.TransactionCount || 0).toLocaleString());
+
+            var totalLiters = 0;
+            if (data.SalesByFuel) {
+                data.SalesByFuel.forEach(function(f) { totalLiters += f.Liters; });
+            }
+            $('#salesTotalLiters').text(Number(totalLiters).toLocaleString() + 'L');
+
+            // Sales by Fuel Type
+            var fuelHtml = '';
+            if (data.SalesByFuel && data.SalesByFuel.length > 0) {
+                data.SalesByFuel.forEach(function(f) {
+                    fuelHtml += '<tr>';
+                    fuelHtml += '<td>' + f.FuelType + '</td>';
+                    fuelHtml += '<td class="text-end">' + Number(f.Liters).toLocaleString(undefined, {minimumFractionDigits: 1}) + '</td>';
+                    fuelHtml += '<td class="text-end">' + Number(f.Amount).toLocaleString() + '</td>';
+                    fuelHtml += '<td class="text-end">' + f.TransactionCount + '</td>';
+                    fuelHtml += '</tr>';
+                });
+            } else {
+                fuelHtml = '<tr><td colspan="4" class="text-center text-muted">No sales data</td></tr>';
+            }
+            $('#salesByFuelBody').html(fuelHtml);
+
+            // Sales by Payment Method
+            var payHtml = '';
+            if (data.SalesByPayment && data.SalesByPayment.length > 0) {
+                data.SalesByPayment.forEach(function(p) {
+                    payHtml += '<tr>';
+                    payHtml += '<td><span class="badge bg-info">' + p.PaymentMethod + '</span></td>';
+                    payHtml += '<td class="text-end">' + Number(p.Amount).toLocaleString() + '</td>';
+                    payHtml += '<td class="text-end">' + p.TransactionCount + '</td>';
+                    payHtml += '</tr>';
+                });
+            } else {
+                payHtml = '<tr><td colspan="3" class="text-center text-muted">No sales data</td></tr>';
+            }
+            $('#salesByPaymentBody').html(payHtml);
+        }).fail(function() {
+            $('#salesByFuelBody').html('<tr><td colspan="4" class="text-center text-danger">Failed to load sales data</td></tr>');
+            $('#salesByPaymentBody').html('<tr><td colspan="3" class="text-center text-danger">Failed to load sales data</td></tr>');
+        });
+    }
 </script>
 }

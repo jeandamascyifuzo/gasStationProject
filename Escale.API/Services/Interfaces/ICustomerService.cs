@@ -14,4 +14,5 @@ public interface ICustomerService
     Task<CarResponseDto> AddCarAsync(Guid customerId, CarDto request);
     Task<CarResponseDto> UpdateCarAsync(Guid customerId, Guid carId, CarDto request);
     Task DeactivateCarAsync(Guid customerId, Guid carId);
+    Task ReactivateCarAsync(Guid customerId, Guid carId);
 }

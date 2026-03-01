@@ -14,21 +14,16 @@
 
 <!-- Tabs -->
 <div class="card shadow">
-    <div class="card-header">
+    <div class="card-header bg-dark">
         <ul class="nav nav-tabs card-header-tabs" id="settingsTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">
+                <button class="nav-link active text-white" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">
                     <i class="fas fa-sliders-h me-2"></i>General Settings
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="ebm-tab" data-bs-toggle="tab" data-bs-target="#ebm" type="button" role="tab">
+                <button class="nav-link text-white" id="ebm-tab" data-bs-toggle="tab" data-bs-target="#ebm" type="button" role="tab">
                     <i class="fas fa-plug me-2"></i>EBM Settings
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="pricing-tab" data-bs-toggle="tab" data-bs-target="#pricing" type="button" role="tab">
-                    <i class="fas fa-tags me-2"></i>Fuel Prices
                 </button>
             </li>
         </ul>
@@ -163,13 +158,6 @@
                                             @(Model.EBMEnabled ? "EBM is enabled for this organization" : "EBM is not enabled")
                                         </small>
                                     </div>
-                                    <div>
-                                        <form asp-controller="Settings" asp-action="TestEbmConnection" method="post" class="d-inline">
-                                            <button type="submit" class="btn btn-outline-info btn-sm" @(Model.EBMIsConfigured ? "" : "disabled")>
-                                                <i class="fas fa-plug me-1"></i>Test Connection
-                                            </button>
-                                        </form>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -224,63 +212,6 @@
                     }
                 </div>
 
-                <!-- Fuel Prices Tab -->
-                <div class="tab-pane fade" id="pricing" role="tabpanel">
-                    <h5 class="mb-3">Current Fuel Prices</h5>
-
-                    @if (Model.FuelTypes.Any())
-                    {
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-hover align-middle">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Fuel Type</th>
-                                        <th>Price per Liter (@Model.Currency)</th>
-                                        <th>Status</th>
-                                        <th style="width: 200px;">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var fuel in Model.FuelTypes)
-                                    {
-                                        <tr>
-                                            <td>
-                                                <strong>@fuel.Name</strong>
-                                            </td>
-                                            <td>
-                                                <span class="fw-bold" id="price-display-@fuel.Id">@fuel.PricePerLiter.ToString("N2")</span>
-                                            </td>
-                                            <td>
-                                                <span class="badge @(fuel.IsActive ? "bg-success" : "bg-secondary")">
-                                                    @(fuel.IsActive ? "Active" : "Inactive")
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <button type="button" class="btn btn-sm btn-outline-primary"
-                                                        onclick="openEditPriceModal('@fuel.Id', '@fuel.Name', '@fuel.PricePerLiter')">
-                                                    <i class="fas fa-edit me-1"></i>Edit Price
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            No fuel types configured. Please add fuel types in the Fuel Types management section.
-                        </div>
-                    }
-
-                    <div class="alert alert-info mt-3">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <strong>Note:</strong> Price changes take effect immediately. To add or remove fuel types, use the
-                        <a asp-controller="FuelTypes" asp-action="Index">Fuel Types</a> management page.
-                    </div>
-                </div>
             </div>
 
             <!-- Save button (applies to General and EBM tabs) -->
@@ -293,57 +224,16 @@
     </div>
 </div>
 
-<!-- Edit Fuel Price Modal -->
-<div class="modal fade" id="editPriceModal" tabindex="-1" aria-labelledby="editPriceModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editPriceModalLabel">Update Fuel Price</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form asp-controller="Settings" asp-action="UpdateFuelPrice" method="post">
-                <div class="modal-body">
-                    <input type="hidden" id="editFuelId" name="id" />
-
-                    <div class="mb-3">
-                        <label class="form-label">Fuel Type</label>
-                        <input type="text" class="form-control" id="editFuelName" readonly />
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="editPricePerLiter" class="form-label">Price per Liter (@Model.Currency) <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="editPricePerLiter" name="pricePerLiter" required step="0.01" min="0" />
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-2"></i>Update Price
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 @section Scripts {
 <script>
-    function openEditPriceModal(id, name, currentPrice) {
-        document.getElementById('editFuelId').value = id;
-        document.getElementById('editFuelName').value = name;
-        document.getElementById('editPricePerLiter').value = parseFloat(currentPrice).toFixed(2);
-        var modal = new bootstrap.Modal(document.getElementById('editPriceModal'));
-        modal.show();
-    }
-
     // Show/hide save button based on active tab
     document.addEventListener('DOMContentLoaded', function () {
         var settingsTabs = document.getElementById('settingsTabs');
         var saveSection = document.getElementById('saveButtonSection');
 
         settingsTabs.addEventListener('shown.bs.tab', function (event) {
-            // Hide save button on EBM tab (read-only) and Fuel Prices tab (has its own forms)
-            if (event.target.id === 'pricing-tab' || event.target.id === 'ebm-tab') {
+            // Hide save button on EBM tab (read-only)
+            if (event.target.id === 'ebm-tab') {
                 saveSection.style.display = 'none';
             } else {
                 saveSection.style.display = '';

@@ -219,4 +219,18 @@ public class CustomerService : ICustomerService
         _unitOfWork.Cars.Update(car);
         await _unitOfWork.SaveChangesAsync();
     }
+
+    public async Task ReactivateCarAsync(Guid customerId, Guid carId)
+    {
+        var orgId = _currentUser.OrganizationId!.Value;
+
+        var car = await _unitOfWork.Cars.Query()
+            .Include(c => c.Customer)
+            .FirstOrDefaultAsync(c => c.Id == carId && c.CustomerId == customerId && c.Customer.OrganizationId == orgId)
+            ?? throw new KeyNotFoundException("Car not found");
+
+        car.IsActive = true;
+        _unitOfWork.Cars.Update(car);
+        await _unitOfWork.SaveChangesAsync();
+    }
 }

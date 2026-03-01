@@ -14,6 +14,10 @@ var apiSettings = builder.Configuration.GetSection("ApiSettings").Get<ApiSetting
 builder.Services.AddControllersWithViews(options =>
 {
     options.Filters.Add<RequireAuthAttribute>();
+})
+.AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.PropertyNamingPolicy = null; // PascalCase to match API
 });
 
 builder.Services.AddSession(options =>

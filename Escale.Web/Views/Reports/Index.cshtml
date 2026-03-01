@@ -23,6 +23,18 @@
         <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Report Filters</h5>
     </div>
     <div class="card-body">
+        <div class="row mb-2">
+            <div class="col-12">
+                <label class="form-label mb-1">Quick Range</label>
+                <div class="btn-group" id="quickDateBtns">
+                    <button type="button" class="btn btn-sm btn-primary active" data-range="today">Today</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-range="yesterday">Yesterday</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-range="week">This Week</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-range="month">This Month</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-range="custom">Custom</button>
+                </div>
+            </div>
+        </div>
         <div class="row">
             <div class="col-md-3 mb-3">
                 <label for="reportType" class="form-label">Report Type</label>
@@ -497,5 +509,42 @@
             '&startDate=' + startDate +
             '&endDate=' + endDate;
     }
+
+    $(document).ready(function() {
+        // Quick date range buttons
+        $('#quickDateBtns button').on('click', function() {
+            $('#quickDateBtns button').removeClass('btn-primary active').addClass('btn-outline-secondary');
+            $(this).removeClass('btn-outline-secondary').addClass('btn-primary active');
+
+            var range = $(this).data('range');
+            var now = new Date();
+            var start = new Date();
+            var end = new Date();
+
+            switch(range) {
+                case 'today':
+                    break;
+                case 'yesterday':
+                    start.setDate(now.getDate() - 1);
+                    end.setDate(now.getDate() - 1);
+                    break;
+                case 'week':
+                    start.setDate(now.getDate() - 7);
+                    break;
+                case 'month':
+                    start.setDate(now.getDate() - 30);
+                    break;
+                case 'custom':
+                    return;
+            }
+
+            $('#startDate').val(start.toISOString().slice(0, 10));
+            $('#endDate').val(end.toISOString().slice(0, 10));
+            generateReport();
+        });
+
+        // Auto-load today's sales report on page load
+        generateReport();
+    });
 </script>
 }

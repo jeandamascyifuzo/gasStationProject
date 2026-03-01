@@ -19,6 +19,36 @@ public class DashboardService : IDashboardService
         _mapper = mapper;
     }
 
+    public async Task<List<StationPerformanceDto>> GetStationPerformanceAsync(DateTime? startDate = null, DateTime? endDate = null, int top = 5)
+    {
+        var orgId = _currentUser.OrganizationId!.Value;
+        var start = startDate?.Date ?? DateTime.UtcNow.Date;
+        var end = endDate?.Date ?? DateTime.UtcNow.Date;
+
+        var stationPerformance = await _unitOfWork.Transactions.Query()
+            .Include(t => t.Station)
+            .Where(t => t.OrganizationId == orgId
+                && t.TransactionDate >= start
+                && t.TransactionDate < end.AddDays(1))
+            .GroupBy(t => new { t.StationId, t.Station.Name })
+            .Select(g => new StationPerformanceDto
+            {
+                StationId = g.Key.StationId,
+                StationName = g.Key.Name,
+                TotalSales = g.Sum(t => t.Total),
+                TransactionCount = g.Count(),
+                TotalLiters = g.Sum(t => t.Liters)
+            })
+            .OrderByDescending(s => s.TotalSales)
+            .Take(top)
+            .ToListAsync();
+
+        for (int i = 0; i < stationPerformance.Count; i++)
+            stationPerformance[i].Rank = i + 1;
+
+        return stationPerformance;
+    }
+
     public async Task<DashboardSummaryDto> GetSummaryAsync(Guid? stationId = null, DateTime? date = null)
     {
         var orgId = _currentUser.OrganizationId!.Value;

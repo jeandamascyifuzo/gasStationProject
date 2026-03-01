@@ -95,12 +95,69 @@
     </div>
 </div>
 
+<!-- Top Station Performance -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center bg-dark">
+                <h6 class="m-0 fw-bold text-white"><i class="fas fa-trophy me-2"></i>Top 5 Station Performance</h6>
+                <a asp-controller="Stations" asp-action="Index" class="btn btn-sm btn-outline-light">View All Stations</a>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.TopStations.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 60px;" class="text-center">Rank</th>
+                                    <th>Station</th>
+                                    <th class="text-end">Total Sales</th>
+                                    <th class="text-center">Transactions</th>
+                                    <th class="text-end">Volume (L)</th>
+                                    <th style="width: 50px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var station in Model.TopStations)
+                                {
+                                    <tr>
+                                        <td class="text-center">
+                                            <span class="badge @(station.Rank == 1 ? "bg-warning text-dark" : station.Rank == 2 ? "bg-secondary" : station.Rank == 3 ? "bg-primary" : "bg-light text-dark") rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 30px; height: 30px; font-size: 0.8rem;">
+                                                @station.Rank
+                                            </span>
+                                        </td>
+                                        <td class="fw-semibold">@station.StationName</td>
+                                        <td class="text-end fw-bold text-primary">@station.TotalSales.ToString("N0") RWF</td>
+                                        <td class="text-center">@station.TransactionCount</td>
+                                        <td class="text-end">@station.TotalLiters.ToString("N0")</td>
+                                        <td class="text-center">
+                                            <a asp-controller="Stations" asp-action="Details" asp-route-id="@station.StationId" class="text-muted"><i class="fas fa-chevron-right"></i></a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-chart-bar fa-2x mb-2 d-block"></i>
+                        No station performance data available for this period.
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Charts Row -->
 <div class="row mb-4">
     <div class="col-lg-6 mb-3">
         <div class="card shadow">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Sales Trend (Last 7 Days)</h6>
+            <div class="card-header py-3 bg-dark">
+                <h6 class="m-0 fw-bold text-white">Sales Trend (Last 7 Days)</h6>
             </div>
             <div class="card-body">
                 <canvas id="salesChart" height="100"></canvas>
@@ -110,8 +167,8 @@
 
     <div class="col-lg-6 mb-3">
         <div class="card shadow">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Sales by Fuel Type</h6>
+            <div class="card-header py-3 bg-dark">
+                <h6 class="m-0 fw-bold text-white">Sales by Fuel Type</h6>
             </div>
             <div class="card-body">
                 <canvas id="fuelTypeChart" height="100"></canvas>
@@ -123,8 +180,8 @@
 <div class="row mb-4">
     <div class="col-lg-12 mb-3">
         <div class="card shadow">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Recent Transactions</h6>
+            <div class="card-header py-3 bg-dark">
+                <h6 class="m-0 fw-bold text-white">Recent Transactions</h6>
             </div>
             <div class="card-body">
                 <div class="table-responsive">

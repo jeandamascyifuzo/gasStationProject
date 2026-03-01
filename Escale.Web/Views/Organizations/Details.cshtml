@@ -84,12 +84,6 @@
                 <span class="badge bg-secondary ms-2">Disabled</span>
             }
         </h5>
-        <form asp-action="TestEbmConnection" method="post" class="d-inline">
-            <input type="hidden" name="orgId" value="@Model.Organization.Id" />
-            <button type="submit" class="btn btn-sm btn-outline-info" @(Model.EbmConfig.IsConfigured ? "" : "disabled")>
-                <i class="fas fa-plug me-1"></i>Test Connection
-            </button>
-        </form>
     </div>
     <div class="card-body">
         <form asp-action="ConfigureEbm" method="post">

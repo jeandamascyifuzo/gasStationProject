@@ -28,3 +28,13 @@ public class RecentTransactionDto
     public bool EBMSent { get; set; }
     public string? EBMReceiptUrl { get; set; }
 }
+
+public class StationPerformanceDto
+{
+    public Guid StationId { get; set; }
+    public string StationName { get; set; } = string.Empty;
+    public decimal TotalSales { get; set; }
+    public int TransactionCount { get; set; }
+    public decimal TotalLiters { get; set; }
+    public int Rank { get; set; }
+}

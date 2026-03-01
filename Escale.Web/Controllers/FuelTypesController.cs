@@ -23,6 +23,7 @@ namespace Escale.Web.Controllers
                 Name = f.Name,
                 PricePerLiter = f.PricePerLiter,
                 IsActive = f.IsActive,
+                EBMSupplyPrice = f.EBMSupplyPrice,
                 CreatedAt = f.CreatedAt
             }).ToList() ?? new();
 
@@ -30,12 +31,13 @@ namespace Escale.Web.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(string name, decimal pricePerLiter)
+        public async Task<IActionResult> Create(string name, decimal pricePerLiter, decimal? ebmSupplyPrice)
         {
             var request = new CreateFuelTypeRequestDto
             {
                 Name = name,
-                PricePerLiter = pricePerLiter
+                PricePerLiter = pricePerLiter,
+                EBMSupplyPrice = ebmSupplyPrice
             };
 
             var result = await _fuelTypeService.CreateAsync(request);
@@ -46,13 +48,14 @@ namespace Escale.Web.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Edit(Guid id, string name, decimal pricePerLiter, bool isActive)
+        public async Task<IActionResult> Edit(Guid id, string name, decimal pricePerLiter, bool isActive, decimal? ebmSupplyPrice)
         {
             var request = new UpdateFuelTypeRequestDto
             {
                 Name = name,
                 PricePerLiter = pricePerLiter,
-                IsActive = isActive
+                IsActive = isActive,
+                EBMSupplyPrice = ebmSupplyPrice
             };
 
             var result = await _fuelTypeService.UpdateAsync(id, request);

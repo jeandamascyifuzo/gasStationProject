@@ -255,12 +255,12 @@ public class ApiService
 
         _httpClient = new HttpClient(handler)
         {
-            Timeout = TimeSpan.FromSeconds(60)
+            Timeout = TimeSpan.FromSeconds(120)
         };
 #else
         _httpClient = new HttpClient
         {
-            Timeout = TimeSpan.FromSeconds(60)
+            Timeout = TimeSpan.FromSeconds(120)
         };
 #endif
 
@@ -432,6 +432,16 @@ public class ApiService
             }
 
             return (false, result?.Message ?? $"Sale failed: {response.StatusCode}", null);
+        }
+        catch (TaskCanceledException)
+        {
+            System.Diagnostics.Debug.WriteLine("Sale submission timed out");
+            return (false, "Request timed out. The sale may still be processing on the server. Please check transactions before retrying.", null);
+        }
+        catch (HttpRequestException ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Sale connection error: {ex.Message}");
+            return (false, "Connection error. Please check your network and try again.", null);
         }
         catch (Exception ex)
         {

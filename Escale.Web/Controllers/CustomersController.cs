@@ -167,6 +167,16 @@ namespace Escale.Web.Controllers
             return RedirectToAction("Details", new { id = customerId });
         }
 
+        [HttpPost]
+        public async Task<IActionResult> ReactivateCar(Guid customerId, Guid carId)
+        {
+            var result = await _customerService.ReactivateCarAsync(customerId, carId);
+            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+                result.Success ? "Car reactivated successfully!" : result.Message;
+
+            return RedirectToAction("Details", new { id = customerId });
+        }
+
         // Subscriptions
         [HttpPost]
         public async Task<IActionResult> TopUpSubscription(Guid customerId, decimal topUpAmount, DateTime? expiryDate)

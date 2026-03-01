@@ -12,12 +12,17 @@ public class InventoryService : IInventoryService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
+    private readonly IEBMService _ebmService;
+    private readonly ILogger<InventoryService> _logger;
 
-    public InventoryService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper)
+    public InventoryService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper,
+        IEBMService ebmService, ILogger<InventoryService> logger)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _mapper = mapper;
+        _ebmService = ebmService;
+        _logger = logger;
     }
 
     public async Task<List<InventoryItemResponseDto>> GetInventoryAsync(Guid? stationId = null)
@@ -69,34 +74,78 @@ public class InventoryService : IInventoryService
             .FirstOrDefaultAsync(i => i.Id == request.InventoryItemId && i.OrganizationId == orgId)
             ?? throw new KeyNotFoundException("Inventory item not found");
 
-        var refill = new RefillRecord
+        var newLevel = Math.Min(item.Capacity, item.CurrentLevel + request.Quantity);
+        var oldLevel = item.CurrentLevel;
+        bool ebmStockUpdated = false;
+
+        // EBM FIRST — update stock in EBM before saving to DB
+        var orgSettings = await _unitOfWork.OrganizationSettings.Query()
+            .FirstOrDefaultAsync(s => s.OrganizationId == orgId);
+        var ebmEnabled = orgSettings?.EBMEnabled == true;
+
+        if (ebmEnabled)
         {
-            InventoryItemId = item.Id,
-            Quantity = request.Quantity,
-            UnitCost = request.UnitCost,
-            TotalCost = request.Quantity * request.UnitCost,
-            SupplierName = request.SupplierName,
-            InvoiceNumber = request.InvoiceNumber,
-            RefillDate = request.RefillDate,
-            RecordedById = userId
-        };
+            if (string.IsNullOrEmpty(item.EBMStockId))
+                throw new InvalidOperationException(
+                    "EBM is enabled but this inventory item has no EBM Stock ID. " +
+                    "Please delete and re-create the fuel type to register it with EBM.");
 
-        await _unitOfWork.RefillRecords.AddAsync(refill);
+            _logger.LogInformation("Updating EBM stock for inventory {ItemId}: Quantity={Quantity}, StockId={StockId}",
+                item.Id, request.Quantity, item.EBMStockId);
 
-        item.CurrentLevel = Math.Min(item.Capacity, item.CurrentLevel + request.Quantity);
-        item.LastRefillDate = request.RefillDate;
-        _unitOfWork.InventoryItems.Update(item);
+            var ebmSuccess = await _ebmService.UpdateStockAsync(orgId, item.EBMStockId, request.Quantity);
 
-        await _unitOfWork.SaveChangesAsync();
+            if (!ebmSuccess)
+                throw new InvalidOperationException(
+                    "Failed to update stock in EBM. Refill was NOT recorded. Please try again.");
 
-        // Reload for mapping
-        var saved = await _unitOfWork.RefillRecords.Query()
-            .Include(r => r.InventoryItem).ThenInclude(i => i.Station)
-            .Include(r => r.InventoryItem).ThenInclude(i => i.FuelType)
-            .Include(r => r.RecordedBy)
-            .FirstAsync(r => r.Id == refill.Id);
+            _logger.LogInformation("EBM stock update succeeded for inventory {ItemId}", item.Id);
+            ebmStockUpdated = true;
+        }
 
-        return _mapper.Map<RefillRecordResponseDto>(saved);
+        // EBM succeeded (or not needed) — now save to DB
+        try
+        {
+            var refill = new RefillRecord
+            {
+                InventoryItemId = item.Id,
+                Quantity = request.Quantity,
+                UnitCost = request.UnitCost,
+                TotalCost = request.Quantity * request.UnitCost,
+                SupplierName = request.SupplierName,
+                InvoiceNumber = request.InvoiceNumber,
+                RefillDate = request.RefillDate,
+                RecordedById = userId
+            };
+
+            await _unitOfWork.RefillRecords.AddAsync(refill);
+
+            item.CurrentLevel = newLevel;
+            item.LastRefillDate = request.RefillDate;
+            _unitOfWork.InventoryItems.Update(item);
+
+            await _unitOfWork.SaveChangesAsync();
+
+            // Reload for mapping
+            var saved = await _unitOfWork.RefillRecords.Query()
+                .Include(r => r.InventoryItem).ThenInclude(i => i.Station)
+                .Include(r => r.InventoryItem).ThenInclude(i => i.FuelType)
+                .Include(r => r.RecordedBy)
+                .FirstAsync(r => r.Id == refill.Id);
+
+            return _mapper.Map<RefillRecordResponseDto>(saved);
+        }
+        catch (Exception ex)
+        {
+            // DB failed — EBM stock was already added and cannot be subtracted via API
+            if (ebmStockUpdated)
+            {
+                _logger.LogError("CRITICAL: DB save failed but EBM stock already increased by {Quantity} for inventory {ItemId} (StockId={StockId}). EBM stock addition cannot be reverted. Manual fix required.",
+                    request.Quantity, item.Id, item.EBMStockId);
+            }
+            throw new InvalidOperationException(
+                $"Failed to save refill to database. EBM stock was already updated — please contact support. Error: {ex.Message}");
+        }
     }
 
     public async Task UpdateReorderLevelAsync(UpdateReorderLevelRequestDto request)

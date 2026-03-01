@@ -8,6 +8,7 @@ public class FuelTypeResponseDto
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
     public string? EBMVariantId { get; set; }
+    public decimal? EBMSupplyPrice { get; set; }
 }
 
 public class CreateFuelTypeRequestDto

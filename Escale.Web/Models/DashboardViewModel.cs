@@ -10,6 +10,17 @@ namespace Escale.Web.Models
         public List<DailySales> SalesChart { get; set; } = new();
         public List<FuelSalesData> FuelTypeChart { get; set; } = new();
         public List<RecentTransaction> RecentTransactions { get; set; } = new();
+        public List<StationPerformance> TopStations { get; set; } = new();
+    }
+
+    public class StationPerformance
+    {
+        public Guid StationId { get; set; }
+        public string StationName { get; set; } = string.Empty;
+        public decimal TotalSales { get; set; }
+        public int TransactionCount { get; set; }
+        public decimal TotalLiters { get; set; }
+        public int Rank { get; set; }
     }
 
     public class DailySales

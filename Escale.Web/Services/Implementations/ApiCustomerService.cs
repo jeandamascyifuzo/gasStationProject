@@ -36,6 +36,10 @@ public class ApiCustomerService : BaseApiService, IApiCustomerService
     public async Task<ApiResponse> DeactivateCarAsync(Guid customerId, Guid carId)
         => await base.DeleteAsync($"/api/customers/{customerId}/cars/{carId}");
 
+    public async Task<ApiResponse> ReactivateCarAsync(Guid customerId, Guid carId)
+        => await PostAsync($"/api/customers/{customerId}/cars/{carId}/reactivate");
+
+
     // Subscriptions
     public async Task<ApiResponse<SubscriptionResponseDto>> TopUpSubscriptionAsync(TopUpSubscriptionRequestDto request)
         => await PostAsync<SubscriptionResponseDto>("/api/subscriptions/topup", request);

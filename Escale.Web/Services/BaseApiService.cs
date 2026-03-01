@@ -94,7 +94,7 @@ public abstract class BaseApiService
                 var result = JsonSerializer.Deserialize<ApiResponse>(json, JsonOptions);
                 return result ?? new ApiResponse { Success = true };
             }
-            return new ApiResponse { Success = false, Message = $"API error: {response.StatusCode}" };
+            return ParseErrorResponse(json, response.StatusCode);
         }
         catch (Exception ex)
         {
@@ -114,7 +114,7 @@ public abstract class BaseApiService
                 var result = JsonSerializer.Deserialize<ApiResponse>(json, JsonOptions);
                 return result ?? new ApiResponse { Success = true };
             }
-            return new ApiResponse { Success = false, Message = $"API error: {response.StatusCode}" };
+            return ParseErrorResponse(json, response.StatusCode);
         }
         catch (Exception ex)
         {
@@ -135,6 +135,51 @@ public abstract class BaseApiService
         {
             return null;
         }
+    }
+
+    private static ApiResponse ParseErrorResponse(string json, System.Net.HttpStatusCode statusCode)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            // Handle ASP.NET validation ProblemDetails (application/problem+json)
+            if (root.TryGetProperty("errors", out var errorsElement) && errorsElement.ValueKind == JsonValueKind.Object)
+            {
+                var messages = new List<string>();
+                foreach (var field in errorsElement.EnumerateObject())
+                {
+                    foreach (var msg in field.Value.EnumerateArray())
+                    {
+                        messages.Add(msg.GetString() ?? field.Name);
+                    }
+                }
+                if (messages.Count > 0)
+                {
+                    return new ApiResponse
+                    {
+                        Success = false,
+                        Message = string.Join("; ", messages),
+                        Errors = messages
+                    };
+                }
+            }
+
+            // Try standard ApiResponse format
+            if (root.TryGetProperty("Message", out var msgProp) || root.TryGetProperty("message", out msgProp))
+            {
+                return new ApiResponse { Success = false, Message = msgProp.GetString() ?? $"API error: {statusCode}" };
+            }
+
+            if (root.TryGetProperty("title", out var titleProp))
+            {
+                return new ApiResponse { Success = false, Message = titleProp.GetString() ?? $"API error: {statusCode}" };
+            }
+        }
+        catch { }
+
+        return new ApiResponse { Success = false, Message = $"API error: {statusCode}" };
     }
 
     private async Task<ApiResponse<T>> HandleResponse<T>(HttpResponseMessage response)

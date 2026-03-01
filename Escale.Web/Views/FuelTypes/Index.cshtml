@@ -30,7 +30,8 @@
                 <thead>
                     <tr>
                         <th>Fuel Name</th>
-                        <th>Price/L (RWF)</th>
+                        <th>Retail Price/L (RWF)</th>
+                        <th>Supply Price/L (RWF)</th>
                         <th>Status</th>
                         @if (isAdmin)
                         {
@@ -44,6 +45,7 @@
                         <tr>
                             <td>@fuel.Name</td>
                             <td>@fuel.PricePerLiter.ToString("N0")</td>
+                            <td>@(fuel.EBMSupplyPrice?.ToString("N0") ?? "-")</td>
                             <td>
                                 <span class="badge @(fuel.IsActive ? "bg-success" : "bg-secondary")">
                                     @(fuel.IsActive ? "Active" : "Inactive")
@@ -54,7 +56,7 @@
                                 <td class="text-center">
                                     <button type="button" class="btn btn-sm btn-outline-primary me-1"
                                             data-bs-toggle="modal" data-bs-target="#editFuelTypeModal"
-                                            onclick="populateEdit('@fuel.Id', '@fuel.Name', '@fuel.PricePerLiter', @(fuel.IsActive ? "true" : "false"))">
+                                            onclick="populateEdit('@fuel.Id', '@fuel.Name', '@fuel.PricePerLiter', @(fuel.IsActive ? "true" : "false"), '@(fuel.EBMSupplyPrice ?? 0)')">
                                         <i class="fas fa-edit"></i>
                                     </button>
                                     <form asp-action="Delete" method="post" class="d-inline"
@@ -91,8 +93,12 @@
                             <input type="text" class="form-control" id="ftName" name="name" placeholder="e.g. Petrol 95, Diesel" required />
                         </div>
                         <div class="mb-3">
-                            <label for="ftPrice" class="form-label">Price per Liter (RWF) <span class="text-danger">*</span></label>
+                            <label for="ftPrice" class="form-label">Retail Price per Liter (RWF) <span class="text-danger">*</span></label>
                             <input type="number" class="form-control" id="ftPrice" name="pricePerLiter" step="1" min="0" required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="ftSupplyPrice" class="form-label">Supply Price per Liter (RWF)</label>
+                            <input type="number" class="form-control" id="ftSupplyPrice" name="ebmSupplyPrice" step="1" min="0" placeholder="Cost/purchase price" />
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -122,8 +128,12 @@
                             <input type="text" class="form-control" id="editName" name="name" required />
                         </div>
                         <div class="mb-3">
-                            <label for="editPrice" class="form-label">Price per Liter (RWF) <span class="text-danger">*</span></label>
+                            <label for="editPrice" class="form-label">Retail Price per Liter (RWF) <span class="text-danger">*</span></label>
                             <input type="number" class="form-control" id="editPrice" name="pricePerLiter" step="1" min="0" required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="editSupplyPrice" class="form-label">Supply Price per Liter (RWF)</label>
+                            <input type="number" class="form-control" id="editSupplyPrice" name="ebmSupplyPrice" step="1" min="0" placeholder="Cost/purchase price" />
                         </div>
                         <div class="mb-3">
                             <div class="form-check form-switch">
@@ -153,11 +163,12 @@
         });
     });
 
-    function populateEdit(id, name, price, isActive) {
+    function populateEdit(id, name, price, isActive, supplyPrice) {
         document.getElementById('editId').value = id;
         document.getElementById('editName').value = name;
         document.getElementById('editPrice').value = price;
         document.getElementById('editActive').checked = isActive;
+        document.getElementById('editSupplyPrice').value = supplyPrice > 0 ? supplyPrice : '';
     }
 </script>
 }

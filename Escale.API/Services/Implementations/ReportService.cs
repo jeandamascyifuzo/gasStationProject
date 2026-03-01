@@ -22,7 +22,7 @@ public class ReportService : IReportService
         var orgId = _currentUser.OrganizationId!.Value;
         var query = _unitOfWork.Transactions.Query()
             .Include(t => t.FuelType)
-            .Where(t => t.OrganizationId == orgId && t.TransactionDate >= startDate && t.TransactionDate <= endDate);
+            .Where(t => t.OrganizationId == orgId && t.TransactionDate >= startDate.Date && t.TransactionDate < endDate.Date.AddDays(1));
 
         if (stationId.HasValue)
             query = query.Where(t => t.StationId == stationId.Value);
@@ -105,8 +105,8 @@ public class ReportService : IReportService
     {
         var orgId = _currentUser.OrganizationId!.Value;
         var users = await _unitOfWork.Users.Query()
-            .Include(u => u.ProcessedTransactions.Where(t => t.TransactionDate >= startDate && t.TransactionDate <= endDate))
-            .Include(u => u.Shifts.Where(s => s.StartTime >= startDate && s.StartTime <= endDate))
+            .Include(u => u.ProcessedTransactions.Where(t => t.TransactionDate >= startDate.Date && t.TransactionDate < endDate.Date.AddDays(1)))
+            .Include(u => u.Shifts.Where(s => s.StartTime >= startDate.Date && s.StartTime < endDate.Date.AddDays(1)))
             .Where(u => u.OrganizationId == orgId)
             .ToListAsync();
 
@@ -126,7 +126,7 @@ public class ReportService : IReportService
     {
         var orgId = _currentUser.OrganizationId!.Value;
         var customers = await _unitOfWork.Customers.Query()
-            .Include(c => c.Transactions.Where(t => t.TransactionDate >= startDate && t.TransactionDate <= endDate))
+            .Include(c => c.Transactions.Where(t => t.TransactionDate >= startDate.Date && t.TransactionDate < endDate.Date.AddDays(1)))
             .Where(c => c.OrganizationId == orgId)
             .ToListAsync();
 
@@ -146,11 +146,11 @@ public class ReportService : IReportService
     {
         var orgId = _currentUser.OrganizationId!.Value;
         var transactions = await _unitOfWork.Transactions.Query()
-            .Where(t => t.OrganizationId == orgId && t.TransactionDate >= startDate && t.TransactionDate <= endDate)
+            .Where(t => t.OrganizationId == orgId && t.TransactionDate >= startDate.Date && t.TransactionDate < endDate.Date.AddDays(1))
             .ToListAsync();
 
         var refillCost = await _unitOfWork.RefillRecords.Query()
-            .Where(r => r.InventoryItem.OrganizationId == orgId && r.RefillDate >= startDate && r.RefillDate <= endDate)
+            .Where(r => r.InventoryItem.OrganizationId == orgId && r.RefillDate >= startDate.Date && r.RefillDate < endDate.Date.AddDays(1))
             .SumAsync(r => (decimal?)r.TotalCost) ?? 0;
 
         var totalRevenue = transactions.Sum(t => t.Total);
@@ -185,7 +185,7 @@ public class ReportService : IReportService
             .Include(t => t.FuelType)
             .Include(t => t.Station)
             .Include(t => t.Cashier)
-            .Where(t => t.OrganizationId == orgId && t.TransactionDate >= startDate && t.TransactionDate <= endDate)
+            .Where(t => t.OrganizationId == orgId && t.TransactionDate >= startDate.Date && t.TransactionDate < endDate.Date.AddDays(1))
             .OrderByDescending(t => t.TransactionDate)
             .ToListAsync();
 

@@ -68,7 +68,7 @@ public static class ServiceCollectionExtensions
         // EBM Service + HttpClient (no Polly — custom retry in EBMService handles invoice duplicates)
         services.AddHttpClient("EBM", client =>
         {
-            client.Timeout = TimeSpan.FromSeconds(20);
+            client.Timeout = TimeSpan.FromSeconds(120);
         });
 
         services.AddScoped<IEBMService, EBMService>();

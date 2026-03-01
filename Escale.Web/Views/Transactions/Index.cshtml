@@ -87,52 +87,49 @@
             <table id="transactionsTable" class="table table-bordered table-hover">
                 <thead>
                     <tr>
-                        <th>Receipt #</th>
                         <th>Station</th>
                         <th>Fuel</th>
                         <th>Liters</th>
-                        <th>Price/L (RWF)</th>
-                        <th>Subtotal (RWF)</th>
-                        <th>VAT (RWF)</th>
+                        <th>Price/L</th>
                         <th>Total (RWF)</th>
                         <th>Payment</th>
                         <th>Cashier</th>
-                        <th>EBM</th>
                         <th>Date</th>
-                        <th>Actions</th>
+                        <th>EBM</th>
+                        <th style="width: 50px;">Receipt</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var txn in Model.Transactions)
                     {
                         <tr>
-                            <td><strong>@txn.ReceiptNumber</strong></td>
                             <td>@txn.StationName</td>
                             <td>@txn.FuelType</td>
                             <td>@txn.Liters.ToString("N2")</td>
                             <td>@txn.PricePerLiter.ToString("N0")</td>
-                            <td>@txn.Subtotal.ToString("N0")</td>
-                            <td>@txn.VAT.ToString("N0")</td>
                             <td><strong>@txn.Total.ToString("N0")</strong></td>
                             <td>
                                 <span class="badge bg-info">@txn.PaymentMethod</span>
                             </td>
                             <td>@txn.CashierName</td>
+                            <td>@txn.TransactionDate.ToString("yyyy-MM-dd HH:mm")</td>
                             <td>
                                 @if (txn.EBMSent)
                                 {
-                                    <span class="badge bg-success" title="@txn.EBMCode"><i class="fas fa-check"></i> Sent</span>
+                                    <span class="badge bg-success"><i class="fas fa-check me-1"></i>Sent</span>
                                 }
                                 else
                                 {
-                                    <span class="badge bg-warning text-dark"><i class="fas fa-clock"></i> Pending</span>
+                                    <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Pending</span>
                                 }
                             </td>
-                            <td>@txn.TransactionDate.ToString("yyyy-MM-dd HH:mm")</td>
                             <td>
-                                <a asp-action="Details" asp-route-id="@txn.Id" class="btn btn-sm btn-primary" title="View Receipt">
-                                    <i class="fas fa-eye"></i>
-                                </a>
+                                @if (!string.IsNullOrEmpty(txn.EBMCode))
+                                {
+                                    <a href="#" class="btn btn-sm btn-outline-primary ebm-preview-btn" data-url="@txn.EBMCode" title="View RRA Receipt">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                }
                             </td>
                         </tr>
                     }
@@ -197,6 +194,27 @@
     </div>
 </div>
 
+<!-- EBM Receipt Preview Modal -->
+<div class="modal fade" id="ebmPreviewModal" tabindex="-1" aria-labelledby="ebmPreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h6 class="modal-title" id="ebmPreviewModalLabel"><i class="fas fa-file-invoice me-2"></i>EBM Receipt</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe id="ebmPreviewFrame" src="" style="width: 100%; height: 500px; border: none;"></iframe>
+            </div>
+            <div class="modal-footer">
+                <a id="ebmOpenNewTab" href="#" target="_blank" class="btn btn-primary">
+                    <i class="fas fa-external-link-alt me-1"></i>Open in New Tab
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
     $(document).ready(function() {
@@ -204,10 +222,22 @@
             pageLength: 50,
             paging: false,
             info: false,
-            order: [[11, 'desc']],
+            order: [[7, 'desc']],
             columnDefs: [
-                { orderable: false, targets: 12 }
+                { orderable: false, targets: [8, 9] }
             ]
+        });
+
+        $(document).on('click', '.ebm-preview-btn', function(e) {
+            e.preventDefault();
+            var url = $(this).data('url');
+            $('#ebmPreviewFrame').attr('src', url);
+            $('#ebmOpenNewTab').attr('href', url);
+            $('#ebmPreviewModal').modal('show');
+        });
+
+        $('#ebmPreviewModal').on('hidden.bs.modal', function() {
+            $('#ebmPreviewFrame').attr('src', '');
         });
     });
 </script>

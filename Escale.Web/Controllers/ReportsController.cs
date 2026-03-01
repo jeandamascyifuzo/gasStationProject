@@ -39,7 +39,7 @@ namespace Escale.Web.Controllers
                     Id = f.Id,
                     Name = f.Name
                 }).ToList() ?? new(),
-                StartDate = DateTime.Today.AddDays(-30),
+                StartDate = DateTime.Today,
                 EndDate = DateTime.Today
             };
 

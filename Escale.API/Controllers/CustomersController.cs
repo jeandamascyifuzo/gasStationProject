@@ -80,4 +80,11 @@ public class CustomersController : ControllerBase
         await _customerService.DeactivateCarAsync(customerId, carId);
         return Ok(ApiResponse.SuccessResponse("Car deactivated"));
     }
+
+    [HttpPost("{customerId}/cars/{carId}/reactivate")]
+    public async Task<ActionResult<ApiResponse>> ReactivateCar(Guid customerId, Guid carId)
+    {
+        await _customerService.ReactivateCarAsync(customerId, carId);
+        return Ok(ApiResponse.SuccessResponse("Car reactivated"));
+    }
 }

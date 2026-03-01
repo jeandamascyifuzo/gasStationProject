@@ -14,6 +14,7 @@ public interface IApiCustomerService
     Task<ApiResponse<CarDto>> AddCarAsync(Guid customerId, CarDto car);
     Task<ApiResponse<CarDto>> UpdateCarAsync(Guid customerId, Guid carId, CarDto car);
     Task<ApiResponse> DeactivateCarAsync(Guid customerId, Guid carId);
+    Task<ApiResponse> ReactivateCarAsync(Guid customerId, Guid carId);
 
     // Subscriptions
     Task<ApiResponse<SubscriptionResponseDto>> TopUpSubscriptionAsync(TopUpSubscriptionRequestDto request);

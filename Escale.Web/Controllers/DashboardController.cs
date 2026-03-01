@@ -46,12 +46,14 @@ namespace Escale.Web.Controllers
             var stationsTask = _stationService.GetAllAsync();
             var salesReportTask = _reportService.GetSalesReportAsync(
                 chartStart, DateTime.Today);
+            var performanceTask = _dashboardService.GetStationPerformanceAsync(date, DateTime.Today, 5);
 
-            await Task.WhenAll(summaryTask, stationsTask, salesReportTask);
+            await Task.WhenAll(summaryTask, stationsTask, salesReportTask, performanceTask);
 
             var summary = summaryTask.Result;
             var stations = stationsTask.Result;
             var salesReport = salesReportTask.Result;
+            var performance = performanceTask.Result;
 
             var model = new DashboardViewModel
             {
@@ -68,7 +70,16 @@ namespace Escale.Web.Controllers
                         Quantity = t.Liters,
                         Total = t.Total,
                         Time = t.TransactionDate
-                    }).ToList() ?? new()
+                    }).ToList() ?? new(),
+                TopStations = performance.Data?.Select(p => new StationPerformance
+                {
+                    StationId = p.StationId,
+                    StationName = p.StationName,
+                    TotalSales = p.TotalSales,
+                    TransactionCount = p.TransactionCount,
+                    TotalLiters = p.TotalLiters,
+                    Rank = p.Rank
+                }).ToList() ?? new()
             };
 
             // Sales chart from report

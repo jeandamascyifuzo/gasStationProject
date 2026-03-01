@@ -57,29 +57,36 @@ public class StockService : IStockService
             .FirstOrDefaultAsync(i => i.StationId == stationId && i.FuelType.Name == fuelType && i.OrganizationId == orgId)
             ?? throw new KeyNotFoundException("Inventory item not found for this station and fuel type");
 
-        var oldLevel = item.CurrentLevel;
         var newLevel = Math.Min(item.Capacity, item.CurrentLevel + quantity);
         bool ebmStockUpdated = false;
 
-        // EBM FIRST — sync stock to EBM before saving to DB
-        if (!string.IsNullOrEmpty(item.EBMStockId))
+        // Check if EBM is enabled for this org
+        var orgSettings = await _unitOfWork.OrganizationSettings.Query()
+            .FirstOrDefaultAsync(s => s.OrganizationId == orgId);
+        var ebmEnabled = orgSettings?.EBMEnabled == true;
+
+        // If EBM is enabled, stock update is REQUIRED — no partial save
+        if (ebmEnabled)
         {
-            var orgSettings = await _unitOfWork.OrganizationSettings.Query()
-                .FirstOrDefaultAsync(s => s.OrganizationId == orgId);
+            if (string.IsNullOrEmpty(item.EBMStockId))
+                throw new InvalidOperationException(
+                    "EBM is enabled but this inventory item has no EBM Stock ID. " +
+                    "Please delete and re-create the fuel type to register it with EBM.");
 
-            if (orgSettings?.EBMEnabled == true)
-            {
-                var ebmSuccess = await _ebmService.UpdateStockAsync(orgId, item.EBMStockId, newLevel);
+            _logger.LogInformation("Updating EBM stock for item {ItemId}: Quantity={Quantity}, StockId={StockId}",
+                item.Id, quantity, item.EBMStockId);
 
-                if (!ebmSuccess)
-                    throw new InvalidOperationException(
-                        "Failed to update stock in EBM. Refill was NOT recorded. Please try again.");
+            var ebmSuccess = await _ebmService.UpdateStockAsync(orgId, item.EBMStockId, quantity);
 
-                ebmStockUpdated = true;
-            }
+            if (!ebmSuccess)
+                throw new InvalidOperationException(
+                    "Failed to update stock in EBM. Refill was NOT recorded. Please try again.");
+
+            _logger.LogInformation("EBM stock update succeeded for item {ItemId}", item.Id);
+            ebmStockUpdated = true;
         }
 
-        // EBM succeeded — now save to DB
+        // EBM succeeded (or not needed) — now save to DB
         try
         {
             var refill = new RefillRecord
@@ -102,14 +109,14 @@ public class StockService : IStockService
         }
         catch (Exception ex)
         {
-            // DB failed — revert EBM stock back to old level
+            // DB failed — EBM stock was already added and cannot be subtracted via API
             if (ebmStockUpdated)
             {
-                _logger.LogWarning("DB save failed, reverting EBM stock for item {ItemId} back to {OldLevel}", item.Id, oldLevel);
-                await _ebmService.UpdateStockAsync(orgId, item.EBMStockId!, oldLevel);
+                _logger.LogError("CRITICAL: DB save failed but EBM stock already increased by {Quantity} for item {ItemId} (StockId={StockId}). Manual fix required.",
+                    quantity, item.Id, item.EBMStockId);
             }
             throw new InvalidOperationException(
-                $"Failed to save refill to database. EBM has been reverted. Error: {ex.Message}");
+                $"Failed to save refill to database. EBM stock was already updated — please contact support. Error: {ex.Message}");
         }
     }
 }
