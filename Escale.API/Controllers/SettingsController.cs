@@ -45,4 +45,20 @@ public class SettingsController : ControllerBase
         var result = await _settingsService.SyncEbmAsync();
         return Ok(ApiResponse<EbmStatusDto>.SuccessResponse(result, "EBM synced"));
     }
+
+    [HttpGet("ebm/config")]
+    public async Task<ActionResult<ApiResponse<EbmConfigResponseDto>>> GetEbmConfig()
+    {
+        var result = await _settingsService.GetEbmConfigAsync();
+        return Ok(ApiResponse<EbmConfigResponseDto>.SuccessResponse(result));
+    }
+
+    [HttpPost("ebm/test")]
+    public async Task<ActionResult<ApiResponse<bool>>> TestEbmConnection()
+    {
+        var result = await _settingsService.TestEbmConnectionAsync();
+        return Ok(result
+            ? ApiResponse<bool>.SuccessResponse(true, "EBM connection successful!")
+            : ApiResponse<bool>.ErrorResponse("EBM connection failed. Check configuration."));
+    }
 }

@@ -53,7 +53,7 @@ public class CompletedSale
 {
     public Guid Id { get; set; }
     public string ReceiptNumber { get; set; } = string.Empty;
-    public string EBMCode { get; set; } = string.Empty;
+    public string? EBMReceiptUrl { get; set; }
     public DateTime TransactionDate { get; set; }
     public string FuelType { get; set; } = string.Empty;
     public decimal Liters { get; set; }
@@ -94,6 +94,8 @@ public class RecentTransactionResponse
     public string FuelType { get; set; } = string.Empty;
     public decimal Liters { get; set; }
     public decimal Total { get; set; }
+    public bool EBMSent { get; set; }
+    public string? EBMReceiptUrl { get; set; }
 }
 
 /// <summary>
@@ -124,7 +126,7 @@ public class TransactionResponse
     public string PaymentMethod { get; set; } = string.Empty;
     public string? CustomerName { get; set; }
     public bool EBMSent { get; set; }
-    public string? EBMCode { get; set; }
+    public string? EBMReceiptUrl { get; set; }
     public string CashierName { get; set; } = string.Empty;
     public string StationName { get; set; } = string.Empty;
 }
@@ -253,12 +255,12 @@ public class ApiService
 
         _httpClient = new HttpClient(handler)
         {
-            Timeout = TimeSpan.FromSeconds(15)
+            Timeout = TimeSpan.FromSeconds(60)
         };
 #else
         _httpClient = new HttpClient
         {
-            Timeout = TimeSpan.FromSeconds(15)
+            Timeout = TimeSpan.FromSeconds(60)
         };
 #endif
 
@@ -440,11 +442,11 @@ public class ApiService
 
     // ==================== TRANSACTIONS ====================
 
-    public async Task<List<Transaction>> GetTransactionsAsync(Guid stationId, DateTime date)
+    public async Task<List<Transaction>> GetTransactionsAsync(Guid stationId, DateTime startDate, DateTime endDate)
     {
         try
         {
-            var url = $"{_baseUrl}/transactions?StationId={stationId}&StartDate={date:yyyy-MM-dd}&EndDate={date:yyyy-MM-dd}&PageSize=50";
+            var url = $"{_baseUrl}/transactions?StationId={stationId}&StartDate={startDate:yyyy-MM-dd}&EndDate={endDate:yyyy-MM-dd}&PageSize=100";
             var response = await _httpClient.GetFromJsonAsync<ApiResponse<PagedResult<TransactionResponse>>>(url);
 
             if (response?.Data?.Items == null) return new List<Transaction>();
@@ -460,7 +462,7 @@ public class ApiService
                 PaymentMethod = t.PaymentMethod,
                 CustomerName = t.CustomerName,
                 EBMSent = t.EBMSent,
-                EBMCode = t.EBMCode
+                EBMReceiptUrl = t.EBMReceiptUrl
             }).ToList();
         }
         catch (Exception ex)

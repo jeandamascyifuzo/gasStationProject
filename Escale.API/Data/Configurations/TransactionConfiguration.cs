@@ -21,7 +21,8 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
         builder.Property(x => x.CustomerName).HasMaxLength(200);
         builder.Property(x => x.CustomerPhone).HasMaxLength(20);
-        builder.Property(x => x.EBMCode).HasMaxLength(50);
+        builder.Property(x => x.EBMCode).HasMaxLength(500);
+        builder.Property(x => x.EBMErrorMessage).HasMaxLength(1000);
         builder.HasIndex(x => x.ReceiptNumber).IsUnique();
         builder.HasIndex(x => x.TransactionDate);
         builder.HasOne(x => x.Organization).WithMany().HasForeignKey(x => x.OrganizationId).OnDelete(DeleteBehavior.Restrict);

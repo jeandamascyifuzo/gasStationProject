@@ -4,6 +4,7 @@ using Escale.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Escale.API.Migrations
 {
     [DbContext(typeof(EscaleDbContext))]
-    partial class EscaleDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260228144507_EBMIntegration")]
+    partial class EBMIntegration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -213,10 +216,6 @@ namespace Escale.API.Migrations
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("EBMProductId")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
 
                     b.Property<decimal?>("EBMSupplyPrice")
                         .HasPrecision(18, 2)
@@ -424,10 +423,6 @@ namespace Escale.API.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("EBMBusinessId")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("EBMCategoryId")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -840,8 +835,8 @@ namespace Escale.API.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("EBMCode")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("EBMErrorMessage")
                         .HasMaxLength(1000)

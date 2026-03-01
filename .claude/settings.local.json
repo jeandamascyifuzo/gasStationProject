@@ -68,7 +68,9 @@
       "Bash(export PATH=\"$PATH:$HOME/.dotnet/tools\" && cd /c/Users/cyifu/Desktop/project/GasManagement/Escale.API && dotnet ef database update 2>&1)",
       "Bash(true:*)",
       "Bash(export PATH=\"$PATH:$HOME/.dotnet/tools:/usr/bin:/bin:/c/Windows/system32\" && cd /c/Users/cyifu/Desktop/project/GasManagement/Escale.API && dotnet ef migrations add SubscriptionRedesign 2>&1)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(curl:*)",
+      "Bash(curl -s --max-time 5 http://localhost:5090/api/auth/login -H \"Content-Type: application/json\" -d '{\"username\":\"cashier\",\"password\":\"cashier123\"}' 2>&1 | python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('TOKEN='+d['Token']\\); print\\('STATION='+d['User']['AssignedStations'][0]['Id']\\)\" 2>&1)"
     ]
   }
 }

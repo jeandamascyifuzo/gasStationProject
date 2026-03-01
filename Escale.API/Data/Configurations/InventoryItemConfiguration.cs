@@ -13,6 +13,7 @@ public class InventoryItemConfiguration : IEntityTypeConfiguration<InventoryItem
         builder.Property(x => x.CurrentLevel).HasPrecision(18, 3);
         builder.Property(x => x.Capacity).HasPrecision(18, 3);
         builder.Property(x => x.ReorderLevel).HasPrecision(18, 3);
+        builder.Property(x => x.EBMStockId).HasMaxLength(100);
         builder.HasIndex(x => new { x.StationId, x.FuelTypeId }).IsUnique().HasFilter("[IsDeleted] = 0");
         builder.HasOne(x => x.Organization).WithMany().HasForeignKey(x => x.OrganizationId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(x => x.Station).WithMany(s => s.InventoryItems).HasForeignKey(x => x.StationId).OnDelete(DeleteBehavior.Restrict);

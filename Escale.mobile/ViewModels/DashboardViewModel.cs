@@ -85,10 +85,13 @@ public partial class DashboardViewModel : ObservableObject
             {
                 RecentTransactions.Add(new RecentTransaction
                 {
+                    Id = t.Id,
                     FuelType = t.FuelType,
                     TransactionDate = t.TransactionDate,
                     Total = t.Total,
-                    Liters = t.Liters
+                    Liters = t.Liters,
+                    EBMSent = t.EBMSent,
+                    EBMReceiptUrl = t.EBMReceiptUrl
                 });
             }
 
@@ -165,6 +168,37 @@ public partial class DashboardViewModel : ObservableObject
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Navigation error: {ex}");
+        }
+    }
+
+    [RelayCommand]
+    private async Task ViewReceipt(RecentTransaction? transaction)
+    {
+        try
+        {
+            if (transaction == null || Shell.Current == null) return;
+
+            if (transaction.EBMSent && !string.IsNullOrEmpty(transaction.EBMReceiptUrl))
+            {
+                await Browser.Default.OpenAsync(
+                    new Uri(transaction.EBMReceiptUrl),
+                    BrowserLaunchMode.SystemPreferred);
+            }
+            else
+            {
+                await Shell.Current.DisplayAlert(
+                    "Receipt",
+                    $"Fuel: {transaction.FuelType}\n" +
+                    $"Liters: {transaction.Liters:F2} L\n" +
+                    $"Total: RWF {transaction.Total:N0}\n" +
+                    $"Time: {transaction.TransactionDate:HH:mm}\n\n" +
+                    "EBM receipt not available",
+                    "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"View receipt error: {ex}");
         }
     }
 

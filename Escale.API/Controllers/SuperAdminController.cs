@@ -15,10 +15,12 @@ namespace Escale.API.Controllers;
 public class SuperAdminController : ControllerBase
 {
     private readonly IOrganizationService _organizationService;
+    private readonly IEBMService _ebmService;
 
-    public SuperAdminController(IOrganizationService organizationService)
+    public SuperAdminController(IOrganizationService organizationService, IEBMService ebmService)
     {
         _organizationService = organizationService;
+        _ebmService = ebmService;
     }
 
     [HttpGet("organizations")]
@@ -70,11 +72,26 @@ public class SuperAdminController : ControllerBase
         return Ok(ApiResponse<StationResponseDto>.SuccessResponse(result, "Station created"));
     }
 
+    [HttpGet("organizations/{orgId}/settings/ebm")]
+    public async Task<ActionResult<ApiResponse<EbmConfigResponseDto>>> GetEbmConfig(Guid orgId)
+    {
+        var result = await _organizationService.GetEbmConfigAsync(orgId);
+        return Ok(ApiResponse<EbmConfigResponseDto>.SuccessResponse(result));
+    }
+
     [HttpPut("organizations/{orgId}/settings/ebm")]
     public async Task<ActionResult<ApiResponse>> ConfigureEbm(Guid orgId, [FromBody] EbmConfigRequestDto request)
     {
         await _organizationService.ConfigureEbmAsync(orgId, request);
         return Ok(ApiResponse.SuccessResponse("EBM configuration updated"));
+    }
+
+    [HttpPost("organizations/{orgId}/settings/ebm/test")]
+    public async Task<ActionResult<ApiResponse<bool>>> TestEbmConnection(Guid orgId)
+    {
+        var result = await _ebmService.TestConnectionAsync(orgId);
+        return Ok(ApiResponse<bool>.SuccessResponse(result,
+            result ? "EBM connection successful" : "EBM connection failed"));
     }
 
     [HttpGet("organizations/{orgId}/fueltypes")]

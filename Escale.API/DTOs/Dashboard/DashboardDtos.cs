@@ -25,4 +25,6 @@ public class RecentTransactionDto
     public string FuelType { get; set; } = string.Empty;
     public decimal Liters { get; set; }
     public decimal Total { get; set; }
+    public bool EBMSent { get; set; }
+    public string? EBMReceiptUrl { get; set; }
 }

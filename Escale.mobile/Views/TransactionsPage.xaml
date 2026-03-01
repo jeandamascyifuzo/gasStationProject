@@ -19,32 +19,34 @@
                        FontAttributes="Bold"
                        TextColor="#1E3A8A"/>
 
-                <!-- Date Picker -->
+                <!-- Date Range Filter -->
                 <Border StrokeShape="RoundRectangle 10"
                         Stroke="#E2E8F0"
                         BackgroundColor="White"
                         Padding="15,10">
-                    <HorizontalStackLayout Spacing="10">
-                        <Border StrokeShape="RoundRectangle 6"
-                                BackgroundColor="#EEF2FF"
-                                HeightRequest="28"
-                                WidthRequest="28"
-                                Padding="0">
-                            <Label Text="D"
-                                   FontSize="12"
-                                   FontAttributes="Bold"
-                                   TextColor="#1E3A8A"
-                                   HorizontalOptions="Center"
-                                   VerticalOptions="Center"/>
-                        </Border>
-                        <Label Text="Date:"
-                               FontSize="14"
-                               TextColor="#64748B"
+                    <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="8">
+                        <VerticalStackLayout Grid.Column="0" Spacing="2">
+                            <Label Text="From"
+                                   FontSize="11"
+                                   TextColor="#94A3B8"/>
+                            <DatePicker Date="{Binding StartDate}"
+                                        FontSize="13"
+                                        TextColor="#1E293B"/>
+                        </VerticalStackLayout>
+                        <Label Grid.Column="1"
+                               Text="-"
+                               FontSize="16"
+                               TextColor="#94A3B8"
                                VerticalOptions="Center"/>
-                        <DatePicker Date="{Binding SelectedDate}"
-                                    FontSize="14"
-                                    TextColor="#1E293B"/>
-                    </HorizontalStackLayout>
+                        <VerticalStackLayout Grid.Column="2" Spacing="2">
+                            <Label Text="To"
+                                   FontSize="11"
+                                   TextColor="#94A3B8"/>
+                            <DatePicker Date="{Binding EndDate}"
+                                        FontSize="13"
+                                        TextColor="#1E293B"/>
+                        </VerticalStackLayout>
+                    </Grid>
                 </Border>
 
                 <!-- ========== SKELETON LOADING ========== -->

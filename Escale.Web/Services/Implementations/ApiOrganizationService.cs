@@ -31,6 +31,12 @@ public class ApiOrganizationService : BaseApiService, IApiOrganizationService
     public async Task<ApiResponse> ConfigureEbmAsync(Guid orgId, EbmConfigRequestDto request)
         => await PutAsync($"/api/superadmin/organizations/{orgId}/settings/ebm", request);
 
+    public async Task<ApiResponse<EbmConfigResponseDto>> GetEbmConfigAsync(Guid orgId)
+        => await GetAsync<EbmConfigResponseDto>($"/api/superadmin/organizations/{orgId}/settings/ebm");
+
+    public async Task<ApiResponse<bool>> TestEbmConnectionAsync(Guid orgId)
+        => await PostAsync<bool>($"/api/superadmin/organizations/{orgId}/settings/ebm/test", new { });
+
     public async Task<ApiResponse<List<FuelTypeResponseDto>>> GetFuelTypesAsync(Guid orgId)
         => await GetAsync<List<FuelTypeResponseDto>>($"/api/superadmin/organizations/{orgId}/fueltypes");
 

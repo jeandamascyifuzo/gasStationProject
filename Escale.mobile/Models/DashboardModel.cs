@@ -19,8 +19,11 @@ public class StockAlert
 
 public class RecentTransaction
 {
+    public Guid Id { get; set; }
     public string FuelType { get; set; } = string.Empty;
     public DateTime TransactionDate { get; set; }
     public decimal Total { get; set; }
     public decimal Liters { get; set; }
+    public bool EBMSent { get; set; }
+    public string? EBMReceiptUrl { get; set; }
 }

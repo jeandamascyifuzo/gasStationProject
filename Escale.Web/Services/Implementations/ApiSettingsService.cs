@@ -18,4 +18,10 @@ public class ApiSettingsService : BaseApiService, IApiSettingsService
 
     public async Task<ApiResponse<EbmStatusDto>> SyncEbmAsync()
         => await PostAsync<EbmStatusDto>("/api/settings/ebm/sync");
+
+    public async Task<ApiResponse<EbmConfigResponseDto>> GetEbmConfigAsync()
+        => await GetAsync<EbmConfigResponseDto>("/api/settings/ebm/config");
+
+    public async Task<ApiResponse<bool>> TestEbmConnectionAsync()
+        => await PostAsync<bool>("/api/settings/ebm/test");
 }

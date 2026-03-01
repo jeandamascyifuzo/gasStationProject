@@ -15,6 +15,7 @@ public interface IOrganizationService
     Task<List<StationResponseDto>> GetOrganizationStationsAsync(Guid orgId);
     Task<StationResponseDto> CreateOrganizationStationAsync(Guid orgId, CreateStationRequestDto request);
     Task ConfigureEbmAsync(Guid orgId, EbmConfigRequestDto request);
+    Task<EbmConfigResponseDto> GetEbmConfigAsync(Guid orgId);
     Task<List<FuelTypeResponseDto>> GetOrganizationFuelTypesAsync(Guid orgId);
     Task<FuelTypeResponseDto> CreateOrganizationFuelTypeAsync(Guid orgId, CreateFuelTypeRequestDto request);
     Task<FuelTypeResponseDto> UpdateOrganizationFuelTypeAsync(Guid orgId, Guid fuelTypeId, UpdateFuelTypeRequestDto request);

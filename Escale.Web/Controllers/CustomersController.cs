@@ -117,6 +117,84 @@ namespace Escale.Web.Controllers
             return RedirectToAction("Index");
         }
 
+        // Car CRUD
+        [HttpPost]
+        public async Task<IActionResult> AddCar(Guid customerId, string plateNumber, string? make, string? model, int? year, string pin)
+        {
+            var car = new ApiCarDto
+            {
+                PlateNumber = plateNumber,
+                Make = make,
+                Model = model,
+                Year = year,
+                PIN = pin
+            };
+
+            var result = await _customerService.AddCarAsync(customerId, car);
+            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+                result.Success ? "Car added successfully!" : result.Message;
+
+            return RedirectToAction("Details", new { id = customerId });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdateCar(Guid customerId, Guid carId, string plateNumber, string? make, string? model, int? year, string? pin)
+        {
+            var car = new ApiCarDto
+            {
+                Id = carId,
+                PlateNumber = plateNumber,
+                Make = make,
+                Model = model,
+                Year = year,
+                PIN = pin
+            };
+
+            var result = await _customerService.UpdateCarAsync(customerId, carId, car);
+            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+                result.Success ? "Car updated successfully!" : result.Message;
+
+            return RedirectToAction("Details", new { id = customerId });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DeactivateCar(Guid customerId, Guid carId)
+        {
+            var result = await _customerService.DeactivateCarAsync(customerId, carId);
+            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+                result.Success ? "Car deactivated successfully!" : result.Message;
+
+            return RedirectToAction("Details", new { id = customerId });
+        }
+
+        // Subscriptions
+        [HttpPost]
+        public async Task<IActionResult> TopUpSubscription(Guid customerId, decimal topUpAmount, DateTime? expiryDate)
+        {
+            var request = new TopUpSubscriptionRequestDto
+            {
+                CustomerId = customerId,
+                TopUpAmount = topUpAmount,
+                ExpiryDate = expiryDate
+            };
+
+            var result = await _customerService.TopUpSubscriptionAsync(request);
+            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+                result.Success ? $"Subscription topped up with {topUpAmount:N0} RWF!" : result.Message;
+
+            return RedirectToAction("Details", new { id = customerId });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CancelSubscription(Guid customerId, Guid subscriptionId)
+        {
+            var result = await _customerService.CancelSubscriptionAsync(subscriptionId);
+            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+                result.Success ? "Subscription cancelled successfully!" : result.Message;
+
+            return RedirectToAction("Details", new { id = customerId });
+        }
+
         private static Customer MapCustomer(CustomerResponseDto c) => new()
         {
             Id = c.Id,
@@ -135,19 +213,20 @@ namespace Escale.Web.Controllers
                 PlateNumber = car.PlateNumber,
                 Make = car.Make,
                 Model = car.Model,
-                Year = car.Year
+                Year = car.Year,
+                IsActive = car.IsActive
             }).ToList(),
             Subscriptions = c.Subscriptions.Select(sub => new Subscription
             {
                 Id = sub.Id,
-                FuelTypeName = sub.FuelTypeName,
-                FuelTypeId = sub.FuelTypeId,
-                MonthlyLiters = sub.MonthlyLiters,
-                UsedLiters = sub.UsedLiters,
-                PricePerLiter = sub.PricePerLiter,
+                TotalAmount = sub.TotalAmount,
+                RemainingBalance = sub.RemainingBalance,
+                PreviousBalance = sub.PreviousBalance,
+                TopUpAmount = sub.TopUpAmount,
                 StartDate = sub.StartDate,
-                EndDate = sub.EndDate,
-                Status = sub.Status
+                ExpiryDate = sub.ExpiryDate,
+                Status = sub.Status,
+                CreatedAt = sub.CreatedAt
             }).ToList()
         };
     }

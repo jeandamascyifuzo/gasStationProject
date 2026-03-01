@@ -25,7 +25,7 @@ public class Transaction
     public string? CustomerName { get; set; }
     public string? PlateNumber { get; set; }
     public bool EBMSent { get; set; }
-    public string? EBMCode { get; set; }
+    public string? EBMReceiptUrl { get; set; }
 }
 
 public class ShiftSummary

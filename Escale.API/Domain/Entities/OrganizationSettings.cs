@@ -11,6 +11,13 @@ public class OrganizationSettings : BaseEntity
     public string? ReceiptFooter { get; set; }
     public bool EBMEnabled { get; set; }
     public string? EBMServerUrl { get; set; }
+    public string? EBMBusinessId { get; set; }
+    public string? EBMBranchId { get; set; }
+    public string? EBMCompanyName { get; set; }
+    public string? EBMCompanyAddress { get; set; }
+    public string? EBMCompanyPhone { get; set; }
+    public string? EBMCompanyTIN { get; set; }
+    public string? EBMCategoryId { get; set; }
     public bool AutoPrintReceipt { get; set; }
     public bool RequireCustomerInfo { get; set; }
     public decimal MinimumSaleAmount { get; set; } = 1000m;

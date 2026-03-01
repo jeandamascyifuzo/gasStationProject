@@ -1,6 +1,7 @@
 @model Escale.Web.Models.CustomerDetailsViewModel
 @{
     ViewData["Title"] = "Customer Details";
+    var activeSub = Model.Customer.Subscriptions.FirstOrDefault(s => s.Status == "Active");
 }
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 page-header">
@@ -44,11 +45,13 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="text-xs mb-1">ACTIVE SUBSCRIPTIONS</div>
-                        <div class="h4 mb-0 fw-bold">@Model.Customer.Subscriptions.Count(s => s.Status == "Active")</div>
+                        <div class="text-xs mb-1">SUBSCRIPTION BALANCE</div>
+                        <div class="h5 mb-0 fw-bold">
+                            @(activeSub != null ? activeSub.RemainingBalance.ToString("N0") + " RWF" : "No Active")
+                        </div>
                     </div>
                     <div class="icon-wrapper">
-                        <i class="fas fa-star fa-2x"></i>
+                        <i class="fas fa-wallet fa-2x"></i>
                     </div>
                 </div>
             </div>
@@ -102,7 +105,7 @@
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="subscriptions-tab" data-bs-toggle="tab" data-bs-target="#subscriptions" type="button" role="tab">
-                    <i class="fas fa-star me-2"></i>Subscriptions <span class="badge bg-success">@Model.Customer.Subscriptions.Count</span>
+                    <i class="fas fa-wallet me-2"></i>Subscriptions <span class="badge bg-success">@Model.Customer.Subscriptions.Count</span>
                 </button>
             </li>
         </ul>
@@ -191,7 +194,10 @@
             <!-- Cars Tab -->
             <div class="tab-pane fade" id="cars" role="tabpanel">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5>Customer Cars</h5>
+                    <h5 class="mb-0">Customer Cars</h5>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="openAddCarModal()">
+                        <i class="fas fa-plus me-2"></i>Add Car
+                    </button>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover">
@@ -201,6 +207,8 @@
                                 <th>Make</th>
                                 <th>Model</th>
                                 <th>Year</th>
+                                <th>Status</th>
+                                <th style="width: 140px;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -213,13 +221,35 @@
                                         <td>@(car.Make ?? "N/A")</td>
                                         <td>@(car.Model ?? "N/A")</td>
                                         <td>@(car.Year?.ToString() ?? "N/A")</td>
+                                        <td>
+                                            <span class="badge @(car.IsActive ? "bg-success" : "bg-secondary")">
+                                                @(car.IsActive ? "Active" : "Inactive")
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary" title="Edit"
+                                                    onclick="openEditCarModal('@car.Id', '@car.PlateNumber', '@car.Make', '@car.Model', '@car.Year')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            @if (car.IsActive)
+                                            {
+                                                <form asp-action="DeactivateCar" method="post" class="d-inline"
+                                                      onsubmit="return confirm('Deactivate this car?')">
+                                                    <input type="hidden" name="customerId" value="@Model.Customer.Id" />
+                                                    <input type="hidden" name="carId" value="@car.Id" />
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Deactivate">
+                                                        <i class="fas fa-ban"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                        </td>
                                     </tr>
                                 }
                             }
                             else
                             {
                                 <tr>
-                                    <td colspan="4" class="text-center text-muted">No cars registered yet</td>
+                                    <td colspan="6" class="text-center text-muted py-3">No cars registered yet. Add a car to get started.</td>
                                 </tr>
                             }
                         </tbody>
@@ -230,34 +260,41 @@
             <!-- Subscriptions Tab -->
             <div class="tab-pane fade" id="subscriptions" role="tabpanel">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5>Customer Subscriptions</h5>
+                    <h5 class="mb-0">Subscriptions</h5>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="openTopUpModal()">
+                        <i class="fas fa-plus-circle me-2"></i>Top Up
+                    </button>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover">
                         <thead>
                             <tr>
-                                <th>Fuel Type</th>
-                                <th>Monthly Liters</th>
-                                <th>Used Liters</th>
+                                <th>Top Up</th>
+                                <th>Total Balance</th>
+                                <th>Remaining</th>
                                 <th>Usage</th>
-                                <th>Price/Liter</th>
                                 <th>Start Date</th>
-                                <th>End Date</th>
+                                <th>Expiry</th>
                                 <th>Status</th>
+                                <th style="width: 100px;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             @if (Model.Customer.Subscriptions.Any())
                             {
-                                @foreach (var subscription in Model.Customer.Subscriptions)
+                                @foreach (var sub in Model.Customer.Subscriptions.OrderByDescending(s => s.CreatedAt))
                                 {
-                                    var usagePercent = subscription.MonthlyLiters > 0
-                                        ? (subscription.UsedLiters / subscription.MonthlyLiters) * 100
+                                    var usagePercent = sub.TotalAmount > 0
+                                        ? ((sub.TotalAmount - sub.RemainingBalance) / sub.TotalAmount) * 100
                                         : 0;
                                     <tr>
-                                        <td><strong>@subscription.FuelTypeName</strong></td>
-                                        <td>@subscription.MonthlyLiters.ToString("N1") L</td>
-                                        <td>@subscription.UsedLiters.ToString("N1") L</td>
+                                        <td><strong>@sub.TopUpAmount.ToString("N0") RWF</strong></td>
+                                        <td>@sub.TotalAmount.ToString("N0") RWF</td>
+                                        <td>
+                                            <span class="@(sub.RemainingBalance > 0 ? "text-success fw-bold" : "text-muted")">
+                                                @sub.RemainingBalance.ToString("N0") RWF
+                                            </span>
+                                        </td>
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 <div class="progress flex-grow-1 me-2" style="height: 8px;">
@@ -267,20 +304,33 @@
                                                 <small>@usagePercent.ToString("N0")%</small>
                                             </div>
                                         </td>
-                                        <td>@subscription.PricePerLiter.ToString("N0") RWF</td>
-                                        <td>@subscription.StartDate.ToString("yyyy-MM-dd")</td>
-                                        <td>@subscription.EndDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@sub.StartDate.ToString("yyyy-MM-dd")</td>
+                                        <td>@(sub.ExpiryDate?.ToString("yyyy-MM-dd") ?? "No Expiry")</td>
                                         <td>
                                             @{
-                                                var statusClass = subscription.Status switch
+                                                var statusClass = sub.Status switch
                                                 {
                                                     "Active" => "bg-success",
-                                                    "Expired" => "bg-secondary",
+                                                    "Inactive" => "bg-secondary",
+                                                    "Expired" => "bg-warning",
                                                     "Cancelled" => "bg-danger",
                                                     _ => "bg-info"
                                                 };
                                             }
-                                            <span class="badge @statusClass">@subscription.Status</span>
+                                            <span class="badge @statusClass">@sub.Status</span>
+                                        </td>
+                                        <td>
+                                            @if (sub.Status == "Active")
+                                            {
+                                                <form asp-action="CancelSubscription" method="post" class="d-inline"
+                                                      onsubmit="return confirm('Cancel this subscription? Remaining balance: @sub.RemainingBalance.ToString("N0") RWF')">
+                                                    <input type="hidden" name="customerId" value="@Model.Customer.Id" />
+                                                    <input type="hidden" name="subscriptionId" value="@sub.Id" />
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Cancel">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </form>
+                                            }
                                         </td>
                                     </tr>
                                 }
@@ -288,7 +338,7 @@
                             else
                             {
                                 <tr>
-                                    <td colspan="8" class="text-center text-muted">No subscriptions found</td>
+                                    <td colspan="8" class="text-center text-muted py-3">No subscriptions yet. Click "Top Up" to create one.</td>
                                 </tr>
                             }
                         </tbody>
@@ -299,8 +349,154 @@
     </div>
 </div>
 
+<!-- Add Car Modal -->
+<div class="modal fade" id="addCarModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="carModalTitle">Add Car</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="carForm" asp-action="AddCar" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="customerId" value="@Model.Customer.Id" />
+                    <input type="hidden" id="carId" name="carId" />
+                    <div class="mb-3">
+                        <label for="carPlateNumber" class="form-label">Plate Number <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="carPlateNumber" name="plateNumber" required
+                               placeholder="e.g. RAD 123 A" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="carMake" class="form-label">Make</label>
+                            <input type="text" class="form-control" id="carMake" name="make" placeholder="e.g. Toyota" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="carModel" class="form-label">Model</label>
+                            <input type="text" class="form-control" id="carModel" name="model" placeholder="e.g. Corolla" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="carYear" class="form-label">Year</label>
+                            <input type="number" class="form-control" id="carYear" name="year" min="1990" max="2030"
+                                   placeholder="e.g. 2022" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="carPin" class="form-label">PIN <span class="text-danger" id="pinRequired">*</span></label>
+                            <div class="input-group">
+                                <input type="text" class="form-control fw-bold font-monospace" id="carPin" name="pin"
+                                       maxlength="4" readonly />
+                                <button type="button" class="btn btn-outline-secondary" onclick="generatePin()" title="Generate new PIN">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted" id="pinHint">Auto-generated. Click refresh to regenerate.</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i><span id="carSaveBtn">Add Car</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Top Up Subscription Modal -->
+<div class="modal fade" id="topUpModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Top Up Subscription</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="TopUpSubscription" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="customerId" value="@Model.Customer.Id" />
+
+                    @if (activeSub != null)
+                    {
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Current balance: <strong>@activeSub.RemainingBalance.ToString("N0") RWF</strong>.
+                            The new top-up will be added to the remaining balance.
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label for="topUpAmount" class="form-label">Top Up Amount (RWF) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="topUpAmount" name="topUpAmount"
+                               required min="1" step="100" placeholder="e.g. 50000" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="expiryDate" class="form-label">Expiry Date (Optional)</label>
+                        <input type="date" class="form-control" id="expiryDate" name="expiryDate"
+                               min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                        <small class="text-muted">Leave empty for no expiry</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-plus-circle me-2"></i>Top Up
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
-    // No individual car/subscription CRUD - managed at customer level via API
+    function generatePin() {
+        var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        var pin = '';
+        for (var i = 0; i < 4; i++) {
+            pin += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        document.getElementById('carPin').value = pin;
+    }
+
+    function openAddCarModal() {
+        document.getElementById('carForm').action = '@Url.Action("AddCar", "Customers")';
+        document.getElementById('carModalTitle').textContent = 'Add Car';
+        document.getElementById('carSaveBtn').textContent = 'Add Car';
+        document.getElementById('carId').value = '';
+        document.getElementById('carPlateNumber').value = '';
+        document.getElementById('carMake').value = '';
+        document.getElementById('carModel').value = '';
+        document.getElementById('carYear').value = '';
+        document.getElementById('carPin').required = true;
+        document.getElementById('pinRequired').style.display = '';
+        document.getElementById('pinHint').textContent = 'Auto-generated. Click refresh to regenerate.';
+        generatePin();
+        new bootstrap.Modal(document.getElementById('addCarModal')).show();
+    }
+
+    function openEditCarModal(id, plate, make, model, year) {
+        document.getElementById('carForm').action = '@Url.Action("UpdateCar", "Customers")';
+        document.getElementById('carModalTitle').textContent = 'Edit Car';
+        document.getElementById('carSaveBtn').textContent = 'Update Car';
+        document.getElementById('carId').value = id;
+        document.getElementById('carPlateNumber').value = plate;
+        document.getElementById('carMake').value = make === 'null' ? '' : make;
+        document.getElementById('carModel').value = model === 'null' ? '' : model;
+        document.getElementById('carYear').value = year === 'null' ? '' : year;
+        document.getElementById('carPin').value = '';
+        document.getElementById('carPin').required = false;
+        document.getElementById('pinRequired').style.display = 'none';
+        document.getElementById('pinHint').textContent = 'Leave blank to keep current PIN. Click refresh to set new one.';
+        new bootstrap.Modal(document.getElementById('addCarModal')).show();
+    }
+
+    function openTopUpModal() {
+        document.getElementById('topUpAmount').value = '';
+        document.getElementById('expiryDate').value = '';
+        new bootstrap.Modal(document.getElementById('topUpModal')).show();
+    }
 </script>
 }

@@ -273,6 +273,11 @@
                                     <Border.Shadow>
                                         <Shadow Brush="Black" Opacity="0.05" Radius="6" Offset="0,2"/>
                                     </Border.Shadow>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:DashboardViewModel}}, Path=ViewReceiptCommand}"
+                                            CommandParameter="{Binding .}"/>
+                                    </Border.GestureRecognizers>
                                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
                                         <Border Grid.Column="0"
                                                 StrokeShape="RoundRectangle 8"
@@ -292,9 +297,16 @@
                                                    FontSize="14"
                                                    FontAttributes="Bold"
                                                    TextColor="#1E293B"/>
-                                            <Label Text="{Binding TransactionDate, StringFormat='{0:HH:mm}'}"
-                                                   FontSize="12"
-                                                   TextColor="#94A3B8"/>
+                                            <HorizontalStackLayout Spacing="4">
+                                                <Label Text="{Binding TransactionDate, StringFormat='{0:HH:mm}'}"
+                                                       FontSize="12"
+                                                       TextColor="#94A3B8"/>
+                                                <Label Text="| Receipt"
+                                                       FontSize="12"
+                                                       FontAttributes="Bold"
+                                                       TextColor="#3B82F6"
+                                                       IsVisible="{Binding EBMSent}"/>
+                                            </HorizontalStackLayout>
                                         </VerticalStackLayout>
                                         <VerticalStackLayout Grid.Column="2" Spacing="2" VerticalOptions="Center">
                                             <Label Text="{Binding Total, StringFormat='RWF {0:N0}'}"

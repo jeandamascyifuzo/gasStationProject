@@ -15,12 +15,14 @@ public class SaleService : ISaleService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
+    private readonly IEBMService _ebmService;
 
-    public SaleService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper)
+    public SaleService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper, IEBMService ebmService)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _mapper = mapper;
+        _ebmService = ebmService;
     }
 
     public async Task<SaleResponseDto> CreateSaleAsync(CreateSaleRequestDto request)
@@ -48,9 +50,8 @@ public class SaleService : ISaleService
         var vatAmount = Math.Round(total * BusinessRules.VATRate, 2);
         var subtotal = total - vatAmount;
 
-        // Generate receipt number and EBM code
+        // Generate receipt number
         var receiptNumber = $"RCP{DateTime.UtcNow:yyyyMMddHHmmssfff}";
-        var ebmCode = $"EBM{Random.Shared.Next(100000, 999999)}";
 
         // Get active shift
         var activeShift = await _unitOfWork.Shifts.Query()
@@ -130,6 +131,34 @@ public class SaleService : ISaleService
             remainingBalanceAfter = subscription.RemainingBalance;
         }
 
+        // Check org-level EBM settings — if EBM is enabled, it's REQUIRED for all sales
+        bool ebmSent = false;
+        string? ebmReceiptUrl = null;
+
+        var orgSettings = await _unitOfWork.OrganizationSettings.Query()
+            .FirstOrDefaultAsync(s => s.OrganizationId == orgId);
+
+        if (orgSettings?.EBMEnabled == true)
+        {
+            if (string.IsNullOrEmpty(fuelType.EBMVariantId))
+            {
+                throw new InvalidOperationException(
+                    $"EBM is required but fuel type '{fuelType.Name}' has no EBM variant configured. Contact admin.");
+            }
+
+            var ebmResult = await _ebmService.SendSaleReceiptAsync(
+                orgId, fuelType.EBMVariantId, request.Liters, customerName, customerPhone);
+
+            if (!ebmResult.Success)
+            {
+                throw new InvalidOperationException(
+                    $"EBM receipt failed: {ebmResult.ErrorMessage ?? "Unknown EBM error"}. Sale was not recorded.");
+            }
+
+            ebmSent = true;
+            ebmReceiptUrl = ebmResult.ReceiptCode;
+        }
+
         var transaction = new Transaction
         {
             OrganizationId = orgId,
@@ -149,8 +178,9 @@ public class SaleService : ISaleService
             CustomerPhone = customerPhone,
             CashierId = userId,
             ShiftId = activeShift?.Id,
-            EBMSent = true,
-            EBMCode = ebmCode,
+            EBMSent = ebmSent,
+            EBMCode = ebmReceiptUrl,
+            EBMSentAt = ebmSent ? DateTime.UtcNow : null,
             SubscriptionId = subscriptionId,
             SubscriptionDeduction = subscriptionDeduction
         };
@@ -167,7 +197,24 @@ public class SaleService : ISaleService
             _unitOfWork.InventoryItems.Update(inventoryItem);
         }
 
-        await _unitOfWork.SaveChangesAsync();
+        // DB save with retry — EBM receipt is already issued and cannot be revoked,
+        // so we MUST persist the transaction + subscription deduction to stay consistent
+        const int maxDbRetries = 3;
+        for (int attempt = 1; attempt <= maxDbRetries; attempt++)
+        {
+            try
+            {
+                await _unitOfWork.SaveChangesAsync();
+                break; // success
+            }
+            catch (Exception ex) when (attempt < maxDbRetries)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"DB save failed (attempt {attempt}/{maxDbRetries}): {ex.Message} — retrying...");
+                await Task.Delay(500 * attempt);
+            }
+            // Last attempt: let exception propagate
+        }
 
         return new SaleResponseDto
         {
@@ -177,7 +224,7 @@ public class SaleService : ISaleService
             {
                 Id = transaction.Id,
                 ReceiptNumber = receiptNumber,
-                EBMCode = ebmCode,
+                EBMReceiptUrl = ebmReceiptUrl,
                 TransactionDate = transaction.TransactionDate,
                 FuelType = fuelType.Name,
                 Liters = request.Liters,

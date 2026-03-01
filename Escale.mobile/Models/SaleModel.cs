@@ -15,7 +15,7 @@ public class SaleModel
     public decimal VAT => Math.Round(Total * 0.18m, 0);
     public decimal Subtotal => Total - VAT;
     public DateTime TransactionDate { get; set; } = DateTime.Now;
-    public string? EBMCode { get; set; }
+    public string? EBMReceiptUrl { get; set; }
     public string? ReceiptNumber { get; set; }
     public Guid? SubscriptionId { get; set; }
     public decimal? SubscriptionDeduction { get; set; }

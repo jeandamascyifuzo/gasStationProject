@@ -12,6 +12,8 @@ public interface IApiOrganizationService
     Task<ApiResponse<List<StationResponseDto>>> GetStationsAsync(Guid orgId);
     Task<ApiResponse<StationResponseDto>> CreateStationAsync(Guid orgId, CreateStationRequestDto request);
     Task<ApiResponse> ConfigureEbmAsync(Guid orgId, EbmConfigRequestDto request);
+    Task<ApiResponse<EbmConfigResponseDto>> GetEbmConfigAsync(Guid orgId);
+    Task<ApiResponse<bool>> TestEbmConnectionAsync(Guid orgId);
     Task<ApiResponse<List<FuelTypeResponseDto>>> GetFuelTypesAsync(Guid orgId);
     Task<ApiResponse<FuelTypeResponseDto>> CreateFuelTypeAsync(Guid orgId, CreateFuelTypeRequestDto request);
     Task<ApiResponse<FuelTypeResponseDto>> UpdateFuelTypeAsync(Guid orgId, Guid fuelTypeId, UpdateFuelTypeRequestDto request);

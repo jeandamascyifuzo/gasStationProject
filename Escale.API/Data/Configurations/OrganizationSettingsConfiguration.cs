@@ -16,6 +16,13 @@ public class OrganizationSettingsConfiguration : IEntityTypeConfiguration<Organi
         builder.Property(x => x.ReceiptHeader).HasMaxLength(1000);
         builder.Property(x => x.ReceiptFooter).HasMaxLength(1000);
         builder.Property(x => x.EBMServerUrl).HasMaxLength(500);
+        builder.Property(x => x.EBMBusinessId).HasMaxLength(100);
+        builder.Property(x => x.EBMBranchId).HasMaxLength(100);
+        builder.Property(x => x.EBMCompanyName).HasMaxLength(200);
+        builder.Property(x => x.EBMCompanyAddress).HasMaxLength(500);
+        builder.Property(x => x.EBMCompanyPhone).HasMaxLength(50);
+        builder.Property(x => x.EBMCompanyTIN).HasMaxLength(50);
+        builder.Property(x => x.EBMCategoryId).HasMaxLength(100);
         builder.Property(x => x.MinimumSaleAmount).HasPrecision(18, 2);
         builder.Property(x => x.MaximumSaleAmount).HasPrecision(18, 2);
         builder.Property(x => x.LowStockThreshold).HasPrecision(5, 4);

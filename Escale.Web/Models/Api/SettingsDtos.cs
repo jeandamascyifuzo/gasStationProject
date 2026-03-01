@@ -42,4 +42,5 @@ public class EbmStatusDto
     public string ServerUrl { get; set; } = string.Empty;
     public DateTime? LastSyncAt { get; set; }
     public string Status { get; set; } = string.Empty;
+    public bool IsConfigured { get; set; }
 }

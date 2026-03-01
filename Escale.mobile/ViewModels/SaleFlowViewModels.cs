@@ -153,7 +153,7 @@ public partial class SalePreviewViewModel : ObservableObject
             {
                 Sale.Id = completedSale.Id;
                 Sale.ReceiptNumber = completedSale.ReceiptNumber;
-                Sale.EBMCode = completedSale.EBMCode;
+                Sale.EBMReceiptUrl = completedSale.EBMReceiptUrl;
                 Sale.TransactionDate = completedSale.TransactionDate;
                 Sale.SubscriptionDeduction = completedSale.SubscriptionDeduction;
                 Sale.SubscriptionRemainingBalance = completedSale.SubscriptionRemainingBalance;
@@ -188,6 +188,15 @@ public partial class SaleCompleteViewModel : ObservableObject
     [ObservableProperty]
     private string stationName = string.Empty;
 
+    [ObservableProperty]
+    private bool hasEBMReceipt;
+
+    [ObservableProperty]
+    private string ebmReceiptUrl = string.Empty;
+
+    [ObservableProperty]
+    private string ebmReceiptViewerUrl = string.Empty;
+
     public SaleCompleteViewModel()
     {
     }
@@ -199,12 +208,33 @@ public partial class SaleCompleteViewModel : ObservableObject
     {
         Sale = AppState.Instance.CurrentSale;
         StationName = AppState.Instance.SelectedStation?.Name ?? "Unknown Station";
+
+        HasEBMReceipt = !string.IsNullOrEmpty(Sale?.EBMReceiptUrl);
+        EbmReceiptUrl = Sale?.EBMReceiptUrl ?? string.Empty;
+
+        // Wrap PDF URL with Google Docs Viewer for inline WebView rendering
+        if (HasEBMReceipt)
+        {
+            EbmReceiptViewerUrl = $"https://docs.google.com/gview?embedded=true&url={Uri.EscapeDataString(EbmReceiptUrl)}";
+        }
     }
 
     [RelayCommand]
-    private async Task PrintReceipt()
+    private async Task OpenEBMReceipt()
     {
-        await Shell.Current!.DisplayAlert("Print", "Printing receipt...", "OK");
+        try
+        {
+            if (!string.IsNullOrEmpty(EbmReceiptUrl))
+            {
+                await Browser.Default.OpenAsync(new Uri(EbmReceiptUrl), BrowserLaunchMode.SystemPreferred);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Open EBM receipt error: {ex}");
+            if (Shell.Current != null)
+                await Shell.Current.DisplayAlert("Error", "Could not open EBM receipt", "OK");
+        }
     }
 
     [RelayCommand]
@@ -212,10 +242,7 @@ public partial class SaleCompleteViewModel : ObservableObject
     {
         try
         {
-            // Clear completed sale and start fresh
             AppState.Instance.ClearCurrentSale();
-
-            // Navigate to NewSale tab (absolute route resets the stack)
             await Shell.Current!.GoToAsync("///NewSale");
         }
         catch (Exception ex)
@@ -229,10 +256,7 @@ public partial class SaleCompleteViewModel : ObservableObject
     {
         try
         {
-            // Clear completed sale
             AppState.Instance.ClearCurrentSale();
-
-            // Navigate to Dashboard tab (absolute route resets the stack)
             await Shell.Current!.GoToAsync("///Dashboard");
         }
         catch (Exception ex)

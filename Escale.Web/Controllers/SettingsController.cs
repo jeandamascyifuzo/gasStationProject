@@ -20,15 +20,18 @@ namespace Escale.Web.Controllers
         {
             var settingsTask = _settingsService.GetSettingsAsync();
             var ebmTask = _settingsService.GetEbmStatusAsync();
+            var ebmConfigTask = _settingsService.GetEbmConfigAsync();
             var fuelTypesTask = _fuelTypeService.GetAllAsync();
 
-            await Task.WhenAll(settingsTask, ebmTask, fuelTypesTask);
+            await Task.WhenAll(settingsTask, ebmTask, ebmConfigTask, fuelTypesTask);
 
             var settings = settingsTask.Result;
             var ebm = ebmTask.Result;
+            var ebmConfig = ebmConfigTask.Result;
             var fuelTypes = fuelTypesTask.Result;
 
             var s = settings.Data ?? new AppSettingsResponseDto();
+            var ec = ebmConfig.Data;
             var model = new SettingsViewModel
             {
                 CompanyName = s.CompanyName,
@@ -48,6 +51,11 @@ namespace Escale.Web.Controllers
                 EBMConnected = ebm.Data?.IsConnected ?? false,
                 EBMLastSync = ebm.Data?.LastSyncAt,
                 EBMStatus = ebm.Data?.Status ?? "Unknown",
+                EBMIsConfigured = ec?.IsConfigured ?? false,
+                EBMCompanyName = ec?.EBMCompanyName,
+                EBMCompanyAddress = ec?.EBMCompanyAddress,
+                EBMCompanyPhone = ec?.EBMCompanyPhone,
+                EBMCompanyTIN = ec?.EBMCompanyTIN,
                 FuelTypes = fuelTypes.Data?.Select(f => new FuelType
                 {
                     Id = f.Id,
@@ -84,6 +92,19 @@ namespace Escale.Web.Controllers
             var result = await _settingsService.UpdateSettingsAsync(request);
             TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
                 result.Success ? "Settings updated successfully!" : result.Message;
+
+            return RedirectToAction("Index");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> TestEbmConnection()
+        {
+            var result = await _settingsService.TestEbmConnectionAsync();
+
+            if (result.Success && result.Data)
+                TempData["SuccessMessage"] = "EBM connection successful!";
+            else
+                TempData["ErrorMessage"] = "EBM connection failed. Please contact your administrator.";
 
             return RedirectToAction("Index");
         }

@@ -43,19 +43,23 @@ namespace Escale.Web.Models
         public string? Model { get; set; }
 
         public int? Year { get; set; }
+
+        public string? PIN { get; set; }
+
+        public bool IsActive { get; set; } = true;
     }
 
     public class Subscription
     {
         public Guid Id { get; set; }
-        public string FuelTypeName { get; set; } = string.Empty;
-        public Guid FuelTypeId { get; set; }
-        public decimal MonthlyLiters { get; set; }
-        public decimal UsedLiters { get; set; }
-        public decimal PricePerLiter { get; set; }
+        public decimal TotalAmount { get; set; }
+        public decimal RemainingBalance { get; set; }
+        public decimal PreviousBalance { get; set; }
+        public decimal TopUpAmount { get; set; }
         public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
+        public DateTime? ExpiryDate { get; set; }
         public string Status { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
     }
 
     public class CustomerViewModel

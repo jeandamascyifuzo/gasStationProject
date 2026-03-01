@@ -12,6 +12,9 @@ public class FuelTypeConfiguration : IEntityTypeConfiguration<FuelType>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
         builder.Property(x => x.CurrentPrice).HasPrecision(18, 2);
+        builder.Property(x => x.EBMProductId).HasMaxLength(100);
+        builder.Property(x => x.EBMVariantId).HasMaxLength(100);
+        builder.Property(x => x.EBMSupplyPrice).HasPrecision(18, 2);
         builder.HasIndex(x => new { x.OrganizationId, x.Name }).IsUnique().HasFilter("[IsDeleted] = 0");
         builder.HasOne(x => x.Organization).WithMany(o => o.FuelTypes).HasForeignKey(x => x.OrganizationId).OnDelete(DeleteBehavior.Restrict);
     }

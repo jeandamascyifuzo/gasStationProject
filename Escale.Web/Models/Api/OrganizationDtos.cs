@@ -38,4 +38,25 @@ public class EbmConfigRequestDto
 {
     public bool EBMEnabled { get; set; }
     public string? EBMServerUrl { get; set; }
+    public string? EBMBusinessId { get; set; }
+    public string? EBMBranchId { get; set; }
+    public string? EBMCompanyName { get; set; }
+    public string? EBMCompanyAddress { get; set; }
+    public string? EBMCompanyPhone { get; set; }
+    public string? EBMCompanyTIN { get; set; }
+    public string? EBMCategoryId { get; set; }
+}
+
+public class EbmConfigResponseDto
+{
+    public bool EBMEnabled { get; set; }
+    public string? EBMServerUrl { get; set; }
+    public string? EBMBusinessId { get; set; }
+    public string? EBMBranchId { get; set; }
+    public string? EBMCompanyName { get; set; }
+    public string? EBMCompanyAddress { get; set; }
+    public string? EBMCompanyPhone { get; set; }
+    public string? EBMCompanyTIN { get; set; }
+    public string? EBMCategoryId { get; set; }
+    public bool IsConfigured { get; set; }
 }

@@ -64,6 +64,15 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISettingsService, SettingsService>();
         services.AddScoped<IOrganizationService, OrganizationService>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
+
+        // EBM Service + HttpClient (no Polly — custom retry in EBMService handles invoice duplicates)
+        services.AddHttpClient("EBM", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(20);
+        });
+
+        services.AddScoped<IEBMService, EBMService>();
+
         return services;
     }
 

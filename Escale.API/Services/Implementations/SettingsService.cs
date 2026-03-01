@@ -11,12 +11,14 @@ public class SettingsService : ISettingsService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
+    private readonly IEBMService _ebmService;
 
-    public SettingsService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper)
+    public SettingsService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper, IEBMService ebmService)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _mapper = mapper;
+        _ebmService = ebmService;
     }
 
     public async Task<AppSettingsResponseDto> GetSettingsAsync()
@@ -47,25 +49,62 @@ public class SettingsService : ISettingsService
         var settings = await _unitOfWork.OrganizationSettings.Query()
             .FirstOrDefaultAsync(s => s.OrganizationId == orgId);
 
+        var isConfigured = settings?.EBMEnabled == true
+            && !string.IsNullOrEmpty(settings.EBMBusinessId)
+            && !string.IsNullOrEmpty(settings.EBMBranchId);
+
         return new EbmStatusDto
         {
-            IsConnected = settings?.EBMEnabled ?? false,
+            IsConnected = isConfigured,
             ServerUrl = settings?.EBMServerUrl ?? "",
-            LastSyncAt = DateTime.UtcNow.AddMinutes(-5),
-            Status = settings?.EBMEnabled == true ? "Connected" : "Disconnected"
+            LastSyncAt = null,
+            Status = isConfigured ? "Connected" : (settings?.EBMEnabled == true ? "Incomplete Configuration" : "Disabled"),
+            IsConfigured = isConfigured
         };
     }
 
     public async Task<EbmStatusDto> SyncEbmAsync()
     {
-        // Mock EBM sync
-        await Task.Delay(100);
+        var orgId = _currentUser.OrganizationId!.Value;
+        var connected = await _ebmService.TestConnectionAsync(orgId);
         return new EbmStatusDto
         {
-            IsConnected = true,
-            ServerUrl = "https://ebm.rra.gov.rw",
-            LastSyncAt = DateTime.UtcNow,
-            Status = "Synced"
+            IsConnected = connected,
+            ServerUrl = "",
+            LastSyncAt = connected ? DateTime.UtcNow : null,
+            Status = connected ? "Synced" : "Connection Failed"
         };
+    }
+
+    public async Task<EbmConfigResponseDto> GetEbmConfigAsync()
+    {
+        var orgId = _currentUser.OrganizationId!.Value;
+        var settings = await _unitOfWork.OrganizationSettings.Query()
+            .FirstOrDefaultAsync(s => s.OrganizationId == orgId);
+
+        if (settings == null)
+            return new EbmConfigResponseDto();
+
+        return new EbmConfigResponseDto
+        {
+            EBMEnabled = settings.EBMEnabled,
+            EBMServerUrl = settings.EBMServerUrl,
+            EBMBusinessId = settings.EBMBusinessId,
+            EBMBranchId = settings.EBMBranchId,
+            EBMCompanyName = settings.EBMCompanyName,
+            EBMCompanyAddress = settings.EBMCompanyAddress,
+            EBMCompanyPhone = settings.EBMCompanyPhone,
+            EBMCompanyTIN = settings.EBMCompanyTIN,
+            EBMCategoryId = settings.EBMCategoryId,
+            IsConfigured = settings.EBMEnabled
+                && !string.IsNullOrEmpty(settings.EBMBusinessId)
+                && !string.IsNullOrEmpty(settings.EBMBranchId)
+        };
+    }
+
+    public async Task<bool> TestEbmConnectionAsync()
+    {
+        var orgId = _currentUser.OrganizationId!.Value;
+        return await _ebmService.TestConnectionAsync(orgId);
     }
 }

@@ -12,12 +12,17 @@ public class StockService : IStockService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
+    private readonly IEBMService _ebmService;
+    private readonly ILogger<StockService> _logger;
 
-    public StockService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper)
+    public StockService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper,
+        IEBMService ebmService, ILogger<StockService> logger)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _mapper = mapper;
+        _ebmService = ebmService;
+        _logger = logger;
     }
 
     public async Task<List<StockLevelDto>> GetStockLevelsAsync(Guid? stationId = null)
@@ -52,22 +57,59 @@ public class StockService : IStockService
             .FirstOrDefaultAsync(i => i.StationId == stationId && i.FuelType.Name == fuelType && i.OrganizationId == orgId)
             ?? throw new KeyNotFoundException("Inventory item not found for this station and fuel type");
 
-        var refill = new RefillRecord
-        {
-            InventoryItemId = item.Id,
-            Quantity = quantity,
-            UnitCost = unitCost,
-            TotalCost = quantity * unitCost,
-            SupplierName = supplierName,
-            InvoiceNumber = invoiceNumber,
-            RefillDate = refillDate,
-            RecordedById = userId
-        };
+        var oldLevel = item.CurrentLevel;
+        var newLevel = Math.Min(item.Capacity, item.CurrentLevel + quantity);
+        bool ebmStockUpdated = false;
 
-        await _unitOfWork.RefillRecords.AddAsync(refill);
-        item.CurrentLevel = Math.Min(item.Capacity, item.CurrentLevel + quantity);
-        item.LastRefillDate = refillDate;
-        _unitOfWork.InventoryItems.Update(item);
-        await _unitOfWork.SaveChangesAsync();
+        // EBM FIRST — sync stock to EBM before saving to DB
+        if (!string.IsNullOrEmpty(item.EBMStockId))
+        {
+            var orgSettings = await _unitOfWork.OrganizationSettings.Query()
+                .FirstOrDefaultAsync(s => s.OrganizationId == orgId);
+
+            if (orgSettings?.EBMEnabled == true)
+            {
+                var ebmSuccess = await _ebmService.UpdateStockAsync(orgId, item.EBMStockId, newLevel);
+
+                if (!ebmSuccess)
+                    throw new InvalidOperationException(
+                        "Failed to update stock in EBM. Refill was NOT recorded. Please try again.");
+
+                ebmStockUpdated = true;
+            }
+        }
+
+        // EBM succeeded — now save to DB
+        try
+        {
+            var refill = new RefillRecord
+            {
+                InventoryItemId = item.Id,
+                Quantity = quantity,
+                UnitCost = unitCost,
+                TotalCost = quantity * unitCost,
+                SupplierName = supplierName,
+                InvoiceNumber = invoiceNumber,
+                RefillDate = refillDate,
+                RecordedById = userId
+            };
+
+            await _unitOfWork.RefillRecords.AddAsync(refill);
+            item.CurrentLevel = newLevel;
+            item.LastRefillDate = refillDate;
+            _unitOfWork.InventoryItems.Update(item);
+            await _unitOfWork.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            // DB failed — revert EBM stock back to old level
+            if (ebmStockUpdated)
+            {
+                _logger.LogWarning("DB save failed, reverting EBM stock for item {ItemId} back to {OldLevel}", item.Id, oldLevel);
+                await _ebmService.UpdateStockAsync(orgId, item.EBMStockId!, oldLevel);
+            }
+            throw new InvalidOperationException(
+                $"Failed to save refill to database. EBM has been reverted. Error: {ex.Message}");
+        }
     }
 }

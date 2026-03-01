@@ -133,30 +133,40 @@
 
                 <!-- EBM Settings Tab -->
                 <div class="tab-pane fade" id="ebm" role="tabpanel">
-                    <h5 class="mb-3">EBM Integration</h5>
+                    <h5 class="mb-3">
+                        EBM Integration
+                        @if (Model.EBMIsConfigured)
+                        {
+                            <span class="badge bg-success ms-2">Configured</span>
+                        }
+                        else if (Model.EBMEnabled)
+                        {
+                            <span class="badge bg-warning ms-2">Incomplete</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary ms-2">Disabled</span>
+                        }
+                    </h5>
 
+                    <!-- Connection Status -->
                     <div class="row mb-4">
-                        <div class="col-md-8">
-                            <div class="card @(Model.EBMConnected ? "border-success" : "border-warning")">
+                        <div class="col-md-10">
+                            <div class="card @(Model.EBMIsConfigured ? "border-success" : "border-warning")">
                                 <div class="card-body d-flex align-items-center">
                                     <div class="me-3">
-                                        <i class="fas @(Model.EBMConnected ? "fa-check-circle text-success" : "fa-exclamation-triangle text-warning") fa-2x"></i>
+                                        <i class="fas @(Model.EBMIsConfigured ? "fa-check-circle text-success" : "fa-exclamation-triangle text-warning") fa-2x"></i>
                                     </div>
                                     <div class="flex-grow-1">
-                                        <h6 class="mb-1">EBM Connection Status: <strong>@Model.EBMStatus</strong></h6>
-                                        @if (Model.EBMLastSync.HasValue)
-                                        {
-                                            <small class="text-muted">Last synced: @Model.EBMLastSync.Value.ToString("yyyy-MM-dd HH:mm:ss")</small>
-                                        }
-                                        else
-                                        {
-                                            <small class="text-muted">Never synced</small>
-                                        }
+                                        <h6 class="mb-1">EBM Status: <strong>@Model.EBMStatus</strong></h6>
+                                        <small class="text-muted">
+                                            @(Model.EBMEnabled ? "EBM is enabled for this organization" : "EBM is not enabled")
+                                        </small>
                                     </div>
                                     <div>
-                                        <form asp-controller="Settings" asp-action="SyncEBM" method="post" class="d-inline">
-                                            <button type="submit" class="btn btn-outline-primary btn-sm">
-                                                <i class="fas fa-sync-alt me-1"></i>Sync Now
+                                        <form asp-controller="Settings" asp-action="TestEbmConnection" method="post" class="d-inline">
+                                            <button type="submit" class="btn btn-outline-info btn-sm" @(Model.EBMIsConfigured ? "" : "disabled")>
+                                                <i class="fas fa-plug me-1"></i>Test Connection
                                             </button>
                                         </form>
                                     </div>
@@ -165,26 +175,53 @@
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="ebmEnabled" name="EBMEnabled" value="true" @(Model.EBMEnabled ? "checked" : "") />
-                            <label class="form-check-label" for="ebmEnabled">
-                                <strong>Enable EBM Integration</strong>
-                                <br /><small class="text-muted">Connect to Rwanda Revenue Authority's Electronic Billing Machine system</small>
-                            </label>
+                    @if (Model.EBMEnabled)
+                    {
+                        <!-- EBM Configuration (Read-Only) -->
+                        <h6 class="mb-3 text-muted"><i class="fas fa-lock me-1"></i>Configuration (managed by SuperAdmin)</h6>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Server URL</label>
+                                <input type="text" class="form-control" value="@(Model.EBMServerUrl ?? "Not set")" readonly disabled />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Company Name</label>
+                                <input type="text" class="form-control" value="@(Model.EBMCompanyName ?? "Not set")" readonly disabled />
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="mb-3">
-                        <label for="ebmServerUrl" class="form-label">EBM Server URL</label>
-                        <input type="url" class="form-control" id="ebmServerUrl" name="EBMServerUrl" value="@Model.EBMServerUrl" placeholder="https://ebm.rra.gov.rw/api" />
-                        <small class="text-muted">The base URL of the EBM server endpoint.</small>
-                    </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Company TIN</label>
+                                <input type="text" class="form-control" value="@(Model.EBMCompanyTIN ?? "Not set")" readonly disabled />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Company Phone</label>
+                                <input type="text" class="form-control" value="@(Model.EBMCompanyPhone ?? "Not set")" readonly disabled />
+                            </div>
+                        </div>
 
-                    <div class="alert alert-info mt-3">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <strong>Note:</strong> Enabling EBM integration will send transaction data to the Rwanda Revenue Authority for tax compliance.
-                    </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Company Address</label>
+                                <input type="text" class="form-control" value="@(Model.EBMCompanyAddress ?? "Not set")" readonly disabled />
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            EBM integration sends transaction data to the Rwanda Revenue Authority for tax compliance.
+                            All sales will automatically generate EBM receipts. Contact your SuperAdmin to modify EBM settings.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning mt-3">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            EBM is not enabled for your organization. Contact your SuperAdmin to configure EBM integration.
+                        </div>
+                    }
                 </div>
 
                 <!-- Fuel Prices Tab -->
@@ -305,8 +342,8 @@
         var saveSection = document.getElementById('saveButtonSection');
 
         settingsTabs.addEventListener('shown.bs.tab', function (event) {
-            // Hide save button on Fuel Prices tab (it has its own per-row forms)
-            if (event.target.id === 'pricing-tab') {
+            // Hide save button on EBM tab (read-only) and Fuel Prices tab (has its own forms)
+            if (event.target.id === 'pricing-tab' || event.target.id === 'ebm-tab') {
                 saveSection.style.display = 'none';
             } else {
                 saveSection.style.display = '';

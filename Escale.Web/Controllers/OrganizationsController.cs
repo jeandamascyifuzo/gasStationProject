@@ -51,11 +51,13 @@ public class OrganizationsController : Controller
 
         var orgTask = _organizationService.GetByIdAsync(id);
         var stationsTask = _organizationService.GetStationsAsync(id);
+        var ebmTask = _organizationService.GetEbmConfigAsync(id);
 
-        await Task.WhenAll(orgTask, stationsTask);
+        await Task.WhenAll(orgTask, stationsTask, ebmTask);
 
         var orgResult = orgTask.Result;
         var stationsResult = stationsTask.Result;
+        var ebmResult = ebmTask.Result;
 
         if (!orgResult.Success || orgResult.Data == null)
         {
@@ -64,6 +66,7 @@ public class OrganizationsController : Controller
         }
 
         var o = orgResult.Data;
+        var ebm = ebmResult.Data;
         var model = new OrganizationDetailsViewModel
         {
             Organization = new OrganizationListItem
@@ -90,7 +93,20 @@ public class OrganizationsController : Controller
                 ManagerName = s.Manager,
                 IsActive = s.IsActive,
                 CreatedAt = s.CreatedAt
-            }).ToList() ?? new()
+            }).ToList() ?? new(),
+            EbmConfig = ebm != null ? new EbmConfig
+            {
+                EBMEnabled = ebm.EBMEnabled,
+                EBMServerUrl = ebm.EBMServerUrl,
+                EBMBusinessId = ebm.EBMBusinessId,
+                EBMBranchId = ebm.EBMBranchId,
+                EBMCompanyName = ebm.EBMCompanyName,
+                EBMCompanyAddress = ebm.EBMCompanyAddress,
+                EBMCompanyPhone = ebm.EBMCompanyPhone,
+                EBMCompanyTIN = ebm.EBMCompanyTIN,
+                EBMCategoryId = ebm.EBMCategoryId,
+                IsConfigured = ebm.IsConfigured
+            } : new()
         };
 
         return View(model);
@@ -146,17 +162,39 @@ public class OrganizationsController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> ConfigureEbm(Guid orgId, bool ebmEnabled, string? ebmServerUrl)
+    public async Task<IActionResult> ConfigureEbm(Guid orgId, bool ebmEnabled, string? ebmServerUrl,
+        string? ebmBusinessId, string? ebmBranchId, string? ebmCompanyName,
+        string? ebmCompanyAddress, string? ebmCompanyPhone, string? ebmCompanyTIN, string? ebmCategoryId)
     {
         var request = new EbmConfigRequestDto
         {
             EBMEnabled = ebmEnabled,
-            EBMServerUrl = ebmServerUrl
+            EBMServerUrl = ebmServerUrl,
+            EBMBusinessId = ebmBusinessId,
+            EBMBranchId = ebmBranchId,
+            EBMCompanyName = ebmCompanyName,
+            EBMCompanyAddress = ebmCompanyAddress,
+            EBMCompanyPhone = ebmCompanyPhone,
+            EBMCompanyTIN = ebmCompanyTIN,
+            EBMCategoryId = ebmCategoryId
         };
 
         var result = await _organizationService.ConfigureEbmAsync(orgId, request);
         TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
             result.Success ? "EBM configuration updated!" : result.Message;
+
+        return RedirectToAction("Details", new { id = orgId });
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> TestEbmConnection(Guid orgId)
+    {
+        var result = await _organizationService.TestEbmConnectionAsync(orgId);
+
+        if (result.Success && result.Data)
+            TempData["SuccessMessage"] = "EBM connection successful!";
+        else
+            TempData["ErrorMessage"] = "EBM connection failed. Check the server URL and try again.";
 
         return RedirectToAction("Details", new { id = orgId });
     }

@@ -23,6 +23,13 @@ namespace Escale.Web.Models
         public bool EBMConnected { get; set; }
         public DateTime? EBMLastSync { get; set; }
         public string EBMStatus { get; set; } = string.Empty;
+        public bool EBMIsConfigured { get; set; }
+
+        // EBM Config (read-only for org admin)
+        public string? EBMCompanyName { get; set; }
+        public string? EBMCompanyAddress { get; set; }
+        public string? EBMCompanyPhone { get; set; }
+        public string? EBMCompanyTIN { get; set; }
 
         // Fuel prices from FuelTypes API
         public List<FuelType> FuelTypes { get; set; } = new();

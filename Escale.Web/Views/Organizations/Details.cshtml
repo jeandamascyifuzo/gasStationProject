@@ -69,27 +69,104 @@
 <!-- EBM Configuration -->
 <div class="card shadow-sm mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="fas fa-server me-2"></i>EBM Configuration</h5>
+        <h5 class="mb-0">
+            <i class="fas fa-server me-2"></i>EBM Configuration
+            @if (Model.EbmConfig.IsConfigured)
+            {
+                <span class="badge bg-success ms-2">Configured</span>
+            }
+            else if (Model.EbmConfig.EBMEnabled)
+            {
+                <span class="badge bg-warning ms-2">Incomplete</span>
+            }
+            else
+            {
+                <span class="badge bg-secondary ms-2">Disabled</span>
+            }
+        </h5>
+        <form asp-action="TestEbmConnection" method="post" class="d-inline">
+            <input type="hidden" name="orgId" value="@Model.Organization.Id" />
+            <button type="submit" class="btn btn-sm btn-outline-info" @(Model.EbmConfig.IsConfigured ? "" : "disabled")>
+                <i class="fas fa-plug me-1"></i>Test Connection
+            </button>
+        </form>
     </div>
     <div class="card-body">
         <form asp-action="ConfigureEbm" method="post">
             <input type="hidden" name="orgId" value="@Model.Organization.Id" />
-            <div class="row">
-                <div class="col-md-4 mb-3">
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="ebmEnabled" name="ebmEnabled" value="true" />
-                        <label class="form-check-label" for="ebmEnabled">EBM Enabled</label>
+
+            <!-- Enable + Server URL -->
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <div class="form-check form-switch mt-4">
+                        <input class="form-check-input" type="checkbox" id="ebmEnabled" name="ebmEnabled"
+                               value="true" @(Model.EbmConfig.EBMEnabled ? "checked" : "") />
+                        <label class="form-check-label fw-bold" for="ebmEnabled">EBM Enabled</label>
                     </div>
                 </div>
-                <div class="col-md-6 mb-3">
+                <div class="col-md-9">
                     <label for="ebmServerUrl" class="form-label">EBM Server URL</label>
-                    <input type="url" class="form-control" id="ebmServerUrl" name="ebmServerUrl" placeholder="https://ebm.rra.gov.rw" />
+                    <input type="url" class="form-control" id="ebmServerUrl" name="ebmServerUrl"
+                           value="@Model.EbmConfig.EBMServerUrl" placeholder="https://apihub.yegobox.com/api" />
                 </div>
-                <div class="col-md-2 mb-3 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-save me-2"></i>Save
-                    </button>
+            </div>
+
+            <!-- Business ID + Branch ID -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="ebmBusinessId" class="form-label">Business ID</label>
+                    <input type="text" class="form-control" id="ebmBusinessId" name="ebmBusinessId"
+                           value="@Model.EbmConfig.EBMBusinessId" placeholder="YegoBox Business UUID" />
                 </div>
+                <div class="col-md-6">
+                    <label for="ebmBranchId" class="form-label">Branch ID</label>
+                    <input type="text" class="form-control" id="ebmBranchId" name="ebmBranchId"
+                           value="@Model.EbmConfig.EBMBranchId" placeholder="YegoBox Branch UUID" />
+                </div>
+            </div>
+
+            <!-- Company Name + TIN -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="ebmCompanyName" class="form-label">Company Name</label>
+                    <input type="text" class="form-control" id="ebmCompanyName" name="ebmCompanyName"
+                           value="@Model.EbmConfig.EBMCompanyName" placeholder="Company name for receipts" />
+                </div>
+                <div class="col-md-6">
+                    <label for="ebmCompanyTIN" class="form-label">Company TIN</label>
+                    <input type="text" class="form-control" id="ebmCompanyTIN" name="ebmCompanyTIN"
+                           value="@Model.EbmConfig.EBMCompanyTIN" placeholder="Tax Identification Number" />
+                </div>
+            </div>
+
+            <!-- Address + Phone -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="ebmCompanyAddress" class="form-label">Company Address</label>
+                    <input type="text" class="form-control" id="ebmCompanyAddress" name="ebmCompanyAddress"
+                           value="@Model.EbmConfig.EBMCompanyAddress" placeholder="Company address" />
+                </div>
+                <div class="col-md-6">
+                    <label for="ebmCompanyPhone" class="form-label">Company Phone</label>
+                    <input type="text" class="form-control" id="ebmCompanyPhone" name="ebmCompanyPhone"
+                           value="@Model.EbmConfig.EBMCompanyPhone" placeholder="+250..." />
+                </div>
+            </div>
+
+            <!-- Category ID -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="ebmCategoryId" class="form-label">Product Category ID</label>
+                    <input type="text" class="form-control" id="ebmCategoryId" name="ebmCategoryId"
+                           value="@Model.EbmConfig.EBMCategoryId" placeholder="YegoBox Category UUID (for auto-registering fuel types)" />
+                    <small class="text-muted">Required for auto-registering new fuel types in EBM</small>
+                </div>
+            </div>
+
+            <div class="text-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>Save EBM Configuration
+                </button>
             </div>
         </form>
     </div>

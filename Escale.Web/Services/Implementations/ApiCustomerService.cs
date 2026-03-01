@@ -25,4 +25,24 @@ public class ApiCustomerService : BaseApiService, IApiCustomerService
 
     public async Task<ApiResponse> DeleteAsync(Guid id)
         => await base.DeleteAsync($"/api/customers/{id}");
+
+    // Car CRUD
+    public async Task<ApiResponse<CarDto>> AddCarAsync(Guid customerId, CarDto car)
+        => await PostAsync<CarDto>($"/api/customers/{customerId}/cars", car);
+
+    public async Task<ApiResponse<CarDto>> UpdateCarAsync(Guid customerId, Guid carId, CarDto car)
+        => await PutAsync<CarDto>($"/api/customers/{customerId}/cars/{carId}", car);
+
+    public async Task<ApiResponse> DeactivateCarAsync(Guid customerId, Guid carId)
+        => await base.DeleteAsync($"/api/customers/{customerId}/cars/{carId}");
+
+    // Subscriptions
+    public async Task<ApiResponse<SubscriptionResponseDto>> TopUpSubscriptionAsync(TopUpSubscriptionRequestDto request)
+        => await PostAsync<SubscriptionResponseDto>("/api/subscriptions/topup", request);
+
+    public async Task<ApiResponse<SubscriptionResponseDto>> CancelSubscriptionAsync(Guid subscriptionId)
+        => await PostAsync<SubscriptionResponseDto>($"/api/subscriptions/{subscriptionId}/cancel");
+
+    public async Task<ApiResponse<List<SubscriptionResponseDto>>> GetSubscriptionHistoryAsync(Guid customerId)
+        => await GetAsync<List<SubscriptionResponseDto>>($"/api/subscriptions/customer/{customerId}/history");
 }

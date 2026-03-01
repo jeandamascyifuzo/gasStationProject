@@ -68,7 +68,14 @@ public static class DatabaseSeeder
             Phone = "+250788100000",
             Email = "info@escale-petroleum.rw",
             EBMEnabled = true,
-            EBMServerUrl = "https://ebm.rra.gov.rw",
+            EBMServerUrl = "https://apihub.yegobox.com/api",
+            EBMBusinessId = "d8012247-3793-4767-831c-2d21c182699b",
+            EBMBranchId = "7c19b5e8-1201-47cc-ae23-8fa13be6d39e",
+            EBMCompanyName = "PSM",
+            EBMCompanyAddress = "Kigali, Rwanda",
+            EBMCompanyPhone = "+250780477671",
+            EBMCompanyTIN = "999909695",
+            EBMCategoryId = "29235d05-2585-4efb-a30c-4f41b738caee",
             Users = new[]
             {
                 ("admin", "admin123", "Jean Pierre Admin", "admin@escale-petroleum.rw", "+250788100001", UserRole.Admin),
@@ -86,6 +93,27 @@ public static class DatabaseSeeder
                 ("Petrol 98", 1550m),
                 ("Diesel", 1380m),
                 ("Kerosene", 1200m),
+            },
+            EBMProductMap = new Dictionary<string, string>
+            {
+                ["Petrol 95"] = "4c9c5d54-1a0a-44ce-955a-99362ef4db40",
+                ["Diesel"] = "f3cf696b-aabe-4b7d-ae7f-9871bc14db25",
+                ["Petrol 98"] = "715425ca-cfd6-48e8-8ca9-d0662446fd95",
+                ["Kerosene"] = "0fb19e0c-fa15-4678-a786-d8944f69c82f",
+            },
+            EBMVariantMap = new Dictionary<string, string>
+            {
+                ["Petrol 95"] = "68ea4e2a-8146-4fb5-a88e-be7edec62a30",
+                ["Diesel"] = "6a56e854-b89b-40b3-8150-1c6ba3c00530",
+                ["Petrol 98"] = "78c3e485-2552-4a8b-8025-a73f49878256",
+                ["Kerosene"] = "ef46e843-6930-440a-8ea9-8eb7fa9eca52",
+            },
+            EBMStockMap = new Dictionary<string, string>
+            {
+                ["Petrol 95"] = "4d0f30da-9454-4a8a-99db-768b89cf7252",
+                ["Diesel"] = "52e8e624-c8cc-4c32-a75e-7a7f3f6cc05f",
+                ["Petrol 98"] = "68680cd2-df70-4cec-bc59-873fa8aed542",
+                ["Kerosene"] = "3ee6d98a-22d6-4f2d-8c5c-5d78a4e93ac8",
             },
             InventoryLevel = 8000m,
             InventoryCapacity = 20000m,
@@ -257,10 +285,12 @@ public static class DatabaseSeeder
             }
         }
 
-        // Fuel Types
+        // Fuel Types — assign EBMVariantId from org-specific mapping
         var fuelTypes = new List<FuelType>();
         foreach (var (name, price) in data.FuelTypes)
         {
+            data.EBMProductMap.TryGetValue(name, out var ebmProductId);
+            data.EBMVariantMap.TryGetValue(name, out var ebmVariantId);
             var ft = new FuelType
             {
                 Id = Guid.NewGuid(),
@@ -268,6 +298,9 @@ public static class DatabaseSeeder
                 Name = name,
                 CurrentPrice = price,
                 IsActive = true,
+                EBMProductId = ebmProductId,
+                EBMVariantId = ebmVariantId,
+                EBMSupplyPrice = ebmVariantId != null ? price * 0.85m : null,
                 CreatedAt = now
             };
             context.FuelTypes.Add(ft);
@@ -284,10 +317,16 @@ public static class DatabaseSeeder
         }
 
         // Inventory Items (per station per fuel type)
+        var isFirstStation = true;
         foreach (var stationId in stationIds)
         {
             foreach (var ft in fuelTypes)
             {
+                // Only assign real EBM stock IDs to first station (one branch in YegoBox)
+                string? ebmStockId = null;
+                if (isFirstStation && ft.EBMVariantId != null)
+                    data.EBMStockMap.TryGetValue(ft.Name, out ebmStockId);
+
                 context.InventoryItems.Add(new InventoryItem
                 {
                     Id = Guid.NewGuid(),
@@ -298,9 +337,11 @@ public static class DatabaseSeeder
                     Capacity = data.InventoryCapacity,
                     ReorderLevel = data.InventoryCapacity * 0.25m,
                     LastRefillDate = now.AddDays(-3),
+                    EBMStockId = ebmStockId,
                     CreatedAt = now
                 });
             }
+            isFirstStation = false;
         }
 
         // Customers
@@ -412,6 +453,13 @@ public static class DatabaseSeeder
             ReceiptFooter = BusinessRules.DefaultReceiptFooter,
             EBMEnabled = data.EBMEnabled,
             EBMServerUrl = data.EBMServerUrl,
+            EBMBusinessId = data.EBMBusinessId,
+            EBMBranchId = data.EBMBranchId,
+            EBMCompanyName = data.EBMCompanyName,
+            EBMCompanyAddress = data.EBMCompanyAddress,
+            EBMCompanyPhone = data.EBMCompanyPhone,
+            EBMCompanyTIN = data.EBMCompanyTIN,
+            EBMCategoryId = data.EBMCategoryId,
             AutoPrintReceipt = true,
             MinimumSaleAmount = BusinessRules.DefaultMinimumSaleAmount,
             MaximumSaleAmount = BusinessRules.DefaultMaximumSaleAmount,
@@ -497,6 +545,13 @@ public static class DatabaseSeeder
         public string? Email { get; set; }
         public bool EBMEnabled { get; set; }
         public string? EBMServerUrl { get; set; }
+        public string? EBMBusinessId { get; set; }
+        public string? EBMBranchId { get; set; }
+        public string? EBMCompanyName { get; set; }
+        public string? EBMCompanyAddress { get; set; }
+        public string? EBMCompanyPhone { get; set; }
+        public string? EBMCompanyTIN { get; set; }
+        public string? EBMCategoryId { get; set; }
         public (string Username, string Password, string FullName, string Email, string Phone, UserRole Role)[] Users { get; set; } = Array.Empty<(string, string, string, string, string, UserRole)>();
         public (string Name, string Location, string Address, string Phone)[] Stations { get; set; } = Array.Empty<(string, string, string, string)>();
         public (string Name, decimal Price)[] FuelTypes { get; set; } = Array.Empty<(string, decimal)>();
@@ -504,5 +559,8 @@ public static class DatabaseSeeder
         public decimal InventoryCapacity { get; set; }
         public (string Name, string Phone, string Email, CustomerType Type, string Plate)[] Customers { get; set; } = Array.Empty<(string, string, string, CustomerType, string)>();
         public int TransactionCount { get; set; }
+        public Dictionary<string, string> EBMProductMap { get; set; } = new();
+        public Dictionary<string, string> EBMVariantMap { get; set; } = new();
+        public Dictionary<string, string> EBMStockMap { get; set; } = new();
     }
 }

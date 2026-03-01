@@ -8,4 +8,6 @@ public interface ISettingsService
     Task<AppSettingsResponseDto> UpdateSettingsAsync(UpdateSettingsRequestDto request);
     Task<EbmStatusDto> GetEbmStatusAsync();
     Task<EbmStatusDto> SyncEbmAsync();
+    Task<EbmConfigResponseDto> GetEbmConfigAsync();
+    Task<bool> TestEbmConnectionAsync();
 }

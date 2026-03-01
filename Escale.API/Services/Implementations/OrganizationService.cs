@@ -16,11 +16,16 @@ public class OrganizationService : IOrganizationService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly IEBMService _ebmService;
+    private readonly ILogger<OrganizationService> _logger;
 
-    public OrganizationService(IUnitOfWork unitOfWork, IMapper mapper)
+    public OrganizationService(IUnitOfWork unitOfWork, IMapper mapper,
+        IEBMService ebmService, ILogger<OrganizationService> logger)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _ebmService = ebmService;
+        _logger = logger;
     }
 
     public async Task<List<OrganizationResponseDto>> GetAllOrganizationsAsync()
@@ -226,9 +231,37 @@ public class OrganizationService : IOrganizationService
 
         settings.EBMEnabled = request.EBMEnabled;
         settings.EBMServerUrl = request.EBMServerUrl;
+        settings.EBMBusinessId = request.EBMBusinessId;
+        settings.EBMBranchId = request.EBMBranchId;
+        settings.EBMCompanyName = request.EBMCompanyName;
+        settings.EBMCompanyAddress = request.EBMCompanyAddress;
+        settings.EBMCompanyPhone = request.EBMCompanyPhone;
+        settings.EBMCompanyTIN = request.EBMCompanyTIN;
+        settings.EBMCategoryId = request.EBMCategoryId;
 
         _unitOfWork.OrganizationSettings.Update(settings);
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task<EbmConfigResponseDto> GetEbmConfigAsync(Guid orgId)
+    {
+        var settings = await _unitOfWork.OrganizationSettings.Query()
+            .FirstOrDefaultAsync(s => s.OrganizationId == orgId)
+            ?? throw new KeyNotFoundException("Organization settings not found");
+
+        return new EbmConfigResponseDto
+        {
+            EBMEnabled = settings.EBMEnabled,
+            EBMServerUrl = settings.EBMServerUrl,
+            EBMBusinessId = settings.EBMBusinessId,
+            EBMBranchId = settings.EBMBranchId,
+            EBMCompanyName = settings.EBMCompanyName,
+            EBMCompanyAddress = settings.EBMCompanyAddress,
+            EBMCompanyPhone = settings.EBMCompanyPhone,
+            EBMCompanyTIN = settings.EBMCompanyTIN,
+            EBMCategoryId = settings.EBMCategoryId,
+            IsConfigured = !string.IsNullOrEmpty(settings.EBMBusinessId) && !string.IsNullOrEmpty(settings.EBMBranchId)
+        };
     }
 
     public async Task<List<FuelTypeResponseDto>> GetOrganizationFuelTypesAsync(Guid orgId)
@@ -250,24 +283,83 @@ public class OrganizationService : IOrganizationService
         if (exists)
             throw new InvalidOperationException("Fuel type already exists for this organization");
 
-        var ft = new FuelType
-        {
-            OrganizationId = orgId,
-            Name = request.Name,
-            CurrentPrice = request.PricePerLiter,
-            IsActive = true
-        };
-        await _unitOfWork.FuelTypes.AddAsync(ft);
+        // EBM FIRST — register product in EBM before saving to DB
+        string? ebmProductId = null;
+        string? ebmVariantId = request.EBMVariantId;
+        string? ebmStockId = null;
 
-        await _unitOfWork.FuelPrices.AddAsync(new FuelPrice
-        {
-            FuelTypeId = ft.Id,
-            Price = request.PricePerLiter,
-            EffectiveFrom = DateTime.UtcNow
-        });
+        var orgSettings = await _unitOfWork.OrganizationSettings.Query()
+            .FirstOrDefaultAsync(s => s.OrganizationId == orgId);
 
-        await _unitOfWork.SaveChangesAsync();
-        return _mapper.Map<FuelTypeResponseDto>(ft);
+        if (orgSettings?.EBMEnabled == true)
+        {
+            var ebmResult = await _ebmService.CreateProductAsync(
+                orgId, request.Name, request.PricePerLiter, request.EBMSupplyPrice ?? 0);
+
+            if (!ebmResult.Success)
+                throw new InvalidOperationException(
+                    $"Failed to register product in EBM: {ebmResult.ErrorMessage}. Fuel type was NOT created.");
+
+            ebmProductId = ebmResult.ProductId;
+            ebmVariantId = ebmResult.VariantId;
+            ebmStockId = ebmResult.StockId;
+        }
+
+        // EBM succeeded — now save to DB
+        try
+        {
+            var ft = new FuelType
+            {
+                OrganizationId = orgId,
+                Name = request.Name,
+                CurrentPrice = request.PricePerLiter,
+                IsActive = true,
+                EBMProductId = ebmProductId,
+                EBMVariantId = ebmVariantId,
+                EBMSupplyPrice = request.EBMSupplyPrice
+            };
+            await _unitOfWork.FuelTypes.AddAsync(ft);
+
+            await _unitOfWork.FuelPrices.AddAsync(new FuelPrice
+            {
+                FuelTypeId = ft.Id,
+                Price = request.PricePerLiter,
+                EffectiveFrom = DateTime.UtcNow
+            });
+
+            // Create inventory items with EBM stock ID for all active stations
+            var stations = await _unitOfWork.Stations.Query()
+                .Where(s => s.OrganizationId == orgId && s.IsActive)
+                .ToListAsync();
+
+            foreach (var station in stations)
+            {
+                await _unitOfWork.InventoryItems.AddAsync(new InventoryItem
+                {
+                    OrganizationId = orgId,
+                    StationId = station.Id,
+                    FuelTypeId = ft.Id,
+                    CurrentLevel = 0,
+                    Capacity = 20000,
+                    ReorderLevel = 5000,
+                    EBMStockId = ebmStockId
+                });
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+            return _mapper.Map<FuelTypeResponseDto>(ft);
+        }
+        catch (Exception ex)
+        {
+            // DB failed — revert EBM by deleting the product
+            if (!string.IsNullOrEmpty(ebmProductId))
+            {
+                _logger.LogWarning("DB save failed, deleting EBM product {ProductId} for org {OrgId}", ebmProductId, orgId);
+                await _ebmService.DeleteProductAsync(orgId, ebmProductId);
+            }
+            throw new InvalidOperationException(
+                $"Failed to save fuel type to database. EBM product has been reverted. Error: {ex.Message}");
+        }
     }
 
     public async Task<FuelTypeResponseDto> UpdateOrganizationFuelTypeAsync(Guid orgId, Guid fuelTypeId, UpdateFuelTypeRequestDto request)
@@ -276,12 +368,54 @@ public class OrganizationService : IOrganizationService
             .FirstOrDefaultAsync(f => f.Id == fuelTypeId && f.OrganizationId == orgId)
             ?? throw new KeyNotFoundException("Fuel type not found");
 
-        ft.Name = request.Name;
-        ft.CurrentPrice = request.PricePerLiter;
-        ft.IsActive = request.IsActive;
+        var priceChanged = ft.CurrentPrice != request.PricePerLiter;
+        var oldPrice = ft.CurrentPrice;
+        var ebmVariantId = request.EBMVariantId ?? ft.EBMVariantId;
+        var ebmSupplyPrice = request.EBMSupplyPrice ?? ft.EBMSupplyPrice ?? 0;
+        bool ebmPriceUpdated = false;
 
-        _unitOfWork.FuelTypes.Update(ft);
-        await _unitOfWork.SaveChangesAsync();
+        // EBM FIRST — sync new price to EBM before saving to DB
+        if (priceChanged && !string.IsNullOrEmpty(ebmVariantId))
+        {
+            var orgSettings = await _unitOfWork.OrganizationSettings.Query()
+                .FirstOrDefaultAsync(s => s.OrganizationId == orgId);
+
+            if (orgSettings?.EBMEnabled == true)
+            {
+                var ebmSuccess = await _ebmService.UpdatePriceAsync(orgId, ebmVariantId,
+                    request.PricePerLiter, ebmSupplyPrice);
+
+                if (!ebmSuccess)
+                    throw new InvalidOperationException(
+                        "Failed to update price in EBM. Price was NOT changed. Please try again.");
+
+                ebmPriceUpdated = true;
+            }
+        }
+
+        // EBM succeeded — now save to DB
+        try
+        {
+            ft.Name = request.Name;
+            ft.CurrentPrice = request.PricePerLiter;
+            ft.IsActive = request.IsActive;
+            ft.EBMVariantId = request.EBMVariantId;
+            ft.EBMSupplyPrice = request.EBMSupplyPrice;
+
+            _unitOfWork.FuelTypes.Update(ft);
+            await _unitOfWork.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            // DB failed — revert EBM price back to old value
+            if (ebmPriceUpdated)
+            {
+                _logger.LogWarning("DB save failed, reverting EBM price for fuel type {FuelTypeId} back to {OldPrice}", fuelTypeId, oldPrice);
+                await _ebmService.UpdatePriceAsync(orgId, ebmVariantId!, oldPrice, ebmSupplyPrice);
+            }
+            throw new InvalidOperationException(
+                $"Failed to save price update to database. EBM has been reverted. Error: {ex.Message}");
+        }
 
         return _mapper.Map<FuelTypeResponseDto>(ft);
     }
