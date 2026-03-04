@@ -9,6 +9,8 @@ namespace Escale.mobile.ViewModels;
 public partial class StockViewModel : ObservableObject
 {
     private readonly ApiService _apiService;
+    private readonly SignalRService _signalRService;
+    private Action<string>? _dataChangedHandler;
 
     [ObservableProperty]
     private ObservableCollection<StockLevel> stockLevels = new();
@@ -22,9 +24,33 @@ public partial class StockViewModel : ObservableObject
     [ObservableProperty]
     private DateTime lastUpdated;
 
-    public StockViewModel(ApiService apiService)
+    public StockViewModel(ApiService apiService, SignalRService signalRService)
     {
         _apiService = apiService;
+        _signalRService = signalRService;
+    }
+
+    public void SubscribeToNotifications()
+    {
+        UnsubscribeFromNotifications();
+        _dataChangedHandler = changeType =>
+        {
+            if (changeType == NotificationConstants.SaleCompleted ||
+                changeType == NotificationConstants.InventoryChanged)
+            {
+                MainThread.BeginInvokeOnMainThread(() => RefreshCommand.Execute(null));
+            }
+        };
+        _signalRService.OnDataChanged += _dataChangedHandler;
+    }
+
+    public void UnsubscribeFromNotifications()
+    {
+        if (_dataChangedHandler != null)
+        {
+            _signalRService.OnDataChanged -= _dataChangedHandler;
+            _dataChangedHandler = null;
+        }
     }
 
     [RelayCommand]

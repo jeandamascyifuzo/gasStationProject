@@ -9,6 +9,8 @@ namespace Escale.mobile.ViewModels;
 public partial class DashboardViewModel : ObservableObject
 {
     private readonly ApiService _apiService;
+    private readonly SignalRService _signalRService;
+    private Action<string>? _dataChangedHandler;
 
     [ObservableProperty]
     private string userName = string.Empty;
@@ -43,10 +45,36 @@ public partial class DashboardViewModel : ObservableObject
     [ObservableProperty]
     private bool hasData;
 
-    public DashboardViewModel(ApiService apiService)
+    public DashboardViewModel(ApiService apiService, SignalRService signalRService)
     {
         _apiService = apiService;
+        _signalRService = signalRService;
         LoadDashboard();
+    }
+
+    public void SubscribeToNotifications()
+    {
+        UnsubscribeFromNotifications();
+        _dataChangedHandler = changeType =>
+        {
+            if (changeType == NotificationConstants.SaleCompleted ||
+                changeType == NotificationConstants.InventoryChanged ||
+                changeType == NotificationConstants.FuelTypesChanged ||
+                changeType == NotificationConstants.StationChanged)
+            {
+                MainThread.BeginInvokeOnMainThread(() => RefreshCommand.Execute(null));
+            }
+        };
+        _signalRService.OnDataChanged += _dataChangedHandler;
+    }
+
+    public void UnsubscribeFromNotifications()
+    {
+        if (_dataChangedHandler != null)
+        {
+            _signalRService.OnDataChanged -= _dataChangedHandler;
+            _dataChangedHandler = null;
+        }
     }
 
     private async void LoadDashboard()

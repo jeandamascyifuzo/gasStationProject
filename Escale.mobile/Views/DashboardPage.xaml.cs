@@ -15,7 +15,17 @@ public partial class DashboardPage : ContentPage
         base.OnAppearing();
         if (BindingContext is DashboardViewModel vm)
         {
+            vm.SubscribeToNotifications();
             vm.RefreshCommand.Execute(null);
+        }
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        if (BindingContext is DashboardViewModel vm)
+        {
+            vm.UnsubscribeFromNotifications();
         }
     }
 }

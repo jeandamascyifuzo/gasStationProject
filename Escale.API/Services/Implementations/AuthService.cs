@@ -4,6 +4,7 @@ using Escale.API.Domain.Constants;
 using Escale.API.Domain.Entities;
 using Escale.API.Domain.Enums;
 using Escale.API.DTOs.Auth;
+using Escale.API.DTOs.Users;
 using Escale.API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,8 +27,8 @@ public class AuthService : IAuthService
 
     public async Task<LoginResponseDto> LoginAsync(LoginRequestDto request)
     {
+        // Fast lookup: get user without includes first for password check
         var user = await _unitOfWork.Users.Query()
-            .Include(u => u.UserStations).ThenInclude(us => us.Station)
             .FirstOrDefaultAsync(u => u.Username == request.Username);
 
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
@@ -35,6 +36,14 @@ public class AuthService : IAuthService
 
         if (!user.IsActive)
             return new LoginResponseDto { Success = false, Message = "Account is disabled" };
+
+        // Only load stations after password is verified (avoid unnecessary joins on bad passwords)
+        var stations = await _unitOfWork.Context.UserStations
+            .Include(us => us.Station)
+            .Where(us => us.UserId == user.Id)
+            .ToListAsync();
+
+        user.UserStations = stations;
 
         var accessToken = _tokenService.GenerateAccessToken(user);
         var refreshToken = _tokenService.GenerateRefreshToken();
@@ -49,7 +58,6 @@ public class AuthService : IAuthService
         });
 
         user.LastLoginAt = DateTime.UtcNow;
-        _unitOfWork.Users.Update(user);
         await _unitOfWork.SaveChangesAsync();
 
         return new LoginResponseDto
@@ -218,6 +226,58 @@ public class AuthService : IAuthService
         token.IsRevoked = true;
         token.RevokedAt = DateTime.UtcNow;
         _unitOfWork.RefreshTokens.Update(token);
+        await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task<ProfileResponseDto> GetProfileAsync(Guid userId)
+    {
+        var user = await _unitOfWork.Users.GetByIdAsync(userId)
+            ?? throw new KeyNotFoundException("User not found");
+
+        return new ProfileResponseDto
+        {
+            Id = user.Id,
+            Username = user.Username,
+            FullName = user.FullName,
+            Email = user.Email,
+            Phone = user.Phone,
+            Role = user.Role.ToString()
+        };
+    }
+
+    public async Task<ProfileResponseDto> UpdateProfileAsync(Guid userId, UpdateProfileRequestDto request)
+    {
+        var user = await _unitOfWork.Users.GetByIdAsync(userId)
+            ?? throw new KeyNotFoundException("User not found");
+
+        user.FullName = request.FullName;
+        user.Email = request.Email;
+        user.Phone = request.Phone;
+
+        _unitOfWork.Users.Update(user);
+        await _unitOfWork.SaveChangesAsync();
+
+        return new ProfileResponseDto
+        {
+            Id = user.Id,
+            Username = user.Username,
+            FullName = user.FullName,
+            Email = user.Email,
+            Phone = user.Phone,
+            Role = user.Role.ToString()
+        };
+    }
+
+    public async Task ChangeOwnPasswordAsync(Guid userId, ChangePasswordRequestDto request)
+    {
+        var user = await _unitOfWork.Users.GetByIdAsync(userId)
+            ?? throw new KeyNotFoundException("User not found");
+
+        if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
+            throw new InvalidOperationException("Current password is incorrect");
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        _unitOfWork.Users.Update(user);
         await _unitOfWork.SaveChangesAsync();
     }
 }

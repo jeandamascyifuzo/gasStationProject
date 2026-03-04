@@ -674,7 +674,7 @@ namespace Escale.API.Migrations
 
                     b.HasIndex("StationId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId", "StationId", "IsActive");
 
                     b.ToTable("Shifts", (string)null);
                 });
@@ -930,8 +930,6 @@ namespace Escale.API.Migrations
 
                     b.HasIndex("FuelTypeId");
 
-                    b.HasIndex("OrganizationId");
-
                     b.HasIndex("ReceiptNumber")
                         .IsUnique();
 
@@ -942,6 +940,10 @@ namespace Escale.API.Migrations
                     b.HasIndex("SubscriptionId");
 
                     b.HasIndex("TransactionDate");
+
+                    b.HasIndex("OrganizationId", "TransactionDate");
+
+                    b.HasIndex("OrganizationId", "StationId", "TransactionDate");
 
                     b.ToTable("Transactions", (string)null);
                 });
@@ -1008,6 +1010,8 @@ namespace Escale.API.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Username");
 
                     b.HasIndex("OrganizationId", "Username")
                         .IsUnique()

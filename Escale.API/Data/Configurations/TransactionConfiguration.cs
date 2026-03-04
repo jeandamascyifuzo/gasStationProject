@@ -25,6 +25,8 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.Property(x => x.EBMErrorMessage).HasMaxLength(1000);
         builder.HasIndex(x => x.ReceiptNumber).IsUnique();
         builder.HasIndex(x => x.TransactionDate);
+        builder.HasIndex(x => new { x.OrganizationId, x.StationId, x.TransactionDate });
+        builder.HasIndex(x => new { x.OrganizationId, x.TransactionDate });
         builder.HasOne(x => x.Organization).WithMany().HasForeignKey(x => x.OrganizationId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(x => x.Station).WithMany(s => s.Transactions).HasForeignKey(x => x.StationId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(x => x.FuelType).WithMany(f => f.Transactions).HasForeignKey(x => x.FuelTypeId).OnDelete(DeleteBehavior.Restrict);

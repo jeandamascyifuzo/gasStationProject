@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:Escale.mobile.ViewModels"
              xmlns:models="clr-namespace:Escale.mobile.Models"
+             xmlns:helpers="clr-namespace:Escale.mobile.Helpers"
              x:Class="Escale.mobile.Views.StationSelectionPage"
              x:DataType="vm:StationSelectionViewModel"
              Title="Select Station"
@@ -42,9 +43,9 @@
                                         BackgroundColor="#EEF2FF"
                                         HeightRequest="60"
                                         WidthRequest="60">
-                                    <Label Text="S"
-                                           FontSize="24"
-                                           FontAttributes="Bold"
+                                    <Label Text="{x:Static helpers:IconFont.GasStation}"
+                                           FontFamily="MaterialDesignIcons"
+                                           FontSize="26"
                                            TextColor="#1E3A8A"
                                            HorizontalOptions="Center"
                                            VerticalOptions="Center"/>
@@ -61,9 +62,9 @@
                                 </VerticalStackLayout>
 
                                 <Label Grid.Column="2"
-                                       Text=">"
-                                       FontSize="20"
-                                       FontAttributes="Bold"
+                                       Text="{x:Static helpers:IconFont.ChevronRight}"
+                                       FontFamily="MaterialDesignIcons"
+                                       FontSize="24"
                                        TextColor="#94A3B8"
                                        VerticalOptions="Center"/>
                             </Grid>

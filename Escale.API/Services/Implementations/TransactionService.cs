@@ -24,6 +24,7 @@ public class TransactionService : ITransactionService
     {
         var orgId = _currentUser.OrganizationId!.Value;
         var query = _unitOfWork.Transactions.Query()
+            .AsNoTracking()
             .Include(t => t.FuelType)
             .Include(t => t.Cashier)
             .Include(t => t.Station)
@@ -58,6 +59,7 @@ public class TransactionService : ITransactionService
     {
         var orgId = _currentUser.OrganizationId!.Value;
         var transaction = await _unitOfWork.Transactions.Query()
+            .AsNoTracking()
             .Include(t => t.FuelType)
             .Include(t => t.Cashier)
             .Include(t => t.Station)

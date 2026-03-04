@@ -384,7 +384,7 @@
                     <h5 class="modal-title">Record Fuel Refill - @Model.Station.Name</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form asp-controller="Inventory" asp-action="RecordRefill" method="post">
+                <form asp-controller="Inventory" asp-action="RecordRefill" method="post" data-loading-form>
                     <div class="modal-body">
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -482,6 +482,9 @@
         var startDate = $('#salesStartDate').val();
         var endDate = $('#salesEndDate').val();
 
+        var activeBtn = $('#salesPeriodBtns button.active')[0];
+        if (activeBtn) startLoading(activeBtn, 'Loading...');
+
         $.get('@Url.Action("GetStationSales", "Stations")', {
             id: '@Model.Station.Id',
             startDate: startDate,
@@ -539,6 +542,8 @@
         }).fail(function() {
             $('#salesByFuelBody').html('<tr><td colspan="4" class="text-center text-danger">Failed to load sales data</td></tr>');
             $('#salesByPaymentBody').html('<tr><td colspan="3" class="text-center text-danger">Failed to load sales data</td></tr>');
+        }).always(function() {
+            if (activeBtn) stopLoading(activeBtn);
         });
     }
 </script>

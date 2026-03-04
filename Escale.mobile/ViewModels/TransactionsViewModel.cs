@@ -9,6 +9,8 @@ namespace Escale.mobile.ViewModels;
 public partial class TransactionsViewModel : ObservableObject
 {
     private readonly ApiService _apiService;
+    private readonly SignalRService _signalRService;
+    private Action<string>? _dataChangedHandler;
 
     [ObservableProperty]
     private ObservableCollection<Transaction> transactions = new();
@@ -31,9 +33,32 @@ public partial class TransactionsViewModel : ObservableObject
     [ObservableProperty]
     private DateTime endDate = DateTime.Today;
 
-    public TransactionsViewModel(ApiService apiService)
+    public TransactionsViewModel(ApiService apiService, SignalRService signalRService)
     {
         _apiService = apiService;
+        _signalRService = signalRService;
+    }
+
+    public void SubscribeToNotifications()
+    {
+        UnsubscribeFromNotifications();
+        _dataChangedHandler = changeType =>
+        {
+            if (changeType == NotificationConstants.SaleCompleted)
+            {
+                MainThread.BeginInvokeOnMainThread(() => RefreshCommand.Execute(null));
+            }
+        };
+        _signalRService.OnDataChanged += _dataChangedHandler;
+    }
+
+    public void UnsubscribeFromNotifications()
+    {
+        if (_dataChangedHandler != null)
+        {
+            _signalRService.OnDataChanged -= _dataChangedHandler;
+            _dataChangedHandler = null;
+        }
     }
 
     partial void OnStartDateChanged(DateTime value)

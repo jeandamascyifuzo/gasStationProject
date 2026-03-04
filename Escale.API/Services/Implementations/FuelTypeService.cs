@@ -2,6 +2,7 @@ using AutoMapper;
 using Escale.API.Data.Repositories;
 using Escale.API.Domain.Entities;
 using Escale.API.DTOs.FuelTypes;
+using Escale.API.Hubs;
 using Escale.API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,15 +14,17 @@ public class FuelTypeService : IFuelTypeService
     private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
     private readonly IEBMService _ebmService;
+    private readonly INotificationService _notificationService;
     private readonly ILogger<FuelTypeService> _logger;
 
     public FuelTypeService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper,
-        IEBMService ebmService, ILogger<FuelTypeService> logger)
+        IEBMService ebmService, INotificationService notificationService, ILogger<FuelTypeService> logger)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _mapper = mapper;
         _ebmService = ebmService;
+        _notificationService = notificationService;
         _logger = logger;
     }
 
@@ -29,6 +32,7 @@ public class FuelTypeService : IFuelTypeService
     {
         var orgId = _currentUser.OrganizationId!.Value;
         var fuelTypes = await _unitOfWork.FuelTypes.Query()
+            .AsNoTracking()
             .Where(f => f.OrganizationId == orgId)
             .OrderBy(f => f.Name)
             .ToListAsync();
@@ -39,6 +43,7 @@ public class FuelTypeService : IFuelTypeService
     {
         var orgId = _currentUser.OrganizationId!.Value;
         var fuelType = await _unitOfWork.FuelTypes.Query()
+            .AsNoTracking()
             .FirstOrDefaultAsync(f => f.Id == id && f.OrganizationId == orgId)
             ?? throw new KeyNotFoundException("Fuel type not found");
         return _mapper.Map<FuelTypeResponseDto>(fuelType);
@@ -115,6 +120,7 @@ public class FuelTypeService : IFuelTypeService
             }
 
             await _unitOfWork.SaveChangesAsync();
+            _ = _notificationService.NotifyDataChangedAsync(orgId, NotificationConstants.FuelTypesChanged);
             return _mapper.Map<FuelTypeResponseDto>(fuelType);
         }
         catch (Exception ex)
@@ -205,6 +211,7 @@ public class FuelTypeService : IFuelTypeService
             fuelType.EBMSupplyPrice = request.EBMSupplyPrice ?? fuelType.EBMSupplyPrice;
             _unitOfWork.FuelTypes.Update(fuelType);
             await _unitOfWork.SaveChangesAsync();
+            _ = _notificationService.NotifyDataChangedAsync(orgId, NotificationConstants.FuelTypesChanged);
         }
         catch (Exception ex)
         {
@@ -233,5 +240,6 @@ public class FuelTypeService : IFuelTypeService
             ?? throw new KeyNotFoundException("Fuel type not found");
         _unitOfWork.FuelTypes.Remove(fuelType);
         await _unitOfWork.SaveChangesAsync();
+        _ = _notificationService.NotifyDataChangedAsync(orgId, NotificationConstants.FuelTypesChanged);
     }
 }

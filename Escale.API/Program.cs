@@ -1,10 +1,13 @@
+using System.IO.Compression;
 using System.Text.Json.Serialization;
 using Escale.API.Data;
 using Escale.API.Data.Seeds;
 using Escale.API.Extensions;
+using Escale.API.Hubs;
 using Escale.API.Middleware;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -25,6 +28,9 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();
 
+// SignalR
+builder.Services.AddSignalR();
+
 // Application services
 builder.Services.AddApplicationServices();
 
@@ -43,16 +49,35 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
-// CORS
+// CORS (AllowCredentials required for SignalR WebSocket auth)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.SetIsOriginAllowed(_ => true)
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
+
+// Response compression
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[]
+    {
+        "application/json",
+        "application/json; charset=utf-8"
+    });
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
+
+// Memory cache for hot data (org settings, fuel types)
+builder.Services.AddMemoryCache();
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -61,6 +86,7 @@ builder.Services.AddSwaggerDocumentation();
 var app = builder.Build();
 
 // Middleware pipeline
+app.UseResponseCompression();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseSwagger();
@@ -80,6 +106,7 @@ app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<EscaleHub>("/hubs/escale");
 
 // Database migration + seed
 using (var scope = app.Services.CreateScope())

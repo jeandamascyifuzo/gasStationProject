@@ -7,6 +7,7 @@ using Escale.API.DTOs.FuelTypes;
 using Escale.API.DTOs.Organizations;
 using Escale.API.DTOs.Settings;
 using Escale.API.DTOs.Stations;
+using Escale.API.DTOs.Users;
 using Escale.API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -101,21 +102,6 @@ public class OrganizationService : IOrganizationService
         };
         await _unitOfWork.Organizations.AddAsync(org);
 
-        // Create default admin user
-        var adminUser = new User
-        {
-            Id = Guid.NewGuid(),
-            OrganizationId = orgId,
-            Username = $"admin-{slug}",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
-            FullName = $"{request.Name} Admin",
-            Email = request.Email,
-            Role = UserRole.Admin,
-            IsActive = true,
-            CreatedAt = now
-        };
-        await _unitOfWork.Users.AddAsync(adminUser);
-
         // Default fuel types
         var fuelTypes = new[]
         {
@@ -164,7 +150,7 @@ public class OrganizationService : IOrganizationService
             IsActive = org.IsActive,
             CreatedAt = org.CreatedAt,
             StationCount = 0,
-            UserCount = 1
+            UserCount = 0
         };
     }
 
@@ -428,5 +414,70 @@ public class OrganizationService : IOrganizationService
 
         _unitOfWork.FuelTypes.Remove(ft);
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task<UserResponseDto?> GetOrganizationAdminAsync(Guid orgId)
+    {
+        var admin = await _unitOfWork.Users.Query()
+            .FirstOrDefaultAsync(u => u.OrganizationId == orgId && u.Role == UserRole.Admin);
+
+        if (admin == null) return null;
+
+        return new UserResponseDto
+        {
+            Id = admin.Id,
+            Username = admin.Username,
+            FullName = admin.FullName,
+            Email = admin.Email,
+            Phone = admin.Phone,
+            Role = admin.Role.ToString(),
+            IsActive = admin.IsActive,
+            LastLoginAt = admin.LastLoginAt,
+            CreatedAt = admin.CreatedAt
+        };
+    }
+
+    public async Task<UserResponseDto> CreateOrganizationAdminAsync(Guid orgId, CreateOrgAdminRequestDto request)
+    {
+        var org = await _unitOfWork.Organizations.GetByIdAsync(orgId)
+            ?? throw new KeyNotFoundException("Organization not found");
+
+        var existingAdmin = await _unitOfWork.Users.Query()
+            .AnyAsync(u => u.OrganizationId == orgId && u.Role == UserRole.Admin);
+        if (existingAdmin)
+            throw new InvalidOperationException("This organization already has an admin user");
+
+        var usernameExists = await _unitOfWork.Users.ExistsAsync(u => u.Username == request.Username);
+        if (usernameExists)
+            throw new InvalidOperationException("Username already exists");
+
+        var admin = new User
+        {
+            Id = Guid.NewGuid(),
+            OrganizationId = orgId,
+            Username = request.Username,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            FullName = request.FullName,
+            Email = request.Email,
+            Phone = request.Phone,
+            Role = UserRole.Admin,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _unitOfWork.Users.AddAsync(admin);
+        await _unitOfWork.SaveChangesAsync();
+
+        return new UserResponseDto
+        {
+            Id = admin.Id,
+            Username = admin.Username,
+            FullName = admin.FullName,
+            Email = admin.Email,
+            Phone = admin.Phone,
+            Role = admin.Role.ToString(),
+            IsActive = admin.IsActive,
+            CreatedAt = admin.CreatedAt
+        };
     }
 }

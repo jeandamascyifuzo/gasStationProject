@@ -18,6 +18,7 @@ namespace Escale.mobile
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+                    fonts.AddFont("materialdesignicons-webfont.ttf", "MaterialDesignIcons");
                 })
                 .ConfigureMauiHandlers(handlers =>
                 {
@@ -34,6 +35,7 @@ namespace Escale.mobile
             // Register Services
             builder.Services.AddSingleton<ApiService>();
             builder.Services.AddSingleton<AppState>();
+            builder.Services.AddSingleton<SignalRService>();
 
             // Register ViewModels
             builder.Services.AddTransient<LoginViewModel>();
@@ -48,6 +50,7 @@ namespace Escale.mobile
             builder.Services.AddTransient<StockViewModel>();
             builder.Services.AddTransient<TransactionsViewModel>();
             builder.Services.AddTransient<ProfileViewModel>();
+            builder.Services.AddTransient<ChangePasswordViewModel>();
 
             // Register Views
             builder.Services.AddTransient<LoginPage>();
@@ -62,6 +65,7 @@ namespace Escale.mobile
             builder.Services.AddTransient<StockPage>();
             builder.Services.AddTransient<TransactionsPage>();
             builder.Services.AddTransient<ProfilePage>();
+            builder.Services.AddTransient<ChangePasswordPage>();
 
             var app = builder.Build();
             Services = app.Services;

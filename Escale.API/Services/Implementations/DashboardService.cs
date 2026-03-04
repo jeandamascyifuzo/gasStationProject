@@ -26,6 +26,7 @@ public class DashboardService : IDashboardService
         var end = endDate?.Date ?? DateTime.UtcNow.Date;
 
         var stationPerformance = await _unitOfWork.Transactions.Query()
+            .AsNoTracking()
             .Include(t => t.Station)
             .Where(t => t.OrganizationId == orgId
                 && t.TransactionDate >= start
@@ -53,27 +54,40 @@ public class DashboardService : IDashboardService
     {
         var orgId = _currentUser.OrganizationId!.Value;
         var targetDate = date?.Date ?? DateTime.UtcNow.Date;
+        var nextDate = targetDate.AddDays(1);
 
+        // Use date range instead of .Date comparison (allows index usage)
         var txQuery = _unitOfWork.Transactions.Query()
-            .Where(t => t.OrganizationId == orgId && t.TransactionDate.Date == targetDate);
+            .AsNoTracking()
+            .Where(t => t.OrganizationId == orgId && t.TransactionDate >= targetDate && t.TransactionDate < nextDate);
 
         if (stationId.HasValue)
             txQuery = txQuery.Where(t => t.StationId == stationId.Value);
 
-        var todaysSales = await txQuery.SumAsync(t => (decimal?)t.Total) ?? 0;
-        var transactionCount = await txQuery.CountAsync();
+        // Single aggregation query instead of two separate Sum + Count
+        var aggregate = await txQuery
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                TotalSales = g.Sum(t => (decimal?)t.Total) ?? 0,
+                Count = g.Count()
+            })
+            .FirstOrDefaultAsync();
+
+        var todaysSales = aggregate?.TotalSales ?? 0;
+        var transactionCount = aggregate?.Count ?? 0;
         var averageSale = transactionCount > 0 ? todaysSales / transactionCount : 0;
 
         // Low stock alerts
         var inventoryQuery = _unitOfWork.InventoryItems.Query()
+            .AsNoTracking()
             .Include(i => i.FuelType)
             .Where(i => i.OrganizationId == orgId && i.Capacity > 0);
 
         if (stationId.HasValue)
             inventoryQuery = inventoryQuery.Where(i => i.StationId == stationId.Value);
 
-        var inventoryItems = await inventoryQuery.ToListAsync();
-        var lowStockAlerts = inventoryItems
+        var lowStockAlerts = await inventoryQuery
             .Where(i => i.CurrentLevel / i.Capacity < 0.25m)
             .Select(i => new StockAlertDto
             {
@@ -82,10 +96,11 @@ public class DashboardService : IDashboardService
                 Capacity = i.Capacity,
                 PercentageFull = Math.Round(i.CurrentLevel / i.Capacity * 100, 1)
             })
-            .ToList();
+            .ToListAsync();
 
         // Recent transactions
         var recentQuery = _unitOfWork.Transactions.Query()
+            .AsNoTracking()
             .Include(t => t.FuelType)
             .Where(t => t.OrganizationId == orgId);
 

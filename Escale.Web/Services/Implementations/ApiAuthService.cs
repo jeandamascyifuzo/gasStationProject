@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Escale.Web.Models.Api;
 using Escale.Web.Models.Api.AuthDtos;
 using Escale.Web.Services.Interfaces;
 
@@ -87,6 +88,72 @@ public class ApiAuthService : IApiAuthService
         catch
         {
             return false;
+        }
+    }
+
+    public async Task<ApiResponse<ProfileResponseDto>> GetProfileAsync(string accessToken)
+    {
+        try
+        {
+            var httpRequest = new HttpRequestMessage(HttpMethod.Get, "/api/auth/profile");
+            httpRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+            var response = await _httpClient.SendAsync(httpRequest);
+            var responseJson = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<ApiResponse<ProfileResponseDto>>(responseJson, JsonOptions);
+            return result ?? new ApiResponse<ProfileResponseDto> { Success = false, Message = "Failed to deserialize response" };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<ProfileResponseDto> { Success = false, Message = ex.Message };
+        }
+    }
+
+    public async Task<ApiResponse<ProfileResponseDto>> UpdateProfileAsync(UpdateProfileRequestDto request, string accessToken)
+    {
+        try
+        {
+            var json = JsonSerializer.Serialize(request, JsonOptions);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var httpRequest = new HttpRequestMessage(HttpMethod.Put, "/api/auth/profile")
+            {
+                Content = content
+            };
+            httpRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+            var response = await _httpClient.SendAsync(httpRequest);
+            var responseJson = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<ApiResponse<ProfileResponseDto>>(responseJson, JsonOptions);
+            return result ?? new ApiResponse<ProfileResponseDto> { Success = false, Message = "Failed to deserialize response" };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<ProfileResponseDto> { Success = false, Message = ex.Message };
+        }
+    }
+
+    public async Task<ApiResponse> ChangePasswordAsync(ChangePasswordRequestDto request, string accessToken)
+    {
+        try
+        {
+            var json = JsonSerializer.Serialize(request, JsonOptions);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/auth/change-password")
+            {
+                Content = content
+            };
+            httpRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+            var response = await _httpClient.SendAsync(httpRequest);
+            var responseJson = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<ApiResponse>(responseJson, JsonOptions);
+            return result ?? new ApiResponse { Success = false, Message = "Failed to deserialize response" };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse { Success = false, Message = ex.Message };
         }
     }
 }

@@ -377,7 +377,7 @@
                 <h5 class="modal-title" id="carModalTitle">Add Car</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="carForm" asp-action="AddCar" method="post">
+            <form id="carForm" asp-action="AddCar" method="post" data-loading-form>
                 <div class="modal-body">
                     <input type="hidden" name="customerId" value="@Model.Customer.Id" />
                     <input type="hidden" id="carId" name="carId" />
@@ -434,7 +434,7 @@
                 <h5 class="modal-title">Top Up Subscription</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form asp-action="TopUpSubscription" method="post">
+            <form asp-action="TopUpSubscription" method="post" data-loading-form>
                 <div class="modal-body">
                     <input type="hidden" name="customerId" value="@Model.Customer.Id" />
 

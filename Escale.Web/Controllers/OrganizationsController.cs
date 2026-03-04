@@ -52,12 +52,14 @@ public class OrganizationsController : Controller
         var orgTask = _organizationService.GetByIdAsync(id);
         var stationsTask = _organizationService.GetStationsAsync(id);
         var ebmTask = _organizationService.GetEbmConfigAsync(id);
+        var adminTask = _organizationService.GetAdminAsync(id);
 
-        await Task.WhenAll(orgTask, stationsTask, ebmTask);
+        await Task.WhenAll(orgTask, stationsTask, ebmTask, adminTask);
 
         var orgResult = orgTask.Result;
         var stationsResult = stationsTask.Result;
         var ebmResult = ebmTask.Result;
+        var adminResult = adminTask.Result;
 
         if (!orgResult.Success || orgResult.Data == null)
         {
@@ -106,7 +108,18 @@ public class OrganizationsController : Controller
                 EBMCompanyTIN = ebm.EBMCompanyTIN,
                 EBMCategoryId = ebm.EBMCategoryId,
                 IsConfigured = ebm.IsConfigured
-            } : new()
+            } : new(),
+            AdminUser = adminResult.Success && adminResult.Data != null ? new AdminUser
+            {
+                Id = adminResult.Data.Id,
+                Username = adminResult.Data.Username,
+                FullName = adminResult.Data.FullName,
+                Email = adminResult.Data.Email,
+                Phone = adminResult.Data.Phone,
+                IsActive = adminResult.Data.IsActive,
+                LastLoginAt = adminResult.Data.LastLoginAt,
+                CreatedAt = adminResult.Data.CreatedAt
+            } : null
         };
 
         return View(model);
@@ -213,6 +226,25 @@ public class OrganizationsController : Controller
         var result = await _organizationService.CreateStationAsync(orgId, request);
         TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
             result.Success ? "Station added successfully!" : result.Message;
+
+        return RedirectToAction("Details", new { id = orgId });
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateAdmin(Guid orgId, string username, string password, string fullName, string? email, string? phone)
+    {
+        var request = new CreateOrgAdminRequestDto
+        {
+            Username = username,
+            Password = password,
+            FullName = fullName,
+            Email = email,
+            Phone = phone
+        };
+
+        var result = await _organizationService.CreateAdminAsync(orgId, request);
+        TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+            result.Success ? "Admin user created successfully!" : result.Message;
 
         return RedirectToAction("Details", new { id = orgId });
     }

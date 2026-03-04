@@ -9,6 +9,8 @@ namespace Escale.mobile.ViewModels;
 public partial class NewSaleViewModel : ObservableObject
 {
     private readonly ApiService _apiService;
+    private readonly SignalRService _signalRService;
+    private Action<string>? _dataChangedHandler;
     private bool _isUpdating;
     private bool _fuelTypesLoaded;
 
@@ -38,9 +40,34 @@ public partial class NewSaleViewModel : ObservableObject
         "Cash", "MobileMoney", "Card", "Credit"
     };
 
-    public NewSaleViewModel(ApiService apiService)
+    public NewSaleViewModel(ApiService apiService, SignalRService signalRService)
     {
         _apiService = apiService;
+        _signalRService = signalRService;
+    }
+
+    public void SubscribeToNotifications()
+    {
+        UnsubscribeFromNotifications();
+        _dataChangedHandler = changeType =>
+        {
+            if (changeType == NotificationConstants.FuelTypesChanged)
+            {
+                _fuelTypesLoaded = false;
+                _apiService.InvalidateFuelTypesCache();
+                MainThread.BeginInvokeOnMainThread(async () => await InitializeAsync());
+            }
+        };
+        _signalRService.OnDataChanged += _dataChangedHandler;
+    }
+
+    public void UnsubscribeFromNotifications()
+    {
+        if (_dataChangedHandler != null)
+        {
+            _signalRService.OnDataChanged -= _dataChangedHandler;
+            _dataChangedHandler = null;
+        }
     }
 
     /// <summary>

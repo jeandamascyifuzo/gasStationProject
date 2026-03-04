@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:Escale.mobile.ViewModels"
+             xmlns:helpers="clr-namespace:Escale.mobile.Helpers"
              x:Class="Escale.mobile.Views.SaleCompletePage"
              x:DataType="vm:SaleCompleteViewModel"
              Title="Sale Complete"
@@ -17,7 +18,8 @@
                     HeightRequest="70"
                     WidthRequest="70"
                     HorizontalOptions="Center">
-                <Label Text="&#x2714;"
+                <Label Text="{x:Static helpers:IconFont.CheckCircle}"
+                       FontFamily="MaterialDesignIcons"
                        FontSize="36"
                        TextColor="#10B981"
                        HorizontalOptions="Center"
@@ -116,7 +118,13 @@
                     FontSize="15"
                     HeightRequest="50"
                     CornerRadius="10"
-                    IsVisible="{Binding HasEBMReceipt}"/>
+                    IsVisible="{Binding HasEBMReceipt}">
+                <Button.ImageSource>
+                    <FontImageSource FontFamily="MaterialDesignIcons"
+                                     Glyph="{x:Static helpers:IconFont.OpenInNew}"
+                                     Color="White" Size="18"/>
+                </Button.ImageSource>
+            </Button>
 
             <Button Text="New Sale"
                     Command="{Binding NewSaleCommand}"
@@ -125,7 +133,13 @@
                     FontSize="16"
                     FontAttributes="Bold"
                     HeightRequest="55"
-                    CornerRadius="10"/>
+                    CornerRadius="10">
+                <Button.ImageSource>
+                    <FontImageSource FontFamily="MaterialDesignIcons"
+                                     Glyph="{x:Static helpers:IconFont.CartOutline}"
+                                     Color="White" Size="20"/>
+                </Button.ImageSource>
+            </Button>
 
             <Button Text="Dashboard"
                     Command="{Binding GoToDashboardCommand}"
@@ -133,7 +147,13 @@
                     TextColor="White"
                     FontSize="16"
                     HeightRequest="50"
-                    CornerRadius="10"/>
+                    CornerRadius="10">
+                <Button.ImageSource>
+                    <FontImageSource FontFamily="MaterialDesignIcons"
+                                     Glyph="{x:Static helpers:IconFont.ViewDashboard}"
+                                     Color="White" Size="20"/>
+                </Button.ImageSource>
+            </Button>
         </VerticalStackLayout>
 
     </Grid>

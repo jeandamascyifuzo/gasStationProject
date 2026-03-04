@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:Escale.mobile.ViewModels"
+             xmlns:helpers="clr-namespace:Escale.mobile.Helpers"
              x:Class="Escale.mobile.Views.ProfilePage"
              x:DataType="vm:ProfileViewModel"
              Title="Profile"
@@ -26,9 +27,9 @@
                             HeightRequest="80"
                             WidthRequest="80"
                             HorizontalOptions="Center">
-                        <Label Text="U"
-                               FontSize="32"
-                               FontAttributes="Bold"
+                        <Label Text="{x:Static helpers:IconFont.Account}"
+                               FontFamily="MaterialDesignIcons"
+                               FontSize="36"
                                TextColor="White"
                                HorizontalOptions="Center"
                                VerticalOptions="Center"/>
@@ -74,9 +75,9 @@
                                     HeightRequest="28"
                                     WidthRequest="28"
                                     Padding="0">
-                                <Label Text="#"
+                                <Label Text="{x:Static helpers:IconFont.Receipt}"
+                                       FontFamily="MaterialDesignIcons"
                                        FontSize="14"
-                                       FontAttributes="Bold"
                                        TextColor="#10B981"
                                        HorizontalOptions="Center"
                                        VerticalOptions="Center"/>
@@ -95,9 +96,9 @@
                                     HeightRequest="28"
                                     WidthRequest="28"
                                     Padding="0">
-                                <Label Text="$"
+                                <Label Text="{x:Static helpers:IconFont.CurrencyUsd}"
+                                       FontFamily="MaterialDesignIcons"
                                        FontSize="14"
-                                       FontAttributes="Bold"
                                        TextColor="#10B981"
                                        HorizontalOptions="Center"
                                        VerticalOptions="Center"/>
@@ -116,9 +117,9 @@
                                     HeightRequest="28"
                                     WidthRequest="28"
                                     Padding="0">
-                                <Label Text="T"
+                                <Label Text="{x:Static helpers:IconFont.ClockOutline}"
+                                       FontFamily="MaterialDesignIcons"
                                        FontSize="14"
-                                       FontAttributes="Bold"
                                        TextColor="#1E3A8A"
                                        HorizontalOptions="Center"
                                        VerticalOptions="Center"/>
@@ -155,7 +156,13 @@
                     FontAttributes="Bold"
                     HeightRequest="55"
                     CornerRadius="10"
-                    IsVisible="{Binding CanSwitchStation}"/>
+                    IsVisible="{Binding CanSwitchStation}">
+                <Button.ImageSource>
+                    <FontImageSource FontFamily="MaterialDesignIcons"
+                                     Glyph="{x:Static helpers:IconFont.SwapHorizontal}"
+                                     Color="White" Size="20"/>
+                </Button.ImageSource>
+            </Button>
 
             <Button Command="{Binding ClockInOutCommand}"
                     BackgroundColor="{Binding IsClockedIn, Converter={StaticResource BoolToClockButtonColorConverter}}"
@@ -171,6 +178,11 @@
                         </Binding.Converter>
                     </Binding>
                 </Button.Text>
+                <Button.ImageSource>
+                    <FontImageSource FontFamily="MaterialDesignIcons"
+                                     Glyph="{x:Static helpers:IconFont.ClockOutline}"
+                                     Color="White" Size="20"/>
+                </Button.ImageSource>
             </Button>
 
             <Button Text="Shift Summary"
@@ -179,7 +191,13 @@
                     TextColor="White"
                     FontSize="16"
                     HeightRequest="55"
-                    CornerRadius="10"/>
+                    CornerRadius="10">
+                <Button.ImageSource>
+                    <FontImageSource FontFamily="MaterialDesignIcons"
+                                     Glyph="{x:Static helpers:IconFont.FileDocument}"
+                                     Color="White" Size="20"/>
+                </Button.ImageSource>
+            </Button>
 
             <Button Text="Change Password"
                     Command="{Binding ChangePasswordCommand}"
@@ -187,7 +205,13 @@
                     TextColor="White"
                     FontSize="16"
                     HeightRequest="55"
-                    CornerRadius="10"/>
+                    CornerRadius="10">
+                <Button.ImageSource>
+                    <FontImageSource FontFamily="MaterialDesignIcons"
+                                     Glyph="{x:Static helpers:IconFont.LockReset}"
+                                     Color="White" Size="20"/>
+                </Button.ImageSource>
+            </Button>
 
             <Button Text="Logout"
                     Command="{Binding LogoutCommand}"
@@ -197,7 +221,13 @@
                     FontAttributes="Bold"
                     HeightRequest="55"
                     CornerRadius="10"
-                    Margin="0,20,0,0"/>
+                    Margin="0,20,0,0">
+                <Button.ImageSource>
+                    <FontImageSource FontFamily="MaterialDesignIcons"
+                                     Glyph="{x:Static helpers:IconFont.LogoutVariant}"
+                                     Color="White" Size="20"/>
+                </Button.ImageSource>
+            </Button>
 
         </VerticalStackLayout>
     </ScrollView>

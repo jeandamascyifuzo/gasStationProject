@@ -18,6 +18,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.Phone).HasMaxLength(20);
         builder.Property(x => x.Role).HasConversion<string>().HasMaxLength(20);
         builder.HasIndex(x => new { x.OrganizationId, x.Username }).IsUnique().HasFilter("[IsDeleted] = 0");
+        builder.HasIndex(x => x.Username);
         builder.HasOne(x => x.Organization).WithMany(o => o.Users).HasForeignKey(x => x.OrganizationId).OnDelete(DeleteBehavior.Restrict);
     }
 }

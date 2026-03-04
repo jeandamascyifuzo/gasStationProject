@@ -3,6 +3,7 @@ using Escale.API.DTOs.FuelTypes;
 using Escale.API.DTOs.Organizations;
 using Escale.API.DTOs.Settings;
 using Escale.API.DTOs.Stations;
+using Escale.API.DTOs.Users;
 using Escale.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -120,5 +121,19 @@ public class SuperAdminController : ControllerBase
     {
         await _organizationService.DeleteOrganizationFuelTypeAsync(orgId, fuelTypeId);
         return Ok(ApiResponse.SuccessResponse("Fuel type deleted"));
+    }
+
+    [HttpGet("organizations/{orgId}/admin")]
+    public async Task<ActionResult<ApiResponse<UserResponseDto>>> GetOrganizationAdmin(Guid orgId)
+    {
+        var result = await _organizationService.GetOrganizationAdminAsync(orgId);
+        return Ok(ApiResponse<UserResponseDto>.SuccessResponse(result!));
+    }
+
+    [HttpPost("organizations/{orgId}/admin")]
+    public async Task<ActionResult<ApiResponse<UserResponseDto>>> CreateOrganizationAdmin(Guid orgId, [FromBody] CreateOrgAdminRequestDto request)
+    {
+        var result = await _organizationService.CreateOrganizationAdminAsync(orgId, request);
+        return Ok(ApiResponse<UserResponseDto>.SuccessResponse(result, "Admin user created"));
     }
 }

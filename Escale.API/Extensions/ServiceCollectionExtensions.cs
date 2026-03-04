@@ -39,6 +39,21 @@ public static class ServiceCollectionExtensions
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero
             };
+
+            // Allow SignalR to receive the JWT token from the query string
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["access_token"];
+                    var path = context.HttpContext.Request.Path;
+                    if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                    {
+                        context.Token = accessToken;
+                    }
+                    return Task.CompletedTask;
+                }
+            };
         });
 
         return services;
@@ -72,6 +87,7 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddScoped<IEBMService, EBMService>();
+        services.AddScoped<INotificationService, NotificationService>();
 
         return services;
     }

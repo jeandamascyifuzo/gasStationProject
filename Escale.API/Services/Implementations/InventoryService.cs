@@ -2,6 +2,7 @@ using AutoMapper;
 using Escale.API.Data.Repositories;
 using Escale.API.Domain.Entities;
 using Escale.API.DTOs.Inventory;
+using Escale.API.Hubs;
 using Escale.API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,15 +14,17 @@ public class InventoryService : IInventoryService
     private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
     private readonly IEBMService _ebmService;
+    private readonly INotificationService _notificationService;
     private readonly ILogger<InventoryService> _logger;
 
     public InventoryService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper,
-        IEBMService ebmService, ILogger<InventoryService> logger)
+        IEBMService ebmService, INotificationService notificationService, ILogger<InventoryService> logger)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _mapper = mapper;
         _ebmService = ebmService;
+        _notificationService = notificationService;
         _logger = logger;
     }
 
@@ -29,6 +32,7 @@ public class InventoryService : IInventoryService
     {
         var orgId = _currentUser.OrganizationId!.Value;
         var query = _unitOfWork.InventoryItems.Query()
+            .AsNoTracking()
             .Include(i => i.Station)
             .Include(i => i.FuelType)
             .Where(i => i.OrganizationId == orgId);
@@ -53,6 +57,7 @@ public class InventoryService : IInventoryService
     {
         var orgId = _currentUser.OrganizationId!.Value;
         var refills = await _unitOfWork.RefillRecords.Query()
+            .AsNoTracking()
             .Include(r => r.InventoryItem).ThenInclude(i => i.Station)
             .Include(r => r.InventoryItem).ThenInclude(i => i.FuelType)
             .Include(r => r.RecordedBy)
@@ -133,6 +138,7 @@ public class InventoryService : IInventoryService
                 .Include(r => r.RecordedBy)
                 .FirstAsync(r => r.Id == refill.Id);
 
+            _ = _notificationService.NotifyDataChangedAsync(orgId, NotificationConstants.InventoryChanged);
             return _mapper.Map<RefillRecordResponseDto>(saved);
         }
         catch (Exception ex)

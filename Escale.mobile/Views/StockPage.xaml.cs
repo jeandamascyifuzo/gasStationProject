@@ -15,7 +15,17 @@ public partial class StockPage : ContentPage
         base.OnAppearing();
         if (BindingContext is StockViewModel vm)
         {
+            vm.SubscribeToNotifications();
             vm.RefreshCommand.Execute(null);
+        }
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        if (BindingContext is StockViewModel vm)
+        {
+            vm.UnsubscribeFromNotifications();
         }
     }
 }

@@ -47,6 +47,15 @@ public class EbmConfigRequestDto
     public string? EBMCategoryId { get; set; }
 }
 
+public class CreateOrgAdminRequestDto
+{
+    public string Username { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string? Email { get; set; }
+    public string? Phone { get; set; }
+}
+
 public class EbmConfigResponseDto
 {
     public bool EBMEnabled { get; set; }

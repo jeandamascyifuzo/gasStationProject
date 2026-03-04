@@ -48,4 +48,10 @@ public class ApiOrganizationService : BaseApiService, IApiOrganizationService
 
     public async Task<ApiResponse> DeleteFuelTypeAsync(Guid orgId, Guid fuelTypeId)
         => await base.DeleteAsync($"/api/superadmin/organizations/{orgId}/fueltypes/{fuelTypeId}");
+
+    public async Task<ApiResponse<UserResponseDto>> GetAdminAsync(Guid orgId)
+        => await GetAsync<UserResponseDto>($"/api/superadmin/organizations/{orgId}/admin");
+
+    public async Task<ApiResponse<UserResponseDto>> CreateAdminAsync(Guid orgId, CreateOrgAdminRequestDto request)
+        => await PostAsync<UserResponseDto>($"/api/superadmin/organizations/{orgId}/admin", request);
 }

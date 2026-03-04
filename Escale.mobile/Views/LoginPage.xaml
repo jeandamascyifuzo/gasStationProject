@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:Escale.mobile.ViewModels"
+             xmlns:helpers="clr-namespace:Escale.mobile.Helpers"
              x:Class="Escale.mobile.Views.LoginPage"
              x:DataType="vm:LoginViewModel"
              Shell.NavBarIsVisible="False"
@@ -17,9 +18,9 @@
                     WidthRequest="120"
                     HorizontalOptions="Center"
                     Margin="0,0,0,30">
-                <Label Text="ESCALE"
-                       FontSize="24"
-                       FontAttributes="Bold"
+                <Label Text="{x:Static helpers:IconFont.GasStation}"
+                       FontFamily="MaterialDesignIcons"
+                       FontSize="48"
                        TextColor="White"
                        HorizontalOptions="Center"
                        VerticalOptions="Center"/>
@@ -92,7 +93,13 @@
                         FontAttributes="Bold"
                         HeightRequest="55"
                         CornerRadius="10"
-                        IsVisible="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"/>
+                        IsVisible="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}">
+                    <Button.ImageSource>
+                        <FontImageSource FontFamily="MaterialDesignIcons"
+                                         Glyph="{x:Static helpers:IconFont.ArrowRight}"
+                                         Color="White" Size="20"/>
+                    </Button.ImageSource>
+                </Button>
 
                 <!-- Loading Button -->
                 <Border StrokeShape="RoundRectangle 10"

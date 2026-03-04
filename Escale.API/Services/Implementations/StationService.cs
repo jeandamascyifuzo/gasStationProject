@@ -2,6 +2,7 @@ using AutoMapper;
 using Escale.API.Data.Repositories;
 using Escale.API.Domain.Entities;
 using Escale.API.DTOs.Stations;
+using Escale.API.Hubs;
 using Escale.API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,18 +13,22 @@ public class StationService : IStationService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
+    private readonly INotificationService _notificationService;
 
-    public StationService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper)
+    public StationService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper,
+        INotificationService notificationService)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _mapper = mapper;
+        _notificationService = notificationService;
     }
 
     public async Task<List<StationResponseDto>> GetStationsAsync()
     {
         var orgId = _currentUser.OrganizationId!.Value;
         var stations = await _unitOfWork.Stations.Query()
+            .AsNoTracking()
             .Include(s => s.Manager)
             .Where(s => s.OrganizationId == orgId)
             .OrderBy(s => s.Name)
@@ -101,6 +106,7 @@ public class StationService : IStationService
 
         _unitOfWork.Stations.Update(station);
         await _unitOfWork.SaveChangesAsync();
+        _ = _notificationService.NotifyDataChangedAsync(orgId, NotificationConstants.StationChanged);
         return _mapper.Map<StationResponseDto>(station);
     }
 

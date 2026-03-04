@@ -15,7 +15,17 @@ public partial class NewSalePage : ContentPage
         base.OnAppearing();
         if (BindingContext is NewSaleViewModel vm)
         {
+            vm.SubscribeToNotifications();
             await vm.InitializeAsync();
+        }
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        if (BindingContext is NewSaleViewModel vm)
+        {
+            vm.UnsubscribeFromNotifications();
         }
     }
 }

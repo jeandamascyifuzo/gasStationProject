@@ -4,6 +4,7 @@ using Escale.API.Domain.Entities;
 using Escale.API.Domain.Enums;
 using Escale.API.DTOs.Common;
 using Escale.API.DTOs.Users;
+using Escale.API.Hubs;
 using Escale.API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,12 +15,15 @@ public class UserService : IUserService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
+    private readonly INotificationService _notificationService;
 
-    public UserService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper)
+    public UserService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper,
+        INotificationService notificationService)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _mapper = mapper;
+        _notificationService = notificationService;
     }
 
     public async Task<PagedResult<UserResponseDto>> GetUsersAsync(PagedRequest request)
@@ -130,6 +134,7 @@ public class UserService : IUserService
 
         _unitOfWork.Users.Update(user);
         await _unitOfWork.SaveChangesAsync();
+        _ = _notificationService.NotifyDataChangedAsync(orgId, NotificationConstants.UserChanged);
         return await GetUserByIdAsync(user.Id);
     }
 
@@ -167,5 +172,6 @@ public class UserService : IUserService
         user.IsActive = !user.IsActive;
         _unitOfWork.Users.Update(user);
         await _unitOfWork.SaveChangesAsync();
+        _ = _notificationService.NotifyDataChangedAsync(orgId, NotificationConstants.UserChanged);
     }
 }

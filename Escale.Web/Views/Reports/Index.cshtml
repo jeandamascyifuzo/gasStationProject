@@ -75,7 +75,7 @@
                 </select>
             </div>
             <div class="col-md-1 mb-3 d-flex align-items-end">
-                <button type="button" class="btn btn-primary w-100" onclick="generateReport()">
+                <button type="button" class="btn btn-primary w-100" id="reportSearchBtn" onclick="generateReport()">
                     <i class="fas fa-search"></i>
                 </button>
             </div>
@@ -322,26 +322,31 @@
 
         $('.alert-info').hide();
 
+        var btn = document.getElementById('reportSearchBtn');
+        startLoading(btn, 'Loading...');
+
+        var done = function() { stopLoading(btn); };
+
         switch(reportType) {
             case 'Sales':
-                generateSalesReport(startDate, endDate, stationId, fuelTypeId);
+                generateSalesReport(startDate, endDate, stationId, fuelTypeId, done);
                 break;
             case 'Inventory':
-                generateInventoryReport(stationId);
+                generateInventoryReport(stationId, done);
                 break;
             case 'Employee':
-                generateEmployeeReport(startDate, endDate);
+                generateEmployeeReport(startDate, endDate, done);
                 break;
             case 'Customer':
-                generateCustomerReport(startDate, endDate);
+                generateCustomerReport(startDate, endDate, done);
                 break;
             case 'Financial':
-                generateFinancialReport(startDate, endDate);
+                generateFinancialReport(startDate, endDate, done);
                 break;
         }
     }
 
-    function generateSalesReport(startDate, endDate, stationId, fuelTypeId) {
+    function generateSalesReport(startDate, endDate, stationId, fuelTypeId, done) {
         $.get('@Url.Action("GenerateSalesReport", "Reports")',
             { startDate: startDate, endDate: endDate, stationId: stationId },
             function(data) {
@@ -387,10 +392,10 @@
             }
         ).fail(function() {
             toastr.error('Failed to load sales report.');
-        });
+        }).always(function() { if (done) done(); });
     }
 
-    function generateInventoryReport(stationId) {
+    function generateInventoryReport(stationId, done) {
         $.get('@Url.Action("GenerateInventoryReport", "Reports")',
             { stationId: stationId },
             function(data) {
@@ -415,10 +420,10 @@
             }
         ).fail(function() {
             toastr.error('Failed to load inventory report.');
-        });
+        }).always(function() { if (done) done(); });
     }
 
-    function generateEmployeeReport(startDate, endDate) {
+    function generateEmployeeReport(startDate, endDate, done) {
         $.get('@Url.Action("GenerateEmployeeReport", "Reports")',
             { startDate: startDate, endDate: endDate },
             function(data) {
@@ -439,10 +444,10 @@
             }
         ).fail(function() {
             toastr.error('Failed to load employee report.');
-        });
+        }).always(function() { if (done) done(); });
     }
 
-    function generateCustomerReport(startDate, endDate) {
+    function generateCustomerReport(startDate, endDate, done) {
         $.get('@Url.Action("GenerateCustomerReport", "Reports")',
             { startDate: startDate, endDate: endDate },
             function(data) {
@@ -463,10 +468,10 @@
             }
         ).fail(function() {
             toastr.error('Failed to load customer report.');
-        });
+        }).always(function() { if (done) done(); });
     }
 
-    function generateFinancialReport(startDate, endDate) {
+    function generateFinancialReport(startDate, endDate, done) {
         $.get('@Url.Action("GenerateFinancialReport", "Reports")',
             { startDate: startDate, endDate: endDate },
             function(data) {
@@ -496,7 +501,7 @@
             }
         ).fail(function() {
             toastr.error('Failed to load financial report.');
-        });
+        }).always(function() { if (done) done(); });
     }
 
     function exportReport() {

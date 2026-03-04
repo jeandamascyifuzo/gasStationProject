@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:Escale.mobile.ViewModels"
              xmlns:models="clr-namespace:Escale.mobile.Models"
+             xmlns:helpers="clr-namespace:Escale.mobile.Helpers"
              x:Class="Escale.mobile.Views.TransactionsPage"
              x:DataType="vm:TransactionsViewModel"
              Title="History"
@@ -122,9 +123,9 @@
                                                 HeightRequest="44"
                                                 WidthRequest="44"
                                                 Padding="0">
-                                            <Label Text="F"
-                                                   FontSize="16"
-                                                   FontAttributes="Bold"
+                                            <Label Text="{x:Static helpers:IconFont.GasStation}"
+                                                   FontFamily="MaterialDesignIcons"
+                                                   FontSize="20"
                                                    TextColor="#1E3A8A"
                                                    HorizontalOptions="Center"
                                                    VerticalOptions="Center"/>

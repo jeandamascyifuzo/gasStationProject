@@ -33,6 +33,20 @@
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    @{
+        var accessToken = Context.Request.Cookies["escale_access_token"];
+        var apiBaseUrl = ((Microsoft.Extensions.Options.IOptions<Escale.Web.Configuration.ApiSettings>)
+            Context.RequestServices.GetService(typeof(Microsoft.Extensions.Options.IOptions<Escale.Web.Configuration.ApiSettings>)))?.Value?.BaseUrl ?? "https://localhost:7015/api";
+        var hubUrl = apiBaseUrl.Replace("/api", "") + "/hubs/escale";
+    }
+    <script>
+        var escaleConfig = {
+            hubUrl: '@Html.Raw(hubUrl)',
+            accessToken: '@Html.Raw(accessToken ?? "")',
+            isAuthenticated: @(string.IsNullOrEmpty(accessToken) ? "false" : "true")
+        };
+    </script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

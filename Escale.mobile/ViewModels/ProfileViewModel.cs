@@ -9,6 +9,8 @@ namespace Escale.mobile.ViewModels;
 public partial class ProfileViewModel : ObservableObject
 {
     private readonly ApiService _apiService;
+    private readonly SignalRService _signalRService;
+    private Action<string>? _dataChangedHandler;
 
     [ObservableProperty]
     private string userName = string.Empty;
@@ -34,10 +36,35 @@ public partial class ProfileViewModel : ObservableObject
     [ObservableProperty]
     private bool canSwitchStation;
 
-    public ProfileViewModel(ApiService apiService)
+    public ProfileViewModel(ApiService apiService, SignalRService signalRService)
     {
         _apiService = apiService;
+        _signalRService = signalRService;
         LoadProfileData();
+    }
+
+    public void SubscribeToNotifications()
+    {
+        UnsubscribeFromNotifications();
+        _dataChangedHandler = changeType =>
+        {
+            if (changeType == NotificationConstants.UserChanged ||
+                changeType == NotificationConstants.SaleCompleted ||
+                changeType == NotificationConstants.StationChanged)
+            {
+                MainThread.BeginInvokeOnMainThread(() => LoadProfileData());
+            }
+        };
+        _signalRService.OnDataChanged += _dataChangedHandler;
+    }
+
+    public void UnsubscribeFromNotifications()
+    {
+        if (_dataChangedHandler != null)
+        {
+            _signalRService.OnDataChanged -= _dataChangedHandler;
+            _dataChangedHandler = null;
+        }
     }
 
     private async void LoadProfileData()
@@ -216,7 +243,8 @@ public partial class ProfileViewModel : ObservableObject
         {
             if (Shell.Current != null)
             {
-                await Shell.Current.DisplayAlert("Coming Soon", "Change password feature will be available soon", "OK");
+                var page = MauiProgram.Services.GetRequiredService<ChangePasswordPage>();
+                await Shell.Current.Navigation.PushAsync(page);
             }
         }
         catch (Exception ex)
@@ -240,6 +268,8 @@ public partial class ProfileViewModel : ObservableObject
 
             if (confirm)
             {
+                UnsubscribeFromNotifications();
+                await _signalRService.DisconnectAsync();
                 AppState.Instance.Logout();
 
                 Application.Current!.MainPage = new NavigationPage(

@@ -5,8 +5,10 @@ using Escale.API.Domain.Entities;
 using Escale.API.Domain.Enums;
 using Escale.API.DTOs.Sales;
 using Escale.API.DTOs.Transactions;
+using Escale.API.Hubs;
 using Escale.API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Escale.API.Services.Implementations;
 
@@ -16,13 +18,18 @@ public class SaleService : ISaleService
     private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
     private readonly IEBMService _ebmService;
+    private readonly INotificationService _notificationService;
+    private readonly IMemoryCache _cache;
 
-    public SaleService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper, IEBMService ebmService)
+    public SaleService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper,
+        IEBMService ebmService, INotificationService notificationService, IMemoryCache cache)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _mapper = mapper;
         _ebmService = ebmService;
+        _notificationService = notificationService;
+        _cache = cache;
     }
 
     public async Task<SaleResponseDto> CreateSaleAsync(CreateSaleRequestDto request)
@@ -30,16 +37,18 @@ public class SaleService : ISaleService
         var orgId = _currentUser.OrganizationId!.Value;
         var userId = _currentUser.UserId!.Value;
 
-        // Resolve fuel type
+        // Resolve fuel type (AsNoTracking — read-only lookup)
         FuelType? fuelType = null;
         if (request.FuelTypeId.HasValue)
         {
             fuelType = await _unitOfWork.FuelTypes.Query()
+                .AsNoTracking()
                 .FirstOrDefaultAsync(f => f.Id == request.FuelTypeId.Value && f.OrganizationId == orgId);
         }
         if (fuelType == null && !string.IsNullOrEmpty(request.FuelType))
         {
             fuelType = await _unitOfWork.FuelTypes.Query()
+                .AsNoTracking()
                 .FirstOrDefaultAsync(f => f.Name == request.FuelType && f.OrganizationId == orgId);
         }
         if (fuelType == null)
@@ -53,8 +62,9 @@ public class SaleService : ISaleService
         // Generate receipt number
         var receiptNumber = $"RCP{DateTime.UtcNow:yyyyMMddHHmmssfff}";
 
-        // Get active shift
+        // Get active shift (AsNoTracking — we only need the Id)
         var activeShift = await _unitOfWork.Shifts.Query()
+            .AsNoTracking()
             .FirstOrDefaultAsync(s => s.UserId == userId && s.StationId == request.StationId && s.IsActive);
 
         // Parse payment method
@@ -67,7 +77,6 @@ public class SaleService : ISaleService
         decimal? remainingBalanceAfter = null;
 
         // Walk-in customer info (Cash, Card, MobileMoney)
-        // Just record name/phone on the transaction — no customer entity linking
         Guid? customerId = null;
         string? customerName = request.Customer?.Name;
         string? customerPhone = request.Customer?.PhoneNumber;
@@ -83,6 +92,7 @@ public class SaleService : ISaleService
 
             // Verify customer exists and is active
             var customer = await _unitOfWork.Customers.Query()
+                .AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Id == request.Customer.Id.Value && c.OrganizationId == orgId);
 
             if (customer == null)
@@ -95,7 +105,7 @@ public class SaleService : ISaleService
             customerName = customer.Name;
             customerPhone = customer.PhoneNumber;
 
-            // Validate subscription
+            // Validate subscription (tracked — we need to update balance)
             var subscription = await _unitOfWork.Subscriptions.Query()
                 .FirstOrDefaultAsync(s => s.Id == request.SubscriptionId.Value
                                        && s.OrganizationId == orgId
@@ -131,12 +141,11 @@ public class SaleService : ISaleService
             remainingBalanceAfter = subscription.RemainingBalance;
         }
 
-        // Check org-level EBM settings — if EBM is enabled, it's REQUIRED for all sales
+        // Check org-level EBM settings — cached to avoid DB hit per sale
         bool ebmSent = false;
         string? ebmReceiptUrl = null;
 
-        var orgSettings = await _unitOfWork.OrganizationSettings.Query()
-            .FirstOrDefaultAsync(s => s.OrganizationId == orgId);
+        var orgSettings = await GetCachedOrgSettingsAsync(orgId);
 
         if (orgSettings?.EBMEnabled == true)
         {
@@ -151,8 +160,8 @@ public class SaleService : ISaleService
 
             if (!ebmResult.Success)
             {
-                throw new InvalidOperationException(
-                    $"EBM receipt failed: {ebmResult.ErrorMessage ?? "Unknown EBM error"}. Sale was not recorded.");
+                var friendlyMessage = ParseEbmError(ebmResult.ErrorMessage, fuelType.Name);
+                throw new InvalidOperationException(friendlyMessage);
             }
 
             ebmSent = true;
@@ -216,6 +225,9 @@ public class SaleService : ISaleService
             // Last attempt: let exception propagate
         }
 
+        // Fire-and-forget — don't block the sale response for SignalR
+        _ = _notificationService.NotifyDataChangedAsync(orgId, NotificationConstants.SaleCompleted);
+
         return new SaleResponseDto
         {
             Success = true,
@@ -243,6 +255,7 @@ public class SaleService : ISaleService
     {
         var orgId = _currentUser.OrganizationId!.Value;
         var query = _unitOfWork.Transactions.Query()
+            .AsNoTracking()
             .Include(t => t.FuelType)
             .Include(t => t.Cashier)
             .Include(t => t.Station)
@@ -257,5 +270,57 @@ public class SaleService : ISaleService
             .ToListAsync();
 
         return _mapper.Map<List<TransactionResponseDto>>(transactions);
+    }
+
+    private async Task<OrganizationSettings?> GetCachedOrgSettingsAsync(Guid orgId)
+    {
+        var cacheKey = $"org_settings_{orgId}";
+        if (_cache.TryGetValue(cacheKey, out OrganizationSettings? cached))
+            return cached;
+
+        var settings = await _unitOfWork.OrganizationSettings.Query()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.OrganizationId == orgId);
+
+        if (settings != null)
+        {
+            _cache.Set(cacheKey, settings, TimeSpan.FromMinutes(5));
+        }
+
+        return settings;
+    }
+
+    private static string ParseEbmError(string? ebmError, string fuelTypeName)
+    {
+        if (string.IsNullOrEmpty(ebmError))
+            return "Sale failed due to an EBM error. Please try again or contact support.";
+
+        var lower = ebmError.ToLower();
+
+        if (lower.Contains("insufficient stock"))
+            return $"Insufficient stock for {fuelTypeName}. Please refill stock before making this sale.";
+
+        if (lower.Contains("not found"))
+            return $"{fuelTypeName} is not registered in EBM. Please contact your administrator.";
+
+        if (lower.Contains("unauthorized") || lower.Contains("401"))
+            return "EBM authentication failed. Please contact your administrator to check EBM settings.";
+
+        if (lower.Contains("timeout") || lower.Contains("timed out"))
+            return "EBM server is not responding. Please try again in a few moments.";
+
+        if (lower.Contains("connection") || lower.Contains("network"))
+            return "Cannot connect to EBM server. Please check your internet connection and try again.";
+
+        if (lower.Contains("500") || lower.Contains("internalservererror") || lower.Contains("internal server error"))
+            return "EBM server encountered an internal error. Please try again or contact support.";
+
+        if (lower.Contains("503") || lower.Contains("service unavailable"))
+            return "EBM server is temporarily unavailable. Please try again in a few moments.";
+
+        if (lower.Contains("429") || lower.Contains("rate limit") || lower.Contains("too many"))
+            return "Too many requests to EBM server. Please wait a moment and try again.";
+
+        return "Sale could not be completed due to an EBM error. Please try again or contact support.";
     }
 }

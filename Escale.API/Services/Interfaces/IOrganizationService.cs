@@ -2,6 +2,7 @@ using Escale.API.DTOs.FuelTypes;
 using Escale.API.DTOs.Organizations;
 using Escale.API.DTOs.Settings;
 using Escale.API.DTOs.Stations;
+using Escale.API.DTOs.Users;
 
 namespace Escale.API.Services.Interfaces;
 
@@ -20,4 +21,6 @@ public interface IOrganizationService
     Task<FuelTypeResponseDto> CreateOrganizationFuelTypeAsync(Guid orgId, CreateFuelTypeRequestDto request);
     Task<FuelTypeResponseDto> UpdateOrganizationFuelTypeAsync(Guid orgId, Guid fuelTypeId, UpdateFuelTypeRequestDto request);
     Task DeleteOrganizationFuelTypeAsync(Guid orgId, Guid fuelTypeId);
+    Task<UserResponseDto?> GetOrganizationAdminAsync(Guid orgId);
+    Task<UserResponseDto> CreateOrganizationAdminAsync(Guid orgId, CreateOrgAdminRequestDto request);
 }

@@ -1,8 +1,10 @@
 using AutoMapper;
 using Escale.API.Data.Repositories;
 using Escale.API.DTOs.Settings;
+using Escale.API.Hubs;
 using Escale.API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Escale.API.Services.Implementations;
 
@@ -12,13 +14,18 @@ public class SettingsService : ISettingsService
     private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
     private readonly IEBMService _ebmService;
+    private readonly INotificationService _notificationService;
+    private readonly IMemoryCache _cache;
 
-    public SettingsService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper, IEBMService ebmService)
+    public SettingsService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper,
+        IEBMService ebmService, INotificationService notificationService, IMemoryCache cache)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _mapper = mapper;
         _ebmService = ebmService;
+        _notificationService = notificationService;
+        _cache = cache;
     }
 
     public async Task<AppSettingsResponseDto> GetSettingsAsync()
@@ -40,6 +47,8 @@ public class SettingsService : ISettingsService
         _mapper.Map(request, settings);
         _unitOfWork.OrganizationSettings.Update(settings);
         await _unitOfWork.SaveChangesAsync();
+        _cache.Remove($"org_settings_{orgId}");
+        _ = _notificationService.NotifyDataChangedAsync(orgId, NotificationConstants.SettingsChanged);
         return _mapper.Map<AppSettingsResponseDto>(settings);
     }
 

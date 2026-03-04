@@ -247,6 +247,10 @@ public class ApiService
     private readonly string _baseUrl;
     private string? _authToken;
 
+    // Cached fuel types — cleared on SignalR notification or manual invalidation
+    private List<FuelTypeOption>? _cachedFuelTypes;
+    private DateTime _fuelTypesCacheTime = DateTime.MinValue;
+
     public ApiService()
     {
 #if DEBUG
@@ -255,12 +259,12 @@ public class ApiService
 
         _httpClient = new HttpClient(handler)
         {
-            Timeout = TimeSpan.FromSeconds(120)
+            Timeout = TimeSpan.FromSeconds(180)
         };
 #else
         _httpClient = new HttpClient
         {
-            Timeout = TimeSpan.FromSeconds(120)
+            Timeout = TimeSpan.FromSeconds(180)
         };
 #endif
 
@@ -268,7 +272,12 @@ public class ApiService
         System.Diagnostics.Debug.WriteLine($"API Base URL: {_baseUrl}");
     }
 
-    private static string GetBaseUrl()
+    public void InvalidateFuelTypesCache()
+    {
+        _cachedFuelTypes = null;
+    }
+
+    internal static string GetBaseUrl()
     {
 #if ANDROID
         return "https://10.0.2.2:7015/api";
@@ -363,14 +372,18 @@ public class ApiService
 
     public async Task<List<FuelTypeOption>> GetFuelTypesAsync()
     {
+        // Return cached fuel types if available (< 5 min old)
+        if (_cachedFuelTypes != null && (DateTime.UtcNow - _fuelTypesCacheTime).TotalMinutes < 5)
+            return _cachedFuelTypes;
+
         try
         {
             var response = await _httpClient.GetFromJsonAsync<ApiResponse<List<FuelTypeResponse>>>(
                 $"{_baseUrl}/fueltypes");
 
-            if (response?.Data == null) return new List<FuelTypeOption>();
+            if (response?.Data == null) return _cachedFuelTypes ?? new List<FuelTypeOption>();
 
-            return response.Data
+            _cachedFuelTypes = response.Data
                 .Where(f => f.IsActive)
                 .Select(f => new FuelTypeOption
                 {
@@ -383,11 +396,13 @@ public class ApiService
                                  f.Name.Contains("Kerosene") ? Colors.Blue :
                                  f.Name.Contains("98") ? Colors.Green : Colors.Red
                 }).ToList();
+            _fuelTypesCacheTime = DateTime.UtcNow;
+            return _cachedFuelTypes;
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error fetching fuel types: {ex.Message}");
-            return new List<FuelTypeOption>();
+            return _cachedFuelTypes ?? new List<FuelTypeOption>();
         }
     }
 
@@ -415,7 +430,9 @@ public class ApiService
                 } : null
             };
 
-            var response = await _httpClient.PostAsJsonAsync($"{_baseUrl}/sales", request);
+            // Longer timeout for sales — EBM external call can be slow
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
+            var response = await _httpClient.PostAsJsonAsync($"{_baseUrl}/sales", request, cts.Token);
             var content = await response.Content.ReadAsStringAsync();
 
             System.Diagnostics.Debug.WriteLine($"Sale response: {content}");
@@ -639,6 +656,33 @@ public class ApiService
         {
             System.Diagnostics.Debug.WriteLine($"Error looking up subscription car: {ex.Message}");
             return (false, $"Error: {ex.Message}", null);
+        }
+    }
+
+    // ==================== CHANGE PASSWORD ====================
+
+    public async Task<(bool Success, string Message)> ChangePasswordAsync(string currentPassword, string newPassword)
+    {
+        try
+        {
+            var request = new { CurrentPassword = currentPassword, NewPassword = newPassword };
+            var response = await _httpClient.PostAsJsonAsync($"{_baseUrl}/auth/change-password", request);
+            var content = await response.Content.ReadAsStringAsync();
+
+            var result = JsonSerializer.Deserialize<ApiResponse<object>>(content, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (response.IsSuccessStatusCode)
+                return (true, result?.Message ?? "Password changed successfully");
+
+            return (false, result?.Message ?? $"Failed: {response.StatusCode}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error changing password: {ex.Message}");
+            return (false, $"Error: {ex.Message}");
         }
     }
 

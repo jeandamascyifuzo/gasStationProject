@@ -18,4 +18,6 @@ public interface IApiOrganizationService
     Task<ApiResponse<FuelTypeResponseDto>> CreateFuelTypeAsync(Guid orgId, CreateFuelTypeRequestDto request);
     Task<ApiResponse<FuelTypeResponseDto>> UpdateFuelTypeAsync(Guid orgId, Guid fuelTypeId, UpdateFuelTypeRequestDto request);
     Task<ApiResponse> DeleteFuelTypeAsync(Guid orgId, Guid fuelTypeId);
+    Task<ApiResponse<UserResponseDto>> GetAdminAsync(Guid orgId);
+    Task<ApiResponse<UserResponseDto>> CreateAdminAsync(Guid orgId, CreateOrgAdminRequestDto request);
 }

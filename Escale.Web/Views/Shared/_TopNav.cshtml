@@ -41,7 +41,7 @@
                     <br /><small class="text-muted">@(Context.Session.GetString("UserRole") ?? "User")</small>
                 </li>
                 <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2 text-primary"></i>My Profile</a></li>
+                <li><a class="dropdown-item" asp-controller="Profile" asp-action="Index"><i class="fas fa-user me-2 text-primary"></i>My Profile</a></li>
                 <li><a class="dropdown-item" asp-controller="Settings" asp-action="Index"><i class="fas fa-cog me-2 text-primary"></i>Settings</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item text-danger" asp-controller="Account" asp-action="Logout"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>

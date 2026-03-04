@@ -8,6 +8,7 @@ namespace Escale.mobile.ViewModels;
 public partial class LoginViewModel : ObservableObject
 {
     private readonly ApiService _apiService;
+    private readonly SignalRService _signalRService;
 
     [ObservableProperty]
     private string username = string.Empty;
@@ -24,9 +25,10 @@ public partial class LoginViewModel : ObservableObject
     [ObservableProperty]
     private string errorMessage = string.Empty;
 
-    public LoginViewModel(ApiService apiService)
+    public LoginViewModel(ApiService apiService, SignalRService signalRService)
     {
         _apiService = apiService;
+        _signalRService = signalRService;
         LoadSavedCredentials();
     }
 
@@ -56,6 +58,14 @@ public partial class LoginViewModel : ObservableObject
             if (response?.Success == true && response.User != null)
             {
                 AppState.Instance.SetUser(response.User, response.Token ?? string.Empty);
+
+                // Connect SignalR + preload fuel types (fire-and-forget)
+                var token = response.Token ?? string.Empty;
+                if (!string.IsNullOrEmpty(token))
+                {
+                    _ = _signalRService.ConnectAsync(token);
+                }
+                _ = _apiService.GetFuelTypesAsync();
 
                 if (RememberMe)
                 {
