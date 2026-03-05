@@ -15,14 +15,12 @@
     connection.on('DataChanged', function (changeType) {
         console.log('[SignalR] DataChanged:', changeType);
 
-        // Auto-refresh dashboard when a sale is completed or data changes
+        // Auto-refresh dashboard seamlessly when a sale is completed or data changes
         var isDashboard = window.location.pathname === '/' ||
             window.location.pathname.toLowerCase().indexOf('/dashboard') === 0;
 
         if (isDashboard && (changeType === 'sale_completed' || changeType === 'inventory_changed')) {
-            // Show a brief toast then reload
-            showUpdateToast('Dashboard updated — new sale recorded.');
-            setTimeout(function () { location.reload(); }, 1500);
+            refreshDashboardData();
         }
 
         // Refresh other pages on relevant changes
@@ -55,6 +53,142 @@
         container.innerHTML = toastHtml;
         document.body.appendChild(container);
         setTimeout(function () { container.remove(); }, 3000);
+    }
+
+    function refreshDashboardData() {
+        var period = window.escaleDashboardPeriod || 'today';
+        fetch('/Dashboard/Data?period=' + encodeURIComponent(period))
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                // Update stat cards with animation (PascalCase from server)
+                animateValue('stat-stations', data.TotalStations);
+                animateValue('stat-transactions', data.TransactionCount);
+                animateValue('stat-sales', formatNumber(data.TodaysSales) + ' RWF');
+                updateAlerts('stat-alerts', data.LowStockAlerts);
+
+                // Update recent transactions table
+                updateRecentTransactions(data.RecentTransactions || []);
+
+                // Update top stations
+                updateTopStations(data.TopStations || []);
+
+                // Update charts
+                updateCharts(data);
+
+                showUpdateToast('Dashboard updated — new sale recorded.');
+            })
+            .catch(function (err) {
+                console.warn('[Dashboard] Seamless refresh failed, falling back to reload:', err);
+                location.reload();
+            });
+    }
+
+    function animateValue(elementId, newValue) {
+        var el = document.getElementById(elementId);
+        if (!el) return;
+        el.style.transition = 'opacity 0.3s';
+        el.style.opacity = '0.3';
+        setTimeout(function () {
+            el.textContent = newValue;
+            el.style.opacity = '1';
+        }, 300);
+    }
+
+    function updateAlerts(elementId, count) {
+        var el = document.getElementById(elementId);
+        if (!el) return;
+        el.style.transition = 'opacity 0.3s';
+        el.style.opacity = '0.3';
+        setTimeout(function () {
+            el.textContent = count;
+            el.className = 'h5 mb-0 font-weight-bold ' + (count > 0 ? 'text-danger' : 'text-gray-800');
+            el.style.opacity = '1';
+        }, 300);
+    }
+
+    function formatNumber(num) {
+        return Math.round(num).toLocaleString('en-US');
+    }
+
+    function updateRecentTransactions(transactions) {
+        var tbody = document.getElementById('recent-transactions-body');
+        if (!tbody) return;
+        tbody.style.transition = 'opacity 0.3s';
+        tbody.style.opacity = '0.3';
+        setTimeout(function () {
+            var html = '';
+            transactions.forEach(function (txn) {
+                var time = new Date(txn.Time);
+                var hh = String(time.getHours()).padStart(2, '0');
+                var mm = String(time.getMinutes()).padStart(2, '0');
+                html += '<tr>' +
+                    '<td>' + escapeHtml(txn.TransactionId) + '</td>' +
+                    '<td>' + escapeHtml(txn.FuelType) + '</td>' +
+                    '<td>' + txn.Quantity.toFixed(1) + 'L</td>' +
+                    '<td>' + formatNumber(txn.Total) + ' RWF</td>' +
+                    '<td>' + hh + ':' + mm + '</td>' +
+                    '</tr>';
+            });
+            tbody.innerHTML = html;
+            tbody.style.opacity = '1';
+        }, 300);
+    }
+
+    function updateTopStations(stations) {
+        var container = document.getElementById('top-stations-container');
+        if (!container) return;
+        container.style.transition = 'opacity 0.3s';
+        container.style.opacity = '0.3';
+        setTimeout(function () {
+            if (stations.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted py-4">' +
+                    '<i class="fas fa-chart-bar fa-2x mb-2 d-block"></i>' +
+                    'No station performance data available for this period.</div>';
+            } else {
+                var html = '<div class="table-responsive"><table class="table table-hover align-middle mb-0">' +
+                    '<thead class="table-light"><tr>' +
+                    '<th style="width: 60px;" class="text-center">Rank</th>' +
+                    '<th>Station</th><th class="text-end">Total Sales</th>' +
+                    '<th class="text-center">Transactions</th><th class="text-end">Volume (L)</th>' +
+                    '<th style="width: 50px;"></th></tr></thead><tbody>';
+                stations.forEach(function (s) {
+                    var badgeClass = s.Rank === 1 ? 'bg-warning text-dark' : s.Rank === 2 ? 'bg-secondary' : s.Rank === 3 ? 'bg-primary' : 'bg-light text-dark';
+                    html += '<tr>' +
+                        '<td class="text-center"><span class="badge ' + badgeClass + ' rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 30px; height: 30px; font-size: 0.8rem;">' + s.Rank + '</span></td>' +
+                        '<td class="fw-semibold">' + escapeHtml(s.StationName) + '</td>' +
+                        '<td class="text-end fw-bold text-primary">' + formatNumber(s.TotalSales) + ' RWF</td>' +
+                        '<td class="text-center">' + s.TransactionCount + '</td>' +
+                        '<td class="text-end">' + formatNumber(s.TotalLiters) + '</td>' +
+                        '<td class="text-center"><a href="/Stations/Details/' + s.StationId + '" class="text-muted"><i class="fas fa-chevron-right"></i></a></td>' +
+                        '</tr>';
+                });
+                html += '</tbody></table></div>';
+                container.innerHTML = html;
+            }
+            container.style.opacity = '1';
+        }, 300);
+    }
+
+    function updateCharts(data) {
+        // Update sales trend chart (PascalCase from server)
+        if (window.escaleSalesChart && data.SalesChart) {
+            window.escaleSalesChart.data.labels = data.SalesChart.map(function (s) { return s.Date; });
+            window.escaleSalesChart.data.datasets[0].data = data.SalesChart.map(function (s) { return s.Sales; });
+            window.escaleSalesChart.update('none');
+        }
+        // Update fuel type chart
+        if (window.escaleFuelChart && data.FuelTypeChart) {
+            window.escaleFuelChart.data.labels = data.FuelTypeChart.map(function (f) { return f.FuelType; });
+            window.escaleFuelChart.data.datasets[0].data = data.FuelTypeChart.map(function (f) { return f.Amount; });
+            window.escaleFuelChart.update('none');
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        var div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
     }
 })();
 

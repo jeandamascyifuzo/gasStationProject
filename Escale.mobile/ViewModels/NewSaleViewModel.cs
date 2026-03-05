@@ -32,9 +32,6 @@ public partial class NewSaleViewModel : ObservableObject
     [ObservableProperty]
     private bool isBusy;
 
-    [ObservableProperty]
-    private string calculationDisplay = string.Empty;
-
     public ObservableCollection<string> PaymentMethods { get; } = new()
     {
         "Cash", "MobileMoney", "Card", "Credit"
@@ -75,12 +72,10 @@ public partial class NewSaleViewModel : ObservableObject
     /// </summary>
     public async Task InitializeAsync()
     {
-        // If no current sale exists, start a fresh one and reset the form
-        if (AppState.Instance.CurrentSale == null)
-        {
-            AppState.Instance.StartNewSale();
-            ResetForm();
-        }
+        // Always start a fresh sale when the page appears (e.g. tab clicked)
+        AppState.Instance.ClearCurrentSale();
+        AppState.Instance.StartNewSale();
+        ResetForm();
 
         // Load fuel types if not yet loaded
         if (!_fuelTypesLoaded)
@@ -96,7 +91,6 @@ public partial class NewSaleViewModel : ObservableObject
         AmountRWFText = string.Empty;
         LitersText = string.Empty;
         SelectedPaymentMethod = "Cash";
-        CalculationDisplay = string.Empty;
         _isUpdating = false;
     }
 
@@ -107,7 +101,6 @@ public partial class NewSaleViewModel : ObservableObject
         _isUpdating = true;
         AmountRWFText = string.Empty;
         LitersText = string.Empty;
-        CalculationDisplay = string.Empty;
         _isUpdating = false;
     }
 
@@ -134,15 +127,10 @@ public partial class NewSaleViewModel : ObservableObject
             {
                 var liters = amount / SelectedFuelType.PricePerLiter;
                 LitersText = liters.ToString("F2");
-                var total = amount;
-                var vat = Math.Round(total * 0.18m, 0);
-                var subtotal = total - vat;
-                CalculationDisplay = $"{liters:F2} L\nSubtotal: RWF {subtotal:N0}\nVAT (18%): RWF {vat:N0}\nTotal: RWF {total:N0}";
             }
             else
             {
                 LitersText = string.Empty;
-                CalculationDisplay = string.Empty;
             }
         }
         finally
@@ -162,15 +150,10 @@ public partial class NewSaleViewModel : ObservableObject
             {
                 var amount = liters * SelectedFuelType.PricePerLiter;
                 AmountRWFText = amount.ToString("F0");
-                var total = amount;
-                var vat = Math.Round(total * 0.18m, 0);
-                var subtotal = total - vat;
-                CalculationDisplay = $"{liters:F2} L\nSubtotal: RWF {subtotal:N0}\nVAT (18%): RWF {vat:N0}\nTotal: RWF {total:N0}";
             }
             else
             {
                 AmountRWFText = string.Empty;
-                CalculationDisplay = string.Empty;
             }
         }
         finally

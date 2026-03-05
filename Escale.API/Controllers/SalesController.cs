@@ -22,7 +22,10 @@ public class SalesController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<SaleResponseDto>> CreateSale([FromBody] CreateSaleRequestDto request)
     {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
         var result = await _saleService.CreateSaleAsync(request);
+        sw.Stop();
+        Console.WriteLine($"[Sale Timing] Controller total (incl. middleware): {sw.ElapsedMilliseconds}ms");
         return Ok(result);
     }
 

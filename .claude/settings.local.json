@@ -71,7 +71,9 @@
       "Bash(taskkill:*)",
       "Bash(curl:*)",
       "Bash(curl -s --max-time 5 http://localhost:5090/api/auth/login -H \"Content-Type: application/json\" -d '{\"username\":\"cashier\",\"password\":\"cashier123\"}' 2>&1 | python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('TOKEN='+d['Token']\\); print\\('STATION='+d['User']['AssignedStations'][0]['Id']\\)\" 2>&1)",
-      "Bash(export:*)"
+      "Bash(export:*)",
+      "Bash(xargs grep:*)",
+      "Bash(xargs basename:*)"
     ]
   }
 }

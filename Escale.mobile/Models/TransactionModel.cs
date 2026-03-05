@@ -23,6 +23,7 @@ public class Transaction
     public decimal Total { get; set; }
     public string PaymentMethod { get; set; } = string.Empty;
     public string? CustomerName { get; set; }
+    public string? CustomerPhone { get; set; }
     public string? PlateNumber { get; set; }
     public bool EBMSent { get; set; }
     public string? EBMReceiptUrl { get; set; }

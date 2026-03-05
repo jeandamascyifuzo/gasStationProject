@@ -68,13 +68,15 @@ public class CustomerService : ICustomerService
     {
         var orgId = _currentUser.OrganizationId!.Value;
         var lower = term.ToLower();
+        // For plate search, strip spaces so "RAD123A" matches "RAD 123 A"
+        var plateSearch = term.ToUpper().Replace(" ", "");
         var customers = await _unitOfWork.Customers.Query()
             .Include(c => c.Cars)
             .Include(c => c.Subscriptions)
             .Where(c => c.OrganizationId == orgId &&
                         (c.Name.ToLower().Contains(lower) ||
                          (c.PhoneNumber != null && c.PhoneNumber.Contains(term)) ||
-                         c.Cars.Any(car => car.PlateNumber.ToLower().Contains(lower))))
+                         c.Cars.Any(car => car.PlateNumber.ToUpper().Contains(plateSearch))))
             .Take(20)
             .ToListAsync();
         return _mapper.Map<List<CustomerResponseDto>>(customers);
@@ -101,19 +103,32 @@ public class CustomerService : ICustomerService
 
         if (request.Cars?.Any() == true)
         {
+            // Fetch existing plates in org for uniqueness check (in-memory comparison)
+            var existingPlates = await _unitOfWork.Cars.Query()
+                .Include(c => c.Customer)
+                .Where(c => c.Customer.OrganizationId == orgId && !c.IsDeleted)
+                .Select(c => c.PlateNumber)
+                .ToListAsync();
+
             foreach (var carDto in request.Cars)
             {
                 if (string.IsNullOrWhiteSpace(carDto.PIN))
                     throw new ArgumentException($"PIN is required for car {carDto.PlateNumber}");
 
+                var normalizedPlate = carDto.PlateNumber.ToUpper().Replace(" ", "");
+                var plateExists = existingPlates.Any(p => p.ToUpper().Replace(" ", "") == normalizedPlate);
+
+                if (plateExists)
+                    throw new ArgumentException($"A car with plate number '{normalizedPlate}' already exists in your organization.");
+
                 await _unitOfWork.Cars.AddAsync(new Car
                 {
                     CustomerId = customer.Id,
-                    PlateNumber = carDto.PlateNumber,
+                    PlateNumber = carDto.PlateNumber.ToUpper().Replace(" ", ""),
                     Make = carDto.Make,
                     Model = carDto.Model,
                     Year = carDto.Year,
-                    PINHash = BCrypt.Net.BCrypt.HashPassword(carDto.PIN),
+                    PINHash = BCrypt.Net.BCrypt.HashPassword(carDto.PIN.ToUpper()),
                     IsActive = carDto.IsActive
                 });
             }
@@ -163,14 +178,25 @@ public class CustomerService : ICustomerService
         if (string.IsNullOrWhiteSpace(request.PIN))
             throw new ArgumentException("PIN is required");
 
+        // Check plate number uniqueness (fetch + in-memory comparison to avoid LINQ translation issues)
+        var normalizedPlate = request.PlateNumber.ToUpper().Replace(" ", "");
+        var existingPlates = await _unitOfWork.Cars.Query()
+            .Include(c => c.Customer)
+            .Where(c => c.Customer.OrganizationId == orgId && !c.IsDeleted)
+            .Select(c => c.PlateNumber)
+            .ToListAsync();
+
+        if (existingPlates.Any(p => p.ToUpper().Replace(" ", "") == normalizedPlate))
+            throw new ArgumentException($"A car with plate number '{normalizedPlate}' already exists in your organization.");
+
         var car = new Car
         {
             CustomerId = customerId,
-            PlateNumber = request.PlateNumber,
+            PlateNumber = normalizedPlate,
             Make = request.Make,
             Model = request.Model,
             Year = request.Year,
-            PINHash = BCrypt.Net.BCrypt.HashPassword(request.PIN),
+            PINHash = BCrypt.Net.BCrypt.HashPassword(request.PIN.ToUpper()),
             IsActive = request.IsActive
         };
 
@@ -189,7 +215,18 @@ public class CustomerService : ICustomerService
             .FirstOrDefaultAsync(c => c.Id == carId && c.CustomerId == customerId && c.Customer.OrganizationId == orgId)
             ?? throw new KeyNotFoundException("Car not found");
 
-        car.PlateNumber = request.PlateNumber;
+        // Check plate number uniqueness excluding this car (fetch + in-memory)
+        var normalizedPlate = request.PlateNumber.ToUpper().Replace(" ", "");
+        var existingPlates = await _unitOfWork.Cars.Query()
+            .Include(c => c.Customer)
+            .Where(c => c.Id != carId && c.Customer.OrganizationId == orgId && !c.IsDeleted)
+            .Select(c => c.PlateNumber)
+            .ToListAsync();
+
+        if (existingPlates.Any(p => p.ToUpper().Replace(" ", "") == normalizedPlate))
+            throw new ArgumentException($"A car with plate number '{normalizedPlate}' already exists in your organization.");
+
+        car.PlateNumber = normalizedPlate;
         car.Make = request.Make;
         car.Model = request.Model;
         car.Year = request.Year;
@@ -197,7 +234,7 @@ public class CustomerService : ICustomerService
 
         if (!string.IsNullOrWhiteSpace(request.PIN))
         {
-            car.PINHash = BCrypt.Net.BCrypt.HashPassword(request.PIN);
+            car.PINHash = BCrypt.Net.BCrypt.HashPassword(request.PIN.ToUpper());
         }
 
         _unitOfWork.Cars.Update(car);

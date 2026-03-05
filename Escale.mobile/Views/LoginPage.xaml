@@ -55,13 +55,28 @@
                     Stroke="#E2E8F0"
                     BackgroundColor="White"
                     Padding="15,10">
-                <Entry Placeholder="Password"
-                       Text="{Binding Password}"
-                       IsPassword="True"
-                       FontSize="16"
-                       TextColor="#1E293B"
-                       ReturnType="Done"
-                       ReturnCommand="{Binding LoginCommand}"/>
+                <Grid ColumnDefinitions="*,Auto">
+                    <Entry x:Name="PasswordEntry"
+                           Placeholder="Password"
+                           Text="{Binding Password}"
+                           IsPassword="True"
+                           FontSize="16"
+                           TextColor="#1E293B"
+                           ReturnType="Done"
+                           ReturnCommand="{Binding LoginCommand}"/>
+                    <ImageButton Grid.Column="1"
+                                 WidthRequest="30"
+                                 HeightRequest="30"
+                                 Padding="4"
+                                 BackgroundColor="Transparent"
+                                 Clicked="OnTogglePasswordVisibility">
+                        <ImageButton.Source>
+                            <FontImageSource FontFamily="MaterialDesignIcons"
+                                             Glyph="{x:Static helpers:IconFont.EyeOff}"
+                                             Color="#94A3B8" Size="20"/>
+                        </ImageButton.Source>
+                    </ImageButton>
+                </Grid>
             </Border>
 
             <!-- Remember Me -->

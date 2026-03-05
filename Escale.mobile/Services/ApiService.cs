@@ -125,6 +125,7 @@ public class TransactionResponse
     public decimal Total { get; set; }
     public string PaymentMethod { get; set; } = string.Empty;
     public string? CustomerName { get; set; }
+    public string? CustomerPhone { get; set; }
     public bool EBMSent { get; set; }
     public string? EBMReceiptUrl { get; set; }
     public string CashierName { get; set; } = string.Empty;
@@ -432,9 +433,12 @@ public class ApiService
 
             // Longer timeout for sales — EBM external call can be slow
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(120));
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             var response = await _httpClient.PostAsJsonAsync($"{_baseUrl}/sales", request, cts.Token);
             var content = await response.Content.ReadAsStringAsync();
+            stopwatch.Stop();
 
+            System.Diagnostics.Debug.WriteLine($"Sale API took: {stopwatch.ElapsedMilliseconds}ms");
             System.Diagnostics.Debug.WriteLine($"Sale response: {content}");
 
             // SaleResponseDto is returned directly (not wrapped in ApiResponse<T>)
@@ -488,6 +492,7 @@ public class ApiService
                 Total = t.Total,
                 PaymentMethod = t.PaymentMethod,
                 CustomerName = t.CustomerName,
+                CustomerPhone = t.CustomerPhone,
                 EBMSent = t.EBMSent,
                 EBMReceiptUrl = t.EBMReceiptUrl
             }).ToList();
@@ -636,10 +641,25 @@ public class ApiService
 
             System.Diagnostics.Debug.WriteLine($"Subscription lookup response: {content}");
 
-            var result = JsonSerializer.Deserialize<ApiResponse<SubscriptionCustomerLookupResponse>>(content, new JsonSerializerOptions
+            var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+            // Handle non-success HTTP status (e.g. ProblemDetails format)
+            if (!response.IsSuccessStatusCode)
             {
-                PropertyNameCaseInsensitive = true
-            });
+                try
+                {
+                    using var doc = JsonDocument.Parse(content);
+                    var root = doc.RootElement;
+                    if (root.TryGetProperty("Message", out var msg) || root.TryGetProperty("message", out msg))
+                        return (false, msg.GetString() ?? "Lookup failed", null);
+                    if (root.TryGetProperty("title", out var title))
+                        return (false, title.GetString() ?? "Lookup failed", null);
+                }
+                catch { }
+                return (false, $"Lookup failed ({response.StatusCode})", null);
+            }
+
+            var result = JsonSerializer.Deserialize<ApiResponse<SubscriptionCustomerLookupResponse>>(content, jsonOptions);
 
             if (result?.Success == true && result.Data != null)
             {

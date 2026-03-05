@@ -111,13 +111,17 @@ public class SubscriptionService : ISubscriptionService
     {
         var orgId = _currentUser.OrganizationId!.Value;
 
-        // Find car by plate number
-        var car = await _unitOfWork.Cars.Query()
+        // Normalize plate number: uppercase + remove spaces
+        var normalizedPlate = request.PlateNumber.ToUpper().Replace(" ", "");
+
+        // Fetch candidate cars in org, then match plate in-memory (avoids LINQ translation issues with Replace)
+        var orgCars = await _unitOfWork.Cars.Query()
             .Include(c => c.Customer)
                 .ThenInclude(c => c.Subscriptions)
-            .FirstOrDefaultAsync(c => c.PlateNumber.ToLower() == request.PlateNumber.ToLower()
-                                   && c.Customer.OrganizationId == orgId
-                                   && !c.IsDeleted);
+            .Where(c => c.Customer.OrganizationId == orgId && !c.IsDeleted)
+            .ToListAsync();
+
+        var car = orgCars.FirstOrDefault(c => c.PlateNumber.ToUpper().Replace(" ", "") == normalizedPlate);
 
         if (car == null)
         {
@@ -127,8 +131,8 @@ public class SubscriptionService : ISubscriptionService
             };
         }
 
-        // Verify PIN
-        if (!BCrypt.Net.BCrypt.Verify(request.PIN, car.PINHash))
+        // Verify PIN (uppercase input to match stored uppercase hash)
+        if (!BCrypt.Net.BCrypt.Verify(request.PIN.ToUpper(), car.PINHash))
         {
             return new SubscriptionCustomerLookupResponseDto
             {

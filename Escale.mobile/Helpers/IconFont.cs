@@ -36,6 +36,10 @@ public static class IconFont
     // Payment
     public const string CreditCard = "\U000F0FEF";
 
+    // Visibility
+    public const string Eye = "\U000F0208";
+    public const string EyeOff = "\U000F0209";
+
     // Dashboard & Views
     public const string ViewDashboard = "\U000F0A1D";
     public const string History = "\U000F02DA";

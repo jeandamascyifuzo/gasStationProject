@@ -47,13 +47,12 @@
                         Stroke="#E2E8F0"
                         BackgroundColor="White"
                         Padding="15,10">
-                    <Entry Placeholder="4-digit PIN"
+                    <Entry Placeholder="Enter PIN"
                            Text="{Binding CarPIN}"
                            FontSize="18"
                            TextColor="#1E293B"
                            IsPassword="True"
-                           Keyboard="Numeric"
-                           MaxLength="4"/>
+                           Keyboard="Default"/>
                 </Border>
             </VerticalStackLayout>
 

@@ -191,7 +191,7 @@ public abstract class BaseApiService
             return result ?? new ApiResponse<T> { Success = false, Message = "Failed to deserialize response" };
         }
 
-        // Try to parse error response
+        // Try to parse error response - first try our ApiResponse format, then ProblemDetails
         try
         {
             var errorResult = JsonSerializer.Deserialize<ApiResponse<T>>(json, JsonOptions);
@@ -199,11 +199,13 @@ public abstract class BaseApiService
         }
         catch { }
 
+        // Parse as ProblemDetails or raw error
+        var parsed = ParseErrorResponse(json, response.StatusCode);
         return new ApiResponse<T>
         {
             Success = false,
-            Message = $"API error: {response.StatusCode}",
-            Errors = new List<string> { json }
+            Message = parsed.Message,
+            Errors = parsed.Errors
         };
     }
 

@@ -81,7 +81,7 @@ public class BoolToClockInOutTextConverter : IValueConverter
     {
         if (value is bool isClockedIn)
         {
-            return isClockedIn ? "?? Clock Out" : "?? Clock In";
+            return isClockedIn ? "Clock Out" : "Clock In";
         }
         return "Clock In/Out";
     }

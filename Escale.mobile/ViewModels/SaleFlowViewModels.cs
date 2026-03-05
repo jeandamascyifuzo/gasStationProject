@@ -38,11 +38,15 @@ public partial class CustomerInfoViewModel : ObservableObject
     [RelayCommand]
     private async Task Skip()
     {
-        // Clear any customer data — this is a walk-in sale
+        // Walk-in sale with default customer info
         var sale = AppState.Instance.CurrentSale;
         if (sale != null)
         {
-            sale.Customer = null;
+            sale.Customer = new CustomerInfo
+            {
+                Name = "Walk-in",
+                PhoneNumber = "0781917267"
+            };
         }
         await Shell.Current.GoToAsync("SalePreview");
     }
@@ -50,13 +54,25 @@ public partial class CustomerInfoViewModel : ObservableObject
     [RelayCommand]
     private async Task Continue()
     {
+        // Validate form when user explicitly continues
+        if (string.IsNullOrWhiteSpace(CustomerName))
+        {
+            await Shell.Current.DisplayAlert("Required", "Please enter customer name.", "OK");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(PhoneNumber))
+        {
+            await Shell.Current.DisplayAlert("Required", "Please enter phone number.", "OK");
+            return;
+        }
+
         var sale = AppState.Instance.CurrentSale;
-        if (sale != null && !string.IsNullOrWhiteSpace(CustomerName))
+        if (sale != null)
         {
             sale.Customer = new CustomerInfo
             {
-                Name = CustomerName,
-                PhoneNumber = PhoneNumber
+                Name = CustomerName.Trim(),
+                PhoneNumber = PhoneNumber.Trim()
             };
         }
 

@@ -29,26 +29,19 @@
                 <VerticalStackLayout Spacing="15"
                                     IsVisible="{Binding IsLoading}">
                     <!-- Skeleton stat cards -->
-                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
                         <Border Grid.Column="0" StrokeShape="RoundRectangle 15" BackgroundColor="#E2E8F0" Padding="15" StrokeThickness="0" HeightRequest="90">
                             <VerticalStackLayout Spacing="8">
-                                <BoxView BackgroundColor="#CBD5E1" HeightRequest="10" WidthRequest="40" CornerRadius="4" HorizontalOptions="Start"/>
-                                <BoxView BackgroundColor="#CBD5E1" HeightRequest="16" WidthRequest="60" CornerRadius="4" HorizontalOptions="Start"/>
-                                <BoxView BackgroundColor="#CBD5E1" HeightRequest="8" WidthRequest="30" CornerRadius="4" HorizontalOptions="Start"/>
+                                <BoxView BackgroundColor="#CBD5E1" HeightRequest="10" WidthRequest="40" CornerRadius="4" HorizontalOptions="Center"/>
+                                <BoxView BackgroundColor="#CBD5E1" HeightRequest="16" WidthRequest="60" CornerRadius="4" HorizontalOptions="Center"/>
+                                <BoxView BackgroundColor="#CBD5E1" HeightRequest="8" WidthRequest="30" CornerRadius="4" HorizontalOptions="Center"/>
                             </VerticalStackLayout>
                         </Border>
                         <Border Grid.Column="1" StrokeShape="RoundRectangle 15" BackgroundColor="#E2E8F0" Padding="15" StrokeThickness="0" HeightRequest="90">
                             <VerticalStackLayout Spacing="8">
-                                <BoxView BackgroundColor="#CBD5E1" HeightRequest="10" WidthRequest="55" CornerRadius="4" HorizontalOptions="Start"/>
-                                <BoxView BackgroundColor="#CBD5E1" HeightRequest="16" WidthRequest="35" CornerRadius="4" HorizontalOptions="Start"/>
-                                <BoxView BackgroundColor="#CBD5E1" HeightRequest="8" WidthRequest="30" CornerRadius="4" HorizontalOptions="Start"/>
-                            </VerticalStackLayout>
-                        </Border>
-                        <Border Grid.Column="2" StrokeShape="RoundRectangle 15" BackgroundColor="#E2E8F0" Padding="15" StrokeThickness="0" HeightRequest="90">
-                            <VerticalStackLayout Spacing="8">
-                                <BoxView BackgroundColor="#CBD5E1" HeightRequest="10" WidthRequest="45" CornerRadius="4" HorizontalOptions="Start"/>
-                                <BoxView BackgroundColor="#CBD5E1" HeightRequest="16" WidthRequest="50" CornerRadius="4" HorizontalOptions="Start"/>
-                                <BoxView BackgroundColor="#CBD5E1" HeightRequest="8" WidthRequest="30" CornerRadius="4" HorizontalOptions="Start"/>
+                                <BoxView BackgroundColor="#CBD5E1" HeightRequest="10" WidthRequest="55" CornerRadius="4" HorizontalOptions="Center"/>
+                                <BoxView BackgroundColor="#CBD5E1" HeightRequest="16" WidthRequest="35" CornerRadius="4" HorizontalOptions="Center"/>
+                                <BoxView BackgroundColor="#CBD5E1" HeightRequest="8" WidthRequest="30" CornerRadius="4" HorizontalOptions="Center"/>
                             </VerticalStackLayout>
                         </Border>
                     </Grid>
@@ -72,7 +65,7 @@
                                     IsVisible="{Binding IsLoading, Converter={StaticResource InvertedBoolConverter}}">
 
                     <!-- Summary Cards -->
-                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
 
                         <!-- Today's Sales -->
                         <Border Grid.Column="0"
@@ -83,12 +76,13 @@
                             <Border.Shadow>
                                 <Shadow Brush="Black" Opacity="0.1" Radius="10" Offset="0,2"/>
                             </Border.Shadow>
-                            <VerticalStackLayout Spacing="8">
+                            <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
                                 <Border StrokeShape="RoundRectangle 6"
                                         BackgroundColor="#D1FAE5"
                                         HeightRequest="28"
                                         WidthRequest="28"
-                                        Padding="0">
+                                        Padding="0"
+                                        HorizontalOptions="Center">
                                     <Label Text="{x:Static helpers:IconFont.CurrencyUsd}"
                                            FontFamily="MaterialDesignIcons"
                                            FontSize="14"
@@ -99,10 +93,12 @@
                                 <Label Text="{Binding TodaysSales, StringFormat='{0:N0}'}"
                                        FontSize="16"
                                        FontAttributes="Bold"
-                                       TextColor="#10B981"/>
+                                       TextColor="#10B981"
+                                       HorizontalOptions="Center"/>
                                 <Label Text="Sales (RWF)"
                                        FontSize="9"
-                                       TextColor="#94A3B8"/>
+                                       TextColor="#94A3B8"
+                                       HorizontalOptions="Center"/>
                             </VerticalStackLayout>
                         </Border>
 
@@ -115,12 +111,13 @@
                             <Border.Shadow>
                                 <Shadow Brush="Black" Opacity="0.1" Radius="10" Offset="0,2"/>
                             </Border.Shadow>
-                            <VerticalStackLayout Spacing="8">
+                            <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
                                 <Border StrokeShape="RoundRectangle 6"
                                         BackgroundColor="#DBEAFE"
                                         HeightRequest="28"
                                         WidthRequest="28"
-                                        Padding="0">
+                                        Padding="0"
+                                        HorizontalOptions="Center">
                                     <Label Text="{x:Static helpers:IconFont.Receipt}"
                                            FontFamily="MaterialDesignIcons"
                                            FontSize="14"
@@ -131,42 +128,12 @@
                                 <Label Text="{Binding TransactionCount}"
                                        FontSize="16"
                                        FontAttributes="Bold"
-                                       TextColor="#1E3A8A"/>
+                                       TextColor="#1E3A8A"
+                                       HorizontalOptions="Center"/>
                                 <Label Text="Today"
                                        FontSize="9"
-                                       TextColor="#94A3B8"/>
-                            </VerticalStackLayout>
-                        </Border>
-
-                        <!-- Average Sale -->
-                        <Border Grid.Column="2"
-                                StrokeShape="RoundRectangle 15"
-                                BackgroundColor="White"
-                                Padding="15"
-                                StrokeThickness="0">
-                            <Border.Shadow>
-                                <Shadow Brush="Black" Opacity="0.1" Radius="10" Offset="0,2"/>
-                            </Border.Shadow>
-                            <VerticalStackLayout Spacing="8">
-                                <Border StrokeShape="RoundRectangle 6"
-                                        BackgroundColor="#FEF3C7"
-                                        HeightRequest="28"
-                                        WidthRequest="28"
-                                        Padding="0">
-                                    <Label Text="{x:Static helpers:IconFont.ChartLine}"
-                                           FontFamily="MaterialDesignIcons"
-                                           FontSize="14"
-                                           TextColor="#F59E0B"
-                                           HorizontalOptions="Center"
-                                           VerticalOptions="Center"/>
-                                </Border>
-                                <Label Text="{Binding AverageSale, StringFormat='{0:N0}'}"
-                                       FontSize="16"
-                                       FontAttributes="Bold"
-                                       TextColor="#F59E0B"/>
-                                <Label Text="Avg (RWF)"
-                                       FontSize="9"
-                                       TextColor="#94A3B8"/>
+                                       TextColor="#94A3B8"
+                                       HorizontalOptions="Center"/>
                             </VerticalStackLayout>
                         </Border>
                     </Grid>

@@ -36,7 +36,7 @@
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Stations</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalStations</div>
+                        <div id="stat-stations" class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalStations</div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-gas-pump fa-2x text-gray-300"></i>
@@ -52,7 +52,7 @@
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Transactions</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TransactionCount</div>
+                        <div id="stat-transactions" class="h5 mb-0 font-weight-bold text-gray-800">@Model.TransactionCount</div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-exchange-alt fa-2x text-gray-300"></i>
@@ -68,7 +68,7 @@
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Today's Sales</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TodaysSales.ToString("N0") RWF</div>
+                        <div id="stat-sales" class="h5 mb-0 font-weight-bold text-gray-800">@Model.TodaysSales.ToString("N0") RWF</div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
@@ -84,7 +84,7 @@
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Low Stock Alerts</div>
-                        <div class="h5 mb-0 font-weight-bold @(Model.LowStockAlerts > 0 ? "text-danger" : "text-gray-800")">@Model.LowStockAlerts</div>
+                        <div id="stat-alerts" class="h5 mb-0 font-weight-bold @(Model.LowStockAlerts > 0 ? "text-danger" : "text-gray-800")">@Model.LowStockAlerts</div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
@@ -103,7 +103,7 @@
                 <h6 class="m-0 fw-bold text-white"><i class="fas fa-trophy me-2"></i>Top 5 Station Performance</h6>
                 <a asp-controller="Stations" asp-action="Index" class="btn btn-sm btn-outline-light">View All Stations</a>
             </div>
-            <div class="card-body p-0">
+            <div id="top-stations-container" class="card-body p-0">
                 @if (Model.TopStations.Any())
                 {
                     <div class="table-responsive">
@@ -195,7 +195,7 @@
                                 <th>Time</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="recent-transactions-body">
                             @foreach (var txn in Model.RecentTransactions)
                             {
                                 <tr>
@@ -217,8 +217,8 @@
 @section Scripts {
 <script>
     // Sales Trend Chart
-    const salesCtx = document.getElementById('salesChart').getContext('2d');
-    new Chart(salesCtx, {
+    var salesCtx = document.getElementById('salesChart').getContext('2d');
+    window.escaleSalesChart = new Chart(salesCtx, {
         type: 'line',
         data: {
             labels: @Html.Raw(Json.Serialize(Model.SalesChart.Select(s => s.Date))),
@@ -240,8 +240,8 @@
     });
 
     // Fuel Type Chart
-    const fuelCtx = document.getElementById('fuelTypeChart').getContext('2d');
-    new Chart(fuelCtx, {
+    var fuelCtx = document.getElementById('fuelTypeChart').getContext('2d');
+    window.escaleFuelChart = new Chart(fuelCtx, {
         type: 'pie',
         data: {
             labels: @Html.Raw(Json.Serialize(Model.FuelTypeChart.Select(f => f.FuelType))),
@@ -256,5 +256,7 @@
         }
     });
 
+    // Current period for seamless refresh
+    window.escaleDashboardPeriod = '@(ViewBag.Period ?? "today")';
 </script>
 }

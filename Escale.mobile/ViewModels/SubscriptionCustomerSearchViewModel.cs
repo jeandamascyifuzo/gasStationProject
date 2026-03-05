@@ -70,9 +70,9 @@ public partial class SubscriptionCustomerSearchViewModel : ObservableObject
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(CarPIN) || CarPIN.Length != 4)
+        if (string.IsNullOrWhiteSpace(CarPIN))
         {
-            ErrorMessage = "Please enter a valid 4-digit PIN.";
+            ErrorMessage = "Please enter the car PIN.";
             return;
         }
 
@@ -83,7 +83,9 @@ public partial class SubscriptionCustomerSearchViewModel : ObservableObject
             HasResult = false;
 
             var saleAmount = AppState.Instance.CurrentSale?.Total;
-            var (success, error, data) = await _apiService.LookupSubscriptionCarAsync(PlateNumber.Trim(), CarPIN, saleAmount);
+            var normalizedPlate = PlateNumber.Trim().ToUpper().Replace(" ", "");
+            var normalizedPIN = CarPIN.Trim().ToUpper();
+            var (success, error, data) = await _apiService.LookupSubscriptionCarAsync(normalizedPlate, normalizedPIN, saleAmount);
 
             if (success && data != null)
             {

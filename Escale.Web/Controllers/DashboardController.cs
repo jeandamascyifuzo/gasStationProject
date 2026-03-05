@@ -26,6 +26,20 @@ namespace Escale.Web.Controllers
             if (HttpContext.Session.GetString("UserRole") == "SuperAdmin")
                 return RedirectToAction("Index", "Organizations");
 
+            ViewBag.Period = period;
+            var model = await BuildDashboardModelAsync(period);
+            return View(model);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Data(string period = "today")
+        {
+            var model = await BuildDashboardModelAsync(period);
+            return Json(model);
+        }
+
+        private async Task<DashboardViewModel> BuildDashboardModelAsync(string period)
+        {
             DateTime date = DateTime.Today;
             DateTime chartStart = DateTime.Today.AddDays(-6);
 
@@ -39,8 +53,6 @@ namespace Escale.Web.Controllers
                 date = DateTime.Today.AddDays(-30);
                 chartStart = DateTime.Today.AddDays(-30);
             }
-
-            ViewBag.Period = period;
 
             var summaryTask = _dashboardService.GetSummaryAsync(date: date);
             var stationsTask = _stationService.GetAllAsync();
@@ -104,7 +116,7 @@ namespace Escale.Web.Controllers
                     }).ToList();
             }
 
-            return View(model);
+            return model;
         }
     }
 }

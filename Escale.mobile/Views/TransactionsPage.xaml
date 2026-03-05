@@ -138,7 +138,7 @@
                                                    FontAttributes="Bold"
                                                    TextColor="#1E293B"/>
                                             <HorizontalStackLayout Spacing="6">
-                                                <Label Text="{Binding TransactionDate, StringFormat='{0:HH:mm}'}"
+                                                <Label Text="{Binding TransactionDate, StringFormat='{0:dd/MM/yy HH:mm}'}"
                                                        FontSize="12"
                                                        TextColor="#94A3B8"/>
                                                 <Label Text="|"
@@ -158,6 +158,10 @@
                                                 <Label Text="{Binding CustomerName, TargetNullValue='Walk-in'}"
                                                        FontSize="11"
                                                        TextColor="#94A3B8"/>
+                                                <Label Text="{Binding CustomerPhone}"
+                                                       FontSize="11"
+                                                       TextColor="#94A3B8"
+                                                       IsVisible="{Binding CustomerPhone, Converter={StaticResource StringToBoolConverter}}"/>
                                                 <Label Text="|"
                                                        FontSize="11"
                                                        TextColor="#CBD5E1"/>
