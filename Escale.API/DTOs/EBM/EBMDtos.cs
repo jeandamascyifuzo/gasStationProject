@@ -10,6 +10,7 @@ public class EBMSellPayload
     public string? CompanyPhone { get; set; }
     public string? CompanyTin { get; set; }
     public string? CustomerPhone { get; set; }
+    public string? CustomerTin { get; set; }
 }
 
 public class EBMSellItem

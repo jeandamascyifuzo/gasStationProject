@@ -17,6 +17,7 @@ public class SaleCustomerDto
     public Guid? Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
+    public string? TIN { get; set; }
     public string? PlateNumber { get; set; }
 }
 

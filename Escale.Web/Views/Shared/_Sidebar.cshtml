@@ -14,61 +14,93 @@
             }
             else
             {
-                <!-- Regular users: org-scoped menu -->
+                var userRole = Context.Session.GetString("UserRole");
+                var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+                var isAdminOrManager = userRole == "Admin" || userRole == "Manager";
+
+                <!-- Dashboard: all roles -->
                 <li class="nav-item">
-                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")" asp-controller="Dashboard" asp-action="Index">
+                    <a class="nav-link @(controller == "Dashboard" ? "active" : "")" asp-controller="Dashboard" asp-action="Index">
                         <i class="fas fa-chart-line me-2"></i>
                         <span>Dashboard</span>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Stations" ? "active" : "")" asp-controller="Stations" asp-action="Index">
-                        <i class="fas fa-gas-pump me-2"></i>
-                        <span>Stations</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "FuelTypes" ? "active" : "")" asp-controller="FuelTypes" asp-action="Index">
-                        <i class="fas fa-oil-can me-2"></i>
-                        <span>Fuel Types</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Inventory" ? "active" : "")" asp-controller="Inventory" asp-action="Index">
-                        <i class="fas fa-boxes me-2"></i>
-                        <span>Inventory</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Transactions" ? "active" : "")" asp-controller="Transactions" asp-action="Index">
-                        <i class="fas fa-receipt me-2"></i>
-                        <span>Transactions</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Customers" ? "active" : "")" asp-controller="Customers" asp-action="Index">
-                        <i class="fas fa-user-friends me-2"></i>
-                        <span>Customers</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Users" ? "active" : "")" asp-controller="Users" asp-action="Index">
-                        <i class="fas fa-users me-2"></i>
-                        <span>Users</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Reports" ? "active" : "")" asp-controller="Reports" asp-action="Index">
-                        <i class="fas fa-chart-bar me-2"></i>
-                        <span>Reports</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Settings" ? "active" : "")" asp-controller="Settings" asp-action="Index">
-                        <i class="fas fa-cog me-2"></i>
-                        <span>Settings</span>
-                    </a>
-                </li>
+
+                @if (isAdminOrManager || userRole == "Supervisor")
+                {
+                    <li class="nav-item">
+                        <a class="nav-link @(controller == "Stations" ? "active" : "")" asp-controller="Stations" asp-action="Index">
+                            <i class="fas fa-gas-pump me-2"></i>
+                            <span>Stations</span>
+                        </a>
+                    </li>
+                }
+
+                @if (isAdminOrManager)
+                {
+                    <li class="nav-item">
+                        <a class="nav-link @(controller == "FuelTypes" ? "active" : "")" asp-controller="FuelTypes" asp-action="Index">
+                            <i class="fas fa-oil-can me-2"></i>
+                            <span>Fuel Types</span>
+                        </a>
+                    </li>
+                }
+
+                @if (isAdminOrManager || userRole == "Inventory")
+                {
+                    <li class="nav-item">
+                        <a class="nav-link @(controller == "Inventory" ? "active" : "")" asp-controller="Inventory" asp-action="Index">
+                            <i class="fas fa-boxes me-2"></i>
+                            <span>Inventory</span>
+                        </a>
+                    </li>
+                }
+
+                @if (isAdminOrManager || userRole == "Supervisor")
+                {
+                    <li class="nav-item">
+                        <a class="nav-link @(controller == "Transactions" ? "active" : "")" asp-controller="Transactions" asp-action="Index">
+                            <i class="fas fa-receipt me-2"></i>
+                            <span>Transactions</span>
+                        </a>
+                    </li>
+                }
+
+                @if (isAdminOrManager)
+                {
+                    <li class="nav-item">
+                        <a class="nav-link @(controller == "Customers" ? "active" : "")" asp-controller="Customers" asp-action="Index">
+                            <i class="fas fa-user-friends me-2"></i>
+                            <span>Customers</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(controller == "Users" ? "active" : "")" asp-controller="Users" asp-action="Index">
+                            <i class="fas fa-users me-2"></i>
+                            <span>Users</span>
+                        </a>
+                    </li>
+                }
+
+                @if (isAdminOrManager || userRole == "Inventory")
+                {
+                    <li class="nav-item">
+                        <a class="nav-link @(controller == "Reports" ? "active" : "")" asp-controller="Reports" asp-action="Index">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            <span>Reports</span>
+                        </a>
+                    </li>
+                }
+
+                @if (isAdminOrManager)
+                {
+                    <li class="nav-item">
+                        <a class="nav-link @(controller == "Settings" ? "active" : "")" asp-controller="Settings" asp-action="Index">
+                            <i class="fas fa-cog me-2"></i>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                }
             }
         </ul>
 

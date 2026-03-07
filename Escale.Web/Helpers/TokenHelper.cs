@@ -7,4 +7,5 @@ public static class TokenHelper
     public const string SessionUserFullName = "UserFullName";
     public const string SessionUserRole = "UserRole";
     public const string SessionUserId = "UserId";
+    public const string SessionStationIds = "AssignedStationIds";
 }

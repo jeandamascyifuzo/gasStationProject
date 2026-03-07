@@ -8,7 +8,10 @@
         <h1 class="h2"><i class="fas fa-user-friends me-2"></i>Customers Management</h1>
         <p class="text-muted mb-0">Manage your customers, vehicles, and subscriptions.</p>
     </div>
-    <div class="btn-toolbar mb-2 mb-md-0">
+    <div class="btn-toolbar mb-2 mb-md-0 gap-2">
+        <button type="button" class="btn btn-success" id="exportBtn" onclick="exportCustomers()">
+            <i class="fas fa-file-excel me-2"></i>Export CSV
+        </button>
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#customerModal" onclick="openCustomerModal()">
             <i class="fas fa-user-plus me-2"></i>Add New Customer
         </button>
@@ -27,7 +30,16 @@
                     <button class="btn btn-outline-primary" type="submit"><i class="fas fa-search"></i></button>
                 </div>
             </div>
-            @if (!string.IsNullOrEmpty(Model.SearchTerm))
+            <div class="col-md-2">
+                <select class="form-select" name="type" onchange="this.form.submit()">
+                    <option value="">All Types</option>
+                    @foreach (var type in Model.CustomerTypes)
+                    {
+                        <option value="@type" selected="@(Model.SelectedType == type)">@type</option>
+                    }
+                </select>
+            </div>
+            @if (!string.IsNullOrEmpty(Model.SearchTerm) || !string.IsNullOrEmpty(Model.SelectedType))
             {
                 <div class="col-auto">
                     <a asp-action="Index" class="btn btn-outline-secondary btn-sm"><i class="fas fa-times me-1"></i>Clear</a>
@@ -46,15 +58,15 @@
             <table id="customersTable" class="table table-bordered table-hover">
                 <thead>
                     <tr>
+                        <th>Created</th>
                         <th>Name</th>
                         <th>Email</th>
                         <th>Phone</th>
                         <th>Type</th>
                         <th>Cars</th>
                         <th>Subscriptions</th>
-                        <th>Credit</th>
+                        <th>Balance</th>
                         <th>Status</th>
-                        <th>Created</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -62,6 +74,7 @@
                     @foreach (var customer in Model.Customers)
                     {
                         <tr>
+                            <td>@customer.CreatedAt.ToString("yyyy-MM-dd")</td>
                             <td>
                                 <strong>@customer.Name</strong>
                                 @if (customer.Type == "Corporate" && !string.IsNullOrEmpty(customer.TIN))
@@ -82,9 +95,14 @@
                             <td>
                                 <span class="badge bg-success">@customer.Subscriptions.Count(s => s.Status == "Active")</span>
                             </td>
+                            @{
+                                var activeBalance = customer.Subscriptions
+                                    .Where(s => s.Status == "Active")
+                                    .Sum(s => s.RemainingBalance);
+                            }
                             <td>
-                                <span class="@(customer.CurrentCredit > 0 ? "text-danger fw-bold" : "text-muted")">
-                                    @customer.CurrentCredit.ToString("N0") / @customer.CreditLimit.ToString("N0")
+                                <span class="@(activeBalance > 0 ? "text-success fw-bold" : "text-muted")">
+                                    @activeBalance.ToString("N0") RWF
                                 </span>
                             </td>
                             <td>
@@ -92,7 +110,6 @@
                                     @(customer.IsActive ? "Active" : "Inactive")
                                 </span>
                             </td>
-                            <td>@customer.CreatedAt.ToString("yyyy-MM-dd")</td>
                             <td>
                                 <a asp-controller="Customers" asp-action="Details" asp-route-id="@customer.Id" class="btn btn-sm btn-info" title="View Details">
                                     <i class="fas fa-eye"></i>
@@ -116,16 +133,16 @@
             <nav aria-label="Customer pagination" class="mt-3">
                 <ul class="pagination justify-content-center mb-0">
                     <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
-                        <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-search="@Model.SearchTerm">Previous</a>
+                        <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-search="@Model.SearchTerm" asp-route-type="@Model.SelectedType">Previous</a>
                     </li>
                     @for (int i = 1; i <= Model.TotalPages; i++)
                     {
                         <li class="page-item @(i == Model.Page ? "active" : "")">
-                            <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-search="@Model.SearchTerm">@i</a>
+                            <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-search="@Model.SearchTerm" asp-route-type="@Model.SelectedType">@i</a>
                         </li>
                     }
                     <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
-                        <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-search="@Model.SearchTerm">Next</a>
+                        <a class="page-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-search="@Model.SearchTerm" asp-route-type="@Model.SelectedType">Next</a>
                     </li>
                 </ul>
             </nav>
@@ -232,7 +249,7 @@
     $(document).ready(function() {
         $('#customersTable').DataTable({
             pageLength: 10,
-            order: [[8, 'desc']],
+            order: [[0, 'desc']],
             paging: false,
             info: false
         });
@@ -254,10 +271,10 @@
 
         // Load customer data from table row
         var row = $('button[onclick="editCustomer(\'' + id + '\')"]').closest('tr');
-        var name = row.find('td:eq(0) strong').text();
-        var email = row.find('td:eq(1)').text().trim();
-        var phone = row.find('td:eq(2)').text().trim();
-        var type = row.find('td:eq(3) .badge').text().trim();
+        var name = row.find('td:eq(1) strong').text();
+        var email = row.find('td:eq(2)').text().trim();
+        var phone = row.find('td:eq(3)').text().trim();
+        var type = row.find('td:eq(4) .badge').text().trim();
 
         $('#customerName').val(name);
         $('#email').val(email);
@@ -265,7 +282,7 @@
         $('#customerType').val(type);
         toggleCorporateFields();
 
-        var isActive = row.find('td:eq(7) .badge').text().trim() === 'Active';
+        var isActive = row.find('td:eq(8) .badge').text().trim() === 'Active';
         $('#isActive').prop('checked', isActive);
 
         $('#customerModal').modal('show');
@@ -299,6 +316,12 @@
         } else {
             $('#corporateFields').hide();
         }
+    }
+
+    function exportCustomers() {
+        var url = '@Url.Action("ExportReport", "Reports")' +
+            '?reportType=Customer&startDate=2020-01-01&endDate=' + new Date().toISOString().split('T')[0];
+        exportCsv(url, document.getElementById('exportBtn'), 'customers.csv');
     }
 </script>
 }

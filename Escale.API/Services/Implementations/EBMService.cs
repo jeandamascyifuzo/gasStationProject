@@ -29,7 +29,7 @@ public class EBMService : IEBMService
     private const int MaxInvoiceRetries = 20;
 
     public async Task<EBMSellResult> SendSaleReceiptAsync(Guid orgId, string variantId, decimal qty,
-        string? customerName, string? customerPhone)
+        string? customerName, string? customerPhone, string? customerTin)
     {
         try
         {
@@ -46,7 +46,8 @@ public class EBMService : IEBMService
                 CompanyAddress = settings.EBMCompanyAddress,
                 CompanyPhone = settings.EBMCompanyPhone,
                 CompanyTin = settings.EBMCompanyTIN,
-                CustomerPhone = !string.IsNullOrEmpty(customerPhone) ? customerPhone : "N/A"
+                CustomerPhone = !string.IsNullOrEmpty(customerPhone) ? customerPhone : "N/A",
+                CustomerTin = !string.IsNullOrEmpty(customerTin) ? customerTin : null
             };
 
             var client = _httpClientFactory.CreateClient("EBM");

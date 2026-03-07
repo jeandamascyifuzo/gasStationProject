@@ -60,11 +60,20 @@ public class CustomerReportDto
 {
     public Guid CustomerId { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string? PhoneNumber { get; set; }
+    public string? Email { get; set; }
     public string Type { get; set; } = string.Empty;
+    public string? TIN { get; set; }
+    public decimal CreditLimit { get; set; }
+    public decimal CurrentCredit { get; set; }
+    public bool IsActive { get; set; }
     public int TransactionCount { get; set; }
     public decimal TotalSpent { get; set; }
     public decimal TotalLiters { get; set; }
-    public decimal CurrentCredit { get; set; }
+    public decimal CreditPurchases { get; set; }
+    public decimal SubscriptionBalance { get; set; }
+    public int CarCount { get; set; }
+    public int SubscriptionCount { get; set; }
 }
 
 public class FinancialReportDto

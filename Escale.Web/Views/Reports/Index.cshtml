@@ -11,8 +11,8 @@
         <p class="text-muted mb-0">Generate comprehensive reports and analyze business performance.</p>
     </div>
     <div class="btn-toolbar mb-2 mb-md-0">
-        <button type="button" class="btn btn-success" onclick="exportReport()">
-            <i class="fas fa-file-excel me-2"></i>Export
+        <button type="button" class="btn btn-success" id="exportBtn" onclick="exportReport()">
+            <i class="fas fa-file-excel me-2"></i>Export CSV
         </button>
     </div>
 </div>
@@ -48,15 +48,15 @@
             </div>
             <div class="col-md-2 mb-3">
                 <label for="startDate" class="form-label">Start Date</label>
-                <input type="date" class="form-control" id="startDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" />
+                <input type="date" class="form-control" id="startDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" onchange="generateReport()" />
             </div>
             <div class="col-md-2 mb-3">
                 <label for="endDate" class="form-label">End Date</label>
-                <input type="date" class="form-control" id="endDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+                <input type="date" class="form-control" id="endDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" onchange="generateReport()" />
             </div>
-            <div class="col-md-2 mb-3">
+            <div class="col-md-3 mb-3" id="stationFilterGroup">
                 <label for="stationFilter" class="form-label">Station</label>
-                <select class="form-select" id="stationFilter">
+                <select class="form-select" id="stationFilter" onchange="generateReport()">
                     <option value="">All Stations</option>
                     @foreach (var station in Model.Stations)
                     {
@@ -66,7 +66,7 @@
             </div>
             <div class="col-md-2 mb-3" id="fuelTypeFilter">
                 <label for="fuelType" class="form-label">Fuel Type</label>
-                <select class="form-select" id="fuelType">
+                <select class="form-select" id="fuelType" onchange="generateReport()">
                     <option value="">All Fuel Types</option>
                     @foreach (var fuel in Model.FuelTypes)
                     {
@@ -74,35 +74,33 @@
                     }
                 </select>
             </div>
-            <div class="col-md-1 mb-3 d-flex align-items-end">
-                <button type="button" class="btn btn-primary w-100" id="reportSearchBtn" onclick="generateReport()">
-                    <i class="fas fa-search"></i>
-                </button>
-            </div>
         </div>
     </div>
 </div>
 
 <!-- Report Display Area -->
 <div class="card shadow">
-    <div class="card-header">
+    <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0" id="reportTitle"><i class="fas fa-chart-line me-2"></i>Sales Report</h5>
+        <small class="text-muted" id="reportTimestamp"></small>
     </div>
     <div class="card-body">
+        <!-- Loading Indicator -->
+        <div id="reportLoading" style="display: none;" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">Generating report...</p>
+        </div>
+
         <!-- Sales Report -->
         <div id="salesReport">
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle me-2"></i>
-                Select filters and click the search button to generate a report.
-            </div>
             <div id="salesReportContent" style="display: none;">
                 <!-- Summary Cards -->
-                <div class="row mb-4" id="salesSummaryCards">
+                <div class="row mb-4">
                     <div class="col-md-4">
                         <div class="card bg-primary text-white">
                             <div class="card-body text-center">
                                 <h6>Total Sales</h6>
-                                <h3 id="summaryTotalSales">0</h3>
+                                <h3 id="summaryTotalSales">0 RWF</h3>
                             </div>
                         </div>
                     </div>
@@ -118,104 +116,273 @@
                         <div class="card bg-info text-white">
                             <div class="card-body text-center">
                                 <h6>Period</h6>
-                                <h3 id="summaryPeriod">-</h3>
+                                <h3 id="summaryPeriod" style="font-size: 0.9rem;">-</h3>
                             </div>
                         </div>
                     </div>
                 </div>
-                <!-- Sales By Fuel Type -->
-                <h6 class="mb-3">Sales by Fuel Type</h6>
-                <div class="table-responsive mb-4">
-                    <table class="table table-bordered table-hover">
-                        <thead>
-                            <tr>
-                                <th>Fuel Type</th>
-                                <th>Liters</th>
-                                <th>Amount (RWF)</th>
-                                <th>Transactions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="salesByFuelBody">
-                        </tbody>
-                    </table>
-                </div>
-                <!-- Daily Sales -->
-                <h6 class="mb-3">Daily Sales</h6>
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Amount (RWF)</th>
-                                <th>Transactions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="dailySalesBody">
-                        </tbody>
-                    </table>
+
+                <!-- Sales Tabs -->
+                <ul class="nav nav-tabs mb-3" id="salesTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="salesChartTab" data-bs-toggle="tab" data-bs-target="#salesChartPane" type="button" role="tab"><i class="fas fa-chart-line me-1"></i>Charts</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="salesFuelTab" data-bs-toggle="tab" data-bs-target="#salesFuelPane" type="button" role="tab"><i class="fas fa-gas-pump me-1"></i>By Fuel Type</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="salesPaymentTab" data-bs-toggle="tab" data-bs-target="#salesPaymentPane" type="button" role="tab"><i class="fas fa-credit-card me-1"></i>By Payment</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="salesDailyTab" data-bs-toggle="tab" data-bs-target="#salesDailyPane" type="button" role="tab"><i class="fas fa-calendar-day me-1"></i>Daily Sales</button>
+                    </li>
+                </ul>
+                <div class="tab-content" id="salesTabContent">
+                    <!-- Charts Tab -->
+                    <div class="tab-pane fade show active" id="salesChartPane" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="card">
+                                    <div class="card-header"><h6 class="mb-0">Daily Sales Trend</h6></div>
+                                    <div class="card-body" style="height: 300px;">
+                                        <canvas id="salesTrendChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header"><h6 class="mb-0">Sales by Fuel Type</h6></div>
+                                    <div class="card-body" style="height: 300px;">
+                                        <canvas id="fuelTypeChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- By Fuel Type Tab -->
+                    <div class="tab-pane fade" id="salesFuelPane" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover" id="salesByFuelTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Fuel Type</th>
+                                        <th class="text-end">Liters</th>
+                                        <th class="text-end">Amount (RWF)</th>
+                                        <th class="text-center">Transactions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="salesByFuelBody"></tbody>
+                                <tfoot id="salesByFuelFoot" class="table-light fw-bold"></tfoot>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- By Payment Tab -->
+                    <div class="tab-pane fade" id="salesPaymentPane" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover" id="salesByPaymentTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Payment Method</th>
+                                        <th class="text-end">Amount (RWF)</th>
+                                        <th class="text-center">Transactions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="salesByPaymentBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- Daily Sales Tab -->
+                    <div class="tab-pane fade" id="salesDailyPane" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover" id="dailySalesTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th class="text-end">Amount (RWF)</th>
+                                        <th class="text-center">Transactions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dailySalesBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Inventory Report -->
         <div id="inventoryReport" style="display: none;">
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover">
-                    <thead>
-                        <tr>
-                            <th>Station</th>
-                            <th>Fuel Type</th>
-                            <th>Current Level (L)</th>
-                            <th>Capacity (L)</th>
-                            <th>% Full</th>
-                            <th>Status</th>
-                            <th>Refill Count</th>
-                            <th>Refill Cost (RWF)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="inventoryTableBody">
-                    </tbody>
-                </table>
+            <div id="inventoryReportContent" style="display: none;">
+                <!-- Inventory Summary Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h6>Normal</h6>
+                                <h3 id="invNormalCount">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-dark">
+                            <div class="card-body text-center">
+                                <h6>Low Stock</h6>
+                                <h3 id="invLowCount">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body text-center">
+                                <h6>Critical</h6>
+                                <h3 id="invCriticalCount">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h6>Total Refill Cost</h6>
+                                <h3 id="invTotalRefillCost">0 RWF</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="inventoryTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Station</th>
+                                <th>Fuel Type</th>
+                                <th class="text-end">Current Level (L)</th>
+                                <th class="text-end">Capacity (L)</th>
+                                <th class="text-center">% Full</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-center">Refill Count</th>
+                                <th class="text-end">Refill Cost (RWF)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="inventoryEmpty" class="alert alert-warning" style="display: none;">
+                <i class="fas fa-exclamation-triangle me-2"></i>No inventory data found.
             </div>
         </div>
 
         <!-- Employee Report -->
         <div id="employeeReport" style="display: none;">
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover">
-                    <thead>
-                        <tr>
-                            <th>Employee</th>
-                            <th>Role</th>
-                            <th>Transactions</th>
-                            <th>Total Sales (RWF)</th>
-                            <th>Shifts</th>
-                            <th>Hours Worked</th>
-                        </tr>
-                    </thead>
-                    <tbody id="employeeTableBody">
-                    </tbody>
-                </table>
+            <div id="employeeReportContent" style="display: none;">
+                <!-- Employee Summary Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h6>Total Employees</h6>
+                                <h3 id="empTotalCount">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h6>Total Sales</h6>
+                                <h3 id="empTotalSales">0 RWF</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h6>Total Shifts</h6>
+                                <h3 id="empTotalShifts">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="employeeTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Employee</th>
+                                <th class="text-center">Role</th>
+                                <th class="text-center">Transactions</th>
+                                <th class="text-end">Total Sales (RWF)</th>
+                                <th class="text-center">Shifts</th>
+                                <th class="text-end">Hours Worked</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employeeTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="employeeEmpty" class="alert alert-warning" style="display: none;">
+                <i class="fas fa-exclamation-triangle me-2"></i>No employee data found for this period.
             </div>
         </div>
 
         <!-- Customer Report -->
         <div id="customerReport" style="display: none;">
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover">
-                    <thead>
-                        <tr>
-                            <th>Customer</th>
-                            <th>Type</th>
-                            <th>Transactions</th>
-                            <th>Total Spent (RWF)</th>
-                            <th>Total Liters</th>
-                            <th>Current Credit (RWF)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="customerTableBody">
-                    </tbody>
-                </table>
+            <div id="customerReportContent" style="display: none;">
+                <!-- Customer Summary Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h6>Total Customers</h6>
+                                <h3 id="custTotalCount">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h6>Total Spent</h6>
+                                <h3 id="custTotalSpent">0 RWF</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h6>Total Liters</h6>
+                                <h3 id="custTotalLiters">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-dark">
+                            <div class="card-body text-center">
+                                <h6>Avg. per Customer</h6>
+                                <h3 id="custAvgSpent">0 RWF</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="customerTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Customer</th>
+                                <th class="text-center">Type</th>
+                                <th class="text-center">Status</th>
+                                <th>Email</th>
+                                <th>TIN</th>
+                                <th class="text-center">Cars</th>
+                                <th class="text-center">Subs</th>
+                                <th class="text-center">Transactions</th>
+                                <th class="text-end">Total Spent (RWF)</th>
+                                <th class="text-end">Total Liters</th>
+                                <th class="text-end">Remaining Balance (RWF)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customerTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="customerEmpty" class="alert alert-warning" style="display: none;">
+                <i class="fas fa-exclamation-triangle me-2"></i>No customer data found for this period.
             </div>
         </div>
 
@@ -228,7 +395,7 @@
                         <div class="card bg-success text-white">
                             <div class="card-body text-center">
                                 <h6>Total Revenue</h6>
-                                <h3 id="finTotalRevenue">0</h3>
+                                <h3 id="finTotalRevenue">0 RWF</h3>
                             </div>
                         </div>
                     </div>
@@ -236,7 +403,7 @@
                         <div class="card bg-warning text-dark">
                             <div class="card-body text-center">
                                 <h6>Total VAT</h6>
-                                <h3 id="finTotalVAT">0</h3>
+                                <h3 id="finTotalVAT">0 RWF</h3>
                             </div>
                         </div>
                     </div>
@@ -244,7 +411,7 @@
                         <div class="card bg-danger text-white">
                             <div class="card-body text-center">
                                 <h6>Refill Cost</h6>
-                                <h3 id="finRefillCost">0</h3>
+                                <h3 id="finRefillCost">0 RWF</h3>
                             </div>
                         </div>
                     </div>
@@ -252,26 +419,49 @@
                         <div class="card bg-primary text-white">
                             <div class="card-body text-center">
                                 <h6>Gross Profit</h6>
-                                <h3 id="finGrossProfit">0</h3>
+                                <h3 id="finGrossProfit">0 RWF</h3>
                             </div>
                         </div>
                     </div>
                 </div>
-                <!-- Daily Revenue -->
-                <h6 class="mb-3">Daily Revenue</h6>
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Amount (RWF)</th>
-                                <th>Transactions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="financialTableBody">
-                        </tbody>
-                    </table>
+
+                <!-- Financial Tabs -->
+                <ul class="nav nav-tabs mb-3" id="financialTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="finChartTab" data-bs-toggle="tab" data-bs-target="#finChartPane" type="button" role="tab"><i class="fas fa-chart-bar me-1"></i>Revenue Chart</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="finTableTab" data-bs-toggle="tab" data-bs-target="#finTablePane" type="button" role="tab"><i class="fas fa-table me-1"></i>Daily Revenue</button>
+                    </li>
+                </ul>
+                <div class="tab-content" id="financialTabContent">
+                    <!-- Chart Tab -->
+                    <div class="tab-pane fade show active" id="finChartPane" role="tabpanel">
+                        <div class="card">
+                            <div class="card-body" style="height: 300px;">
+                                <canvas id="financialTrendChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Table Tab -->
+                    <div class="tab-pane fade" id="finTablePane" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover" id="financialTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th class="text-end">Amount (RWF)</th>
+                                        <th class="text-center">Transactions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="financialTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
+            </div>
+            <div id="financialEmpty" class="alert alert-warning" style="display: none;">
+                <i class="fas fa-exclamation-triangle me-2"></i>No financial data found for this period.
             </div>
         </div>
     </div>
@@ -279,6 +469,23 @@
 
 @section Scripts {
 <script>
+    // Chart instances
+    var salesTrendChart = null;
+    var fuelTypePieChart = null;
+    var financialTrendChart = null;
+
+    var chartColors = ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#0dcaf0', '#6f42c1', '#fd7e14', '#20c997'];
+
+    // showToast is now global from site.js
+
+    function fmt(num) {
+        return Number(num).toLocaleString('en-US');
+    }
+
+    function fmtDate(dateStr) {
+        return new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
     function changeReportType() {
         var reportType = $('#reportType').val();
 
@@ -289,47 +496,60 @@
                 $('#reportTitle').html('<i class="fas fa-chart-line me-2"></i>Sales Report');
                 $('#salesReport').show();
                 $('#fuelTypeFilter').show();
+                $('#stationFilterGroup').show();
                 break;
             case 'Inventory':
                 $('#reportTitle').html('<i class="fas fa-boxes me-2"></i>Inventory Report');
                 $('#inventoryReport').show();
-                $('#fuelTypeFilter').show();
+                $('#fuelTypeFilter').hide();
+                $('#stationFilterGroup').show();
                 break;
             case 'Employee':
                 $('#reportTitle').html('<i class="fas fa-users me-2"></i>Employee Performance Report');
                 $('#employeeReport').show();
                 $('#fuelTypeFilter').hide();
+                $('#stationFilterGroup').hide();
                 break;
             case 'Customer':
                 $('#reportTitle').html('<i class="fas fa-user-friends me-2"></i>Customer Report');
                 $('#customerReport').show();
                 $('#fuelTypeFilter').hide();
+                $('#stationFilterGroup').hide();
                 break;
             case 'Financial':
                 $('#reportTitle').html('<i class="fas fa-dollar-sign me-2"></i>Financial Report');
                 $('#financialReport').show();
                 $('#fuelTypeFilter').hide();
+                $('#stationFilterGroup').hide();
                 break;
         }
+
+        generateReport();
     }
+
+    var _reportRequest = null;
 
     function generateReport() {
         var reportType = $('#reportType').val();
         var startDate = $('#startDate').val();
         var endDate = $('#endDate').val();
         var stationId = $('#stationFilter').val();
-        var fuelTypeId = $('#fuelType').val();
 
-        $('.alert-info').hide();
+        // Abort previous request if still in progress
+        if (_reportRequest && _reportRequest.readyState !== 4) {
+            _reportRequest.abort();
+        }
 
-        var btn = document.getElementById('reportSearchBtn');
-        startLoading(btn, 'Loading...');
+        $('#reportLoading').show();
 
-        var done = function() { stopLoading(btn); };
+        var done = function() {
+            $('#reportLoading').hide();
+            $('#reportTimestamp').text('Generated: ' + new Date().toLocaleTimeString());
+        };
 
         switch(reportType) {
             case 'Sales':
-                generateSalesReport(startDate, endDate, stationId, fuelTypeId, done);
+                generateSalesReport(startDate, endDate, stationId, done);
                 break;
             case 'Inventory':
                 generateInventoryReport(stationId, done);
@@ -346,174 +566,432 @@
         }
     }
 
-    function generateSalesReport(startDate, endDate, stationId, fuelTypeId, done) {
-        $.get('@Url.Action("GenerateSalesReport", "Reports")',
+    var _salesTableIds = ['salesByFuelTable', 'salesByPaymentTable', 'dailySalesTable'];
+
+    function generateSalesReport(startDate, endDate, stationId, done) {
+        _salesTableIds.forEach(function(id) { if (_dataTables[id]) { _dataTables[id].destroy(); _dataTables[id] = null; } });
+        $('#salesReportContent').hide();
+        _reportRequest = $.get('@Url.Action("GenerateSalesReport", "Reports")',
             { startDate: startDate, endDate: endDate, stationId: stationId },
             function(data) {
-                if (!data) return;
+                if (!data || data.TransactionCount === 0) {
+                    showToast('No sales data found for this period.', 'info');
+                    return;
+                }
 
                 // Summary
-                $('#summaryTotalSales').text(Number(data.TotalSales).toLocaleString());
-                $('#summaryTransactionCount').text(data.TransactionCount);
-                var start = new Date(data.StartDate).toLocaleDateString();
-                var end = new Date(data.EndDate).toLocaleDateString();
-                $('#summaryPeriod').text(start + ' - ' + end).css('font-size', '0.9rem');
+                $('#summaryTotalSales').text(fmt(data.TotalSales) + ' RWF');
+                $('#summaryTransactionCount').text(fmt(data.TransactionCount));
+                var start = fmtDate(data.StartDate);
+                var end = fmtDate(data.EndDate);
+                $('#summaryPeriod').text(start + ' - ' + end);
 
-                // Sales by Fuel Type
+                // Sales by Fuel Type table
                 $('#salesByFuelBody').empty();
-                if (data.SalesByFuel) {
+                $('#salesByFuelFoot').empty();
+                if (data.SalesByFuel && data.SalesByFuel.length > 0) {
+                    var totalLiters = 0, totalAmount = 0, totalTxn = 0;
                     data.SalesByFuel.forEach(function(item) {
+                        totalLiters += item.Liters;
+                        totalAmount += item.Amount;
+                        totalTxn += item.TransactionCount;
                         $('#salesByFuelBody').append(
                             '<tr>' +
                             '<td><span class="badge bg-primary">' + item.FuelType + '</span></td>' +
-                            '<td>' + Number(item.Liters).toLocaleString() + '</td>' +
-                            '<td>' + Number(item.Amount).toLocaleString() + '</td>' +
-                            '<td>' + item.TransactionCount + '</td>' +
+                            '<td class="text-end">' + fmt(item.Liters) + '</td>' +
+                            '<td class="text-end">' + fmt(item.Amount) + '</td>' +
+                            '<td class="text-center">' + fmt(item.TransactionCount) + '</td>' +
+                            '</tr>'
+                        );
+                    });
+                    $('#salesByFuelFoot').append(
+                        '<tr><td>Total</td><td class="text-end">' + fmt(totalLiters) + '</td>' +
+                        '<td class="text-end">' + fmt(totalAmount) + '</td>' +
+                        '<td class="text-center">' + fmt(totalTxn) + '</td></tr>'
+                    );
+                }
+
+                // Sales by Payment Method table
+                $('#salesByPaymentBody').empty();
+                if (data.SalesByPayment && data.SalesByPayment.length > 0) {
+                    var paymentBadges = { 'Cash': 'bg-secondary', 'MobileMoney': 'bg-success', 'Card': 'bg-primary', 'Credit': 'bg-danger' };
+                    var paymentLabels = { 'Cash': 'Cash', 'MobileMoney': 'Mobile Money', 'Card': 'Card', 'Credit': 'Credit' };
+                    data.SalesByPayment.forEach(function(item) {
+                        var badge = paymentBadges[item.PaymentMethod] || 'bg-secondary';
+                        var label = paymentLabels[item.PaymentMethod] || item.PaymentMethod;
+                        $('#salesByPaymentBody').append(
+                            '<tr>' +
+                            '<td><span class="badge ' + badge + '">' + label + '</span></td>' +
+                            '<td class="text-end">' + fmt(item.Amount) + '</td>' +
+                            '<td class="text-center">' + fmt(item.TransactionCount) + '</td>' +
                             '</tr>'
                         );
                     });
                 }
 
-                // Daily Sales
+                // Daily Sales table
                 $('#dailySalesBody').empty();
-                if (data.DailySales) {
+                if (data.DailySales && data.DailySales.length > 0) {
                     data.DailySales.forEach(function(item) {
                         $('#dailySalesBody').append(
                             '<tr>' +
-                            '<td>' + new Date(item.Date).toLocaleDateString() + '</td>' +
-                            '<td>' + Number(item.Amount).toLocaleString() + '</td>' +
-                            '<td>' + item.TransactionCount + '</td>' +
+                            '<td>' + fmtDate(item.Date) + '</td>' +
+                            '<td class="text-end">' + fmt(item.Amount) + '</td>' +
+                            '<td class="text-center">' + item.TransactionCount + '</td>' +
                             '</tr>'
                         );
                     });
                 }
 
+                // Sales Trend Chart
+                renderSalesTrendChart(data.DailySales || []);
+
+                // Fuel Type Pie Chart
+                renderFuelTypePieChart(data.SalesByFuel || []);
+
                 $('#salesReportContent').show();
+                _salesTableIds.forEach(function(id) { initDataTable(id); });
             }
-        ).fail(function() {
-            toastr.error('Failed to load sales report.');
+        ).fail(function(xhr) {
+            showToast('Failed to load sales report. ' + (xhr.status === 401 ? 'Please login again.' : ''), 'error');
         }).always(function() { if (done) done(); });
     }
 
     function generateInventoryReport(stationId, done) {
-        $.get('@Url.Action("GenerateInventoryReport", "Reports")',
+        if (_dataTables['inventoryTable']) { _dataTables['inventoryTable'].destroy(); _dataTables['inventoryTable'] = null; }
+        $('#inventoryReportContent, #inventoryEmpty').hide();
+        _reportRequest = $.get('@Url.Action("GenerateInventoryReport", "Reports")',
             { stationId: stationId },
             function(data) {
                 $('#inventoryTableBody').empty();
-                if (!data) return;
+                if (!data || data.length === 0) {
+                    $('#inventoryEmpty').show();
+                    return;
+                }
+
+                var normalCount = 0, lowCount = 0, criticalCount = 0, totalRefill = 0;
                 data.forEach(function(item) {
+                    if (item.Status === 'Critical') criticalCount++;
+                    else if (item.Status === 'Low Stock') lowCount++;
+                    else normalCount++;
+                    totalRefill += item.TotalRefillCost;
+
                     var statusClass = item.Status === 'Critical' ? 'bg-danger' :
-                                      item.Status === 'Low' ? 'bg-warning text-dark' : 'bg-success';
+                                      item.Status === 'Low Stock' ? 'bg-warning text-dark' : 'bg-success';
+
+                    var pctBar = '<div class="progress" style="height: 20px;">' +
+                        '<div class="progress-bar ' + (item.PercentageFull < 10 ? 'bg-danger' : item.PercentageFull < 25 ? 'bg-warning' : 'bg-success') +
+                        '" style="width: ' + Math.min(item.PercentageFull, 100) + '%;">' +
+                        Number(item.PercentageFull).toFixed(1) + '%</div></div>';
+
                     $('#inventoryTableBody').append(
                         '<tr>' +
                         '<td>' + item.StationName + '</td>' +
-                        '<td>' + item.FuelType + '</td>' +
-                        '<td>' + Number(item.CurrentLevel).toLocaleString() + '</td>' +
-                        '<td>' + Number(item.Capacity).toLocaleString() + '</td>' +
-                        '<td>' + Number(item.PercentageFull).toFixed(1) + '%</td>' +
-                        '<td><span class="badge ' + statusClass + '">' + item.Status + '</span></td>' +
-                        '<td>' + item.RefillCount + '</td>' +
-                        '<td>' + Number(item.TotalRefillCost).toLocaleString() + '</td>' +
+                        '<td><span class="badge bg-primary">' + item.FuelType + '</span></td>' +
+                        '<td class="text-end">' + fmt(item.CurrentLevel) + '</td>' +
+                        '<td class="text-end">' + fmt(item.Capacity) + '</td>' +
+                        '<td>' + pctBar + '</td>' +
+                        '<td class="text-center"><span class="badge ' + statusClass + '">' + item.Status + '</span></td>' +
+                        '<td class="text-center">' + item.RefillCount + '</td>' +
+                        '<td class="text-end">' + fmt(item.TotalRefillCost) + '</td>' +
                         '</tr>'
                     );
                 });
+
+                $('#invNormalCount').text(normalCount);
+                $('#invLowCount').text(lowCount);
+                $('#invCriticalCount').text(criticalCount);
+                $('#invTotalRefillCost').text(fmt(totalRefill) + ' RWF');
+
+                $('#inventoryReportContent').show();
+                initDataTable('inventoryTable');
             }
-        ).fail(function() {
-            toastr.error('Failed to load inventory report.');
+        ).fail(function(xhr) {
+            showToast('Failed to load inventory report. ' + (xhr.status === 401 ? 'Please login again.' : ''), 'error');
         }).always(function() { if (done) done(); });
     }
 
     function generateEmployeeReport(startDate, endDate, done) {
-        $.get('@Url.Action("GenerateEmployeeReport", "Reports")',
+        if (_dataTables['employeeTable']) { _dataTables['employeeTable'].destroy(); _dataTables['employeeTable'] = null; }
+        $('#employeeReportContent, #employeeEmpty').hide();
+        _reportRequest = $.get('@Url.Action("GenerateEmployeeReport", "Reports")',
             { startDate: startDate, endDate: endDate },
             function(data) {
                 $('#employeeTableBody').empty();
-                if (!data) return;
+                if (!data || data.length === 0) {
+                    $('#employeeEmpty').show();
+                    return;
+                }
+
+                var totalSales = 0, totalShifts = 0;
                 data.forEach(function(item) {
+                    totalSales += item.TotalSales;
+                    totalShifts += item.ShiftCount;
                     $('#employeeTableBody').append(
                         '<tr>' +
-                        '<td>' + item.FullName + '</td>' +
-                        '<td><span class="badge bg-primary">' + item.Role + '</span></td>' +
-                        '<td>' + item.TransactionCount + '</td>' +
-                        '<td>' + Number(item.TotalSales).toLocaleString() + '</td>' +
-                        '<td>' + item.ShiftCount + '</td>' +
-                        '<td>' + Number(item.TotalHoursWorked).toFixed(1) + '</td>' +
+                        '<td><i class="fas fa-user me-2 text-muted"></i>' + item.FullName + '</td>' +
+                        '<td class="text-center"><span class="badge bg-primary">' + item.Role + '</span></td>' +
+                        '<td class="text-center">' + fmt(item.TransactionCount) + '</td>' +
+                        '<td class="text-end">' + fmt(item.TotalSales) + '</td>' +
+                        '<td class="text-center">' + item.ShiftCount + '</td>' +
+                        '<td class="text-end">' + Number(item.TotalHoursWorked).toFixed(1) + 'h</td>' +
                         '</tr>'
                     );
                 });
+
+                $('#empTotalCount').text(data.length);
+                $('#empTotalSales').text(fmt(totalSales) + ' RWF');
+                $('#empTotalShifts').text(totalShifts);
+
+                $('#employeeReportContent').show();
+                initDataTable('employeeTable');
             }
-        ).fail(function() {
-            toastr.error('Failed to load employee report.');
+        ).fail(function(xhr) {
+            showToast('Failed to load employee report. ' + (xhr.status === 401 ? 'Please login again.' : ''), 'error');
         }).always(function() { if (done) done(); });
     }
 
     function generateCustomerReport(startDate, endDate, done) {
-        $.get('@Url.Action("GenerateCustomerReport", "Reports")',
+        if (_dataTables['customerTable']) { _dataTables['customerTable'].destroy(); _dataTables['customerTable'] = null; }
+        $('#customerReportContent, #customerEmpty').hide();
+        _reportRequest = $.get('@Url.Action("GenerateCustomerReport", "Reports")',
             { startDate: startDate, endDate: endDate },
             function(data) {
                 $('#customerTableBody').empty();
-                if (!data) return;
+                if (!data || data.length === 0) {
+                    $('#customerEmpty').show();
+                    return;
+                }
+
+                var totalSpent = 0, totalLiters = 0;
                 data.forEach(function(item) {
+                    totalSpent += item.TotalSpent;
+                    totalLiters += item.TotalLiters;
+
+                    var typeBadge = item.Type === 'Corporate' ? 'bg-info' : 'bg-secondary';
+                    var statusBadge = item.IsActive ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-danger">Inactive</span>';
+
                     $('#customerTableBody').append(
-                        '<tr>' +
-                        '<td>' + item.Name + '</td>' +
-                        '<td><span class="badge bg-info">' + item.Type + '</span></td>' +
-                        '<td>' + item.TransactionCount + '</td>' +
-                        '<td>' + Number(item.TotalSpent).toLocaleString() + '</td>' +
-                        '<td>' + Number(item.TotalLiters).toLocaleString() + '</td>' +
-                        '<td>' + Number(item.CurrentCredit).toLocaleString() + '</td>' +
+                        '<tr style="cursor:pointer;" onclick="window.location.href=\'/Customers/Details/' + item.CustomerId + '\'">' +
+                        '<td><i class="fas fa-user me-2 text-muted"></i><strong>' + item.Name + '</strong>' + (item.PhoneNumber ? '<br><small class="text-muted"><i class="fas fa-phone me-1"></i>' + item.PhoneNumber + '</small>' : '') + '</td>' +
+                        '<td class="text-center"><span class="badge ' + typeBadge + '">' + item.Type + '</span></td>' +
+                        '<td class="text-center">' + statusBadge + '</td>' +
+                        '<td>' + (item.Email || '<span class="text-muted">-</span>') + '</td>' +
+                        '<td>' + (item.TIN || '<span class="text-muted">-</span>') + '</td>' +
+                        '<td class="text-center">' + item.CarCount + '</td>' +
+                        '<td class="text-center">' + item.SubscriptionCount + '</td>' +
+                        '<td class="text-center">' + fmt(item.TransactionCount) + '</td>' +
+                        '<td class="text-end">' + fmt(item.TotalSpent) + '</td>' +
+                        '<td class="text-end">' + fmt(item.TotalLiters) + '</td>' +
+                        '<td class="text-end">' + (item.SubscriptionBalance > 0 ? '<span class="text-success fw-bold">' + fmt(item.SubscriptionBalance) + '</span>' : '<span class="text-muted">0</span>') + '</td>' +
                         '</tr>'
                     );
                 });
+
+                $('#custTotalCount').text(data.length);
+                $('#custTotalSpent').text(fmt(totalSpent) + ' RWF');
+                $('#custTotalLiters').text(fmt(totalLiters));
+                $('#custAvgSpent').text(data.length > 0 ? fmt(Math.round(totalSpent / data.length)) + ' RWF' : '0 RWF');
+
+                $('#customerReportContent').show();
+                initDataTable('customerTable');
             }
-        ).fail(function() {
-            toastr.error('Failed to load customer report.');
+        ).fail(function(xhr) {
+            showToast('Failed to load customer report. ' + (xhr.status === 401 ? 'Please login again.' : ''), 'error');
         }).always(function() { if (done) done(); });
     }
 
     function generateFinancialReport(startDate, endDate, done) {
-        $.get('@Url.Action("GenerateFinancialReport", "Reports")',
+        if (_dataTables['financialTable']) { _dataTables['financialTable'].destroy(); _dataTables['financialTable'] = null; }
+        $('#financialReportContent, #financialEmpty').hide();
+        _reportRequest = $.get('@Url.Action("GenerateFinancialReport", "Reports")',
             { startDate: startDate, endDate: endDate },
             function(data) {
-                if (!data) return;
+                if (!data) {
+                    $('#financialEmpty').show();
+                    return;
+                }
 
                 // Summary cards
-                $('#finTotalRevenue').text(Number(data.TotalRevenue).toLocaleString());
-                $('#finTotalVAT').text(Number(data.TotalVAT).toLocaleString());
-                $('#finRefillCost').text(Number(data.TotalRefillCost).toLocaleString());
-                $('#finGrossProfit').text(Number(data.GrossProfit).toLocaleString());
+                $('#finTotalRevenue').text(fmt(data.TotalRevenue) + ' RWF');
+                $('#finTotalVAT').text(fmt(data.TotalVAT) + ' RWF');
+                $('#finRefillCost').text(fmt(data.TotalRefillCost) + ' RWF');
+                $('#finGrossProfit').text(fmt(data.GrossProfit) + ' RWF');
 
-                // Daily Revenue
+                // Daily Revenue table
                 $('#financialTableBody').empty();
-                if (data.DailyRevenue) {
+                if (data.DailyRevenue && data.DailyRevenue.length > 0) {
                     data.DailyRevenue.forEach(function(item) {
                         $('#financialTableBody').append(
                             '<tr>' +
-                            '<td>' + new Date(item.Date).toLocaleDateString() + '</td>' +
-                            '<td>' + Number(item.Amount).toLocaleString() + '</td>' +
-                            '<td>' + item.TransactionCount + '</td>' +
+                            '<td>' + fmtDate(item.Date) + '</td>' +
+                            '<td class="text-end">' + fmt(item.Amount) + '</td>' +
+                            '<td class="text-center">' + item.TransactionCount + '</td>' +
                             '</tr>'
                         );
                     });
                 }
 
+                // Financial Trend Chart
+                renderFinancialTrendChart(data.DailyRevenue || []);
+
                 $('#financialReportContent').show();
+                initDataTable('financialTable');
             }
-        ).fail(function() {
-            toastr.error('Failed to load financial report.');
+        ).fail(function(xhr) {
+            showToast('Failed to load financial report. ' + (xhr.status === 401 ? 'Please login again.' : ''), 'error');
         }).always(function() { if (done) done(); });
     }
 
+    // ========================
+    // DataTables Pagination
+    // ========================
+
+    var _dataTables = {};
+
+    function initDataTable(tableId, options) {
+        if (_dataTables[tableId]) {
+            _dataTables[tableId].destroy();
+            _dataTables[tableId] = null;
+        }
+        var defaults = {
+            pageLength: 10,
+            lengthChange: true,
+            lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, 'All']],
+            ordering: true,
+            searching: true,
+            info: true,
+            stateSave: true,
+            language: {
+                search: '<i class="fas fa-search me-1"></i>',
+                searchPlaceholder: 'Filter...',
+                lengthMenu: 'Show _MENU_ entries',
+                info: 'Showing _START_ to _END_ of _TOTAL_',
+                paginate: { previous: '<i class="fas fa-chevron-left"></i>', next: '<i class="fas fa-chevron-right"></i>' }
+            },
+            dom: '<"row mb-2"<"col-sm-6"l><"col-sm-6"f>>rtip'
+        };
+        _dataTables[tableId] = $('#' + tableId).DataTable($.extend(defaults, options || {}));
+    }
+
+    // ========================
+    // Chart.js Rendering
+    // ========================
+
+    function renderSalesTrendChart(dailySales) {
+        var ctx = document.getElementById('salesTrendChart');
+        if (!ctx) return;
+        if (salesTrendChart) salesTrendChart.destroy();
+
+        salesTrendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: dailySales.map(function(d) { return fmtDate(d.Date); }),
+                datasets: [{
+                    label: 'Sales (RWF)',
+                    data: dailySales.map(function(d) { return d.Amount; }),
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: function(v) { return fmt(v); } }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderFuelTypePieChart(salesByFuel) {
+        var ctx = document.getElementById('fuelTypeChart');
+        if (!ctx) return;
+        if (fuelTypePieChart) fuelTypePieChart.destroy();
+
+        fuelTypePieChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: salesByFuel.map(function(d) { return d.FuelType; }),
+                datasets: [{
+                    data: salesByFuel.map(function(d) { return d.Amount; }),
+                    backgroundColor: chartColors.slice(0, salesByFuel.length)
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12 } }
+                }
+            }
+        });
+    }
+
+    function renderFinancialTrendChart(dailyRevenue) {
+        var ctx = document.getElementById('financialTrendChart');
+        if (!ctx) return;
+        if (financialTrendChart) financialTrendChart.destroy();
+
+        financialTrendChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: dailyRevenue.map(function(d) { return fmtDate(d.Date); }),
+                datasets: [{
+                    label: 'Revenue (RWF)',
+                    data: dailyRevenue.map(function(d) { return d.Amount; }),
+                    backgroundColor: 'rgba(25, 135, 84, 0.7)',
+                    borderColor: '#198754',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: function(v) { return fmt(v); } }
+                    }
+                }
+            }
+        });
+    }
+
+    // ========================
+    // Export
+    // ========================
+
     function exportReport() {
-        var reportType = $('#reportType').val();
         var startDate = $('#startDate').val();
         var endDate = $('#endDate').val();
+        var reportType = $('#reportType').val();
+        var stationId = $('#stationFilter').val();
 
-        window.location.href = '@Url.Action("ExportReport", "Reports")' +
+        if (!startDate || !endDate) {
+            showToast('Please select a date range before exporting.', 'error');
+            return;
+        }
+
+        var url = '@Url.Action("ExportReport", "Reports")' +
             '?reportType=' + reportType +
             '&startDate=' + startDate +
             '&endDate=' + endDate;
+        if (stationId) url += '&stationId=' + stationId;
+
+        exportCsv(url, document.getElementById('exportBtn'), reportType + '_report.csv');
     }
+
+    // ========================
+    // Page Init
+    // ========================
 
     $(document).ready(function() {
         // Quick date range buttons
@@ -548,7 +1026,18 @@
             generateReport();
         });
 
-        // Auto-load today's sales report on page load
+        // Re-adjust DataTables columns when a tab becomes visible
+        $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function(e) {
+            var pane = $($(e.target).data('bs-target'));
+            pane.find('table').each(function() {
+                var id = $(this).attr('id');
+                if (_dataTables[id]) {
+                    _dataTables[id].columns.adjust();
+                }
+            });
+        });
+
+        // Auto-load today's report on page load
         generateReport();
     });
 </script>

@@ -37,6 +37,7 @@ public class CustomerInfo
     public Guid? Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
+    public string? TIN { get; set; }
     public string? PlateNumber { get; set; }
     public string? CarPIN { get; set; }
     public string? VehicleModel { get; set; }

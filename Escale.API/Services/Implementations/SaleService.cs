@@ -91,6 +91,7 @@ public class SaleService : ISaleService
             Guid? customerId = null;
             string? customerName = request.Customer?.Name;
             string? customerPhone = request.Customer?.PhoneNumber;
+            string? customerTIN = request.Customer?.TIN;
 
             Console.WriteLine($"[Sale Timing] Shift lookup: {stepWatch.ElapsedMilliseconds}ms");
             stepWatch.Restart();
@@ -118,6 +119,7 @@ public class SaleService : ISaleService
                 customerId = customer.Id;
                 customerName = customer.Name;
                 customerPhone = customer.PhoneNumber;
+                customerTIN = customer.TIN;
 
                 // Validate subscription (tracked — we need to update balance)
                 var subscription = await _unitOfWork.Subscriptions.Query()
@@ -174,7 +176,7 @@ public class SaleService : ISaleService
                 }
 
                 var ebmResult = await _ebmService.SendSaleReceiptAsync(
-                    orgId, fuelType.EBMVariantId, request.Liters, customerName, customerPhone);
+                    orgId, fuelType.EBMVariantId, request.Liters, customerName, customerPhone, customerTIN);
 
                 if (!ebmResult.Success)
                 {
@@ -206,6 +208,8 @@ public class SaleService : ISaleService
                 CustomerId = customerId,
                 CustomerName = customerName,
                 CustomerPhone = customerPhone,
+                CustomerTIN = customerTIN,
+                PlateNumber = request.Customer?.PlateNumber,
                 CashierId = userId,
                 ShiftId = activeShift?.Id,
                 EBMSent = ebmSent,

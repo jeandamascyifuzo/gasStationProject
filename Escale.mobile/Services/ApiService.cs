@@ -36,6 +36,7 @@ public class SaleCustomerRequest
     public Guid? Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
+    public string? TIN { get; set; }
     public string? PlateNumber { get; set; }
 }
 
@@ -182,6 +183,7 @@ public class SubscriptionCustomerLookupResponse
     public Guid CustomerId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
+    public string? CustomerTIN { get; set; }
     public bool CustomerIsActive { get; set; }
     public Guid CarId { get; set; }
     public string PlateNumber { get; set; } = string.Empty;
@@ -298,17 +300,37 @@ public class ApiService
             new AuthenticationHeaderValue("Bearer", token);
     }
 
+    /// <summary>
+    /// Pre-warm the HTTPS connection so SSL handshake is done before login.
+    /// </summary>
+    public async Task PreWarmConnectionAsync()
+    {
+        try
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            await _httpClient.GetAsync($"{_baseUrl.Replace("/api", "")}/health");
+            sw.Stop();
+            System.Diagnostics.Debug.WriteLine($"[PreWarm] Connection established in {sw.ElapsedMilliseconds}ms");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[PreWarm] Failed (non-critical): {ex.Message}");
+        }
+    }
+
     // ==================== AUTH ====================
 
     public async Task<LoginResponse> LoginAsync(LoginModel login)
     {
         try
         {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             System.Diagnostics.Debug.WriteLine($"Logging in to: {_baseUrl}/auth/login");
 
             var response = await _httpClient.PostAsJsonAsync($"{_baseUrl}/auth/login", login);
+            var networkTime = sw.ElapsedMilliseconds;
 
-            System.Diagnostics.Debug.WriteLine($"Login response status: {response.StatusCode}");
+            System.Diagnostics.Debug.WriteLine($"[Login Network] HTTP POST took {networkTime}ms, status: {response.StatusCode}");
 
             var content = await response.Content.ReadAsStringAsync();
             System.Diagnostics.Debug.WriteLine($"Login response: {content}");
@@ -422,11 +444,12 @@ public class ApiService
                 PricePerLiter = sale.PricePerLiter,
                 PaymentMethod = sale.PaymentMethod,
                 SubscriptionId = sale.SubscriptionId,
-                Customer = sale.Customer != null && !sale.Customer.IsWalkIn ? new SaleCustomerRequest
+                Customer = sale.Customer != null ? new SaleCustomerRequest
                 {
-                    Id = sale.Customer.Id,
+                    Id = sale.Customer.IsWalkIn ? null : sale.Customer.Id,
                     Name = sale.Customer.Name,
                     PhoneNumber = sale.Customer.PhoneNumber,
+                    TIN = sale.Customer.TIN,
                     PlateNumber = sale.Customer.PlateNumber
                 } : null
             };
@@ -712,7 +735,7 @@ public class ApiService
     {
         try
         {
-            var response = await _httpClient.GetAsync($"{_baseUrl.Replace("/api", "")}/weatherforecast");
+            var response = await _httpClient.GetAsync($"{_baseUrl.Replace("/api", "")}/health");
             return response.IsSuccessStatusCode
                 ? (true, "API is reachable")
                 : (false, $"API returned: {response.StatusCode}");

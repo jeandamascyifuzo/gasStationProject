@@ -137,6 +137,7 @@ public partial class SubscriptionCustomerSearchViewModel : ObservableObject
             Id = _lookupResult.CustomerId,
             Name = _lookupResult.CustomerName,
             PhoneNumber = _lookupResult.PhoneNumber ?? string.Empty,
+            TIN = _lookupResult.CustomerTIN,
             PlateNumber = _lookupResult.PlateNumber,
             CarId = _lookupResult.CarId,
             VehicleModel = $"{_lookupResult.CarMake} {_lookupResult.CarModel}".Trim(),

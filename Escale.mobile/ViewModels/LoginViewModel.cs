@@ -46,6 +46,8 @@ public partial class LoginViewModel : ObservableObject
 
         try
         {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+
             var loginModel = new LoginModel
             {
                 Username = Username,
@@ -54,23 +56,19 @@ public partial class LoginViewModel : ObservableObject
             };
 
             var response = await _apiService.LoginAsync(loginModel);
+            System.Diagnostics.Debug.WriteLine($"[Login] API call took {sw.ElapsedMilliseconds}ms");
 
             if (response?.Success == true && response.User != null)
             {
                 AppState.Instance.SetUser(response.User, response.Token ?? string.Empty);
 
-                // Connect SignalR + preload fuel types (fire-and-forget)
+                // Fire-and-forget: SignalR, fuel types preload, and credential saving
                 var token = response.Token ?? string.Empty;
                 if (!string.IsNullOrEmpty(token))
-                {
                     _ = _signalRService.ConnectAsync(token);
-                }
                 _ = _apiService.GetFuelTypesAsync();
-
                 if (RememberMe)
-                {
-                    await SaveCredentials();
-                }
+                    _ = SaveCredentials();
 
                 if (response.User.AssignedStations == null || response.User.AssignedStations.Count == 0)
                 {
@@ -78,18 +76,14 @@ public partial class LoginViewModel : ObservableObject
                     return;
                 }
 
-                var role = response.User.Role;
-
-                if (role == "Cashier")
+                if (response.User.Role == "Cashier")
                 {
-                    // Cashier: auto-assign to their station, go straight to dashboard
                     AppState.Instance.SetStation(response.User.AssignedStations[0]);
-                    Application.Current!.MainPage = new AppShell();
+                    Application.Current!.MainPage = App.GetOrCreateShell();
                 }
                 else
                 {
-                    // Admin/Manager: let them choose which station to work at
-                    Application.Current!.MainPage = new AppShell();
+                    Application.Current!.MainPage = App.GetOrCreateShell();
                     await Shell.Current.GoToAsync("///StationSelection");
                 }
             }

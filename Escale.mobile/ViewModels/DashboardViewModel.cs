@@ -11,6 +11,7 @@ public partial class DashboardViewModel : ObservableObject
     private readonly ApiService _apiService;
     private readonly SignalRService _signalRService;
     private Action<string>? _dataChangedHandler;
+    private bool _initialLoadDone;
 
     [ObservableProperty]
     private string userName = string.Empty;
@@ -49,7 +50,7 @@ public partial class DashboardViewModel : ObservableObject
     {
         _apiService = apiService;
         _signalRService = signalRService;
-        LoadDashboard();
+        // Don't load in constructor — OnAppearing handles it
     }
 
     public void SubscribeToNotifications()
@@ -77,8 +78,11 @@ public partial class DashboardViewModel : ObservableObject
         }
     }
 
-    private async void LoadDashboard()
+    public async void LoadDashboard()
     {
+        if (_initialLoadDone) return;
+        _initialLoadDone = true;
+
         UserName = AppState.Instance.CurrentUser?.FullName ?? "User";
         StationName = AppState.Instance.SelectedStation?.Name ?? "Station";
 

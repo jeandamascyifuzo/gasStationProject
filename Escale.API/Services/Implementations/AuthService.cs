@@ -16,22 +16,37 @@ public class AuthService : IAuthService
     private readonly ITokenService _tokenService;
     private readonly IMapper _mapper;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<AuthService> _logger;
 
-    public AuthService(IUnitOfWork unitOfWork, ITokenService tokenService, IMapper mapper, IConfiguration configuration)
+    public AuthService(IUnitOfWork unitOfWork, ITokenService tokenService, IMapper mapper, IConfiguration configuration, ILogger<AuthService> logger)
     {
         _unitOfWork = unitOfWork;
         _tokenService = tokenService;
         _mapper = mapper;
         _configuration = configuration;
+        _logger = logger;
     }
 
     public async Task<LoginResponseDto> LoginAsync(LoginRequestDto request)
     {
-        // Fast lookup: get user without includes first for password check
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+
+        // Single query: get user with stations in one round-trip
         var user = await _unitOfWork.Users.Query()
+            .Include(u => u.UserStations).ThenInclude(us => us.Station)
             .FirstOrDefaultAsync(u => u.Username == request.Username);
 
-        if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        var dbTime = sw.ElapsedMilliseconds;
+
+        if (user == null)
+            return new LoginResponseDto { Success = false, Message = "Invalid username or password" };
+
+        var bcryptResult = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
+        var bcryptTime = sw.ElapsedMilliseconds - dbTime;
+
+        _logger.LogInformation("[Login] DB query: {DbTime}ms, BCrypt verify: {BcryptTime}ms", dbTime, bcryptTime);
+
+        if (!bcryptResult)
             return new LoginResponseDto { Success = false, Message = "Invalid username or password" };
 
         if (!user.IsActive)
@@ -45,16 +60,11 @@ public class AuthService : IAuthService
                 return new LoginResponseDto { Success = false, Message = "Unable to sign in. Please contact your administrator for assistance." };
         }
 
-        // Only load stations after password is verified (avoid unnecessary joins on bad passwords)
-        var stations = await _unitOfWork.Context.UserStations
-            .Include(us => us.Station)
-            .Where(us => us.UserId == user.Id && us.Station.IsActive)
-            .ToListAsync();
+        // Filter to active stations only
+        user.UserStations = user.UserStations.Where(us => us.Station.IsActive).ToList();
 
-        if (stations.Count == 0 && user.Role == UserRole.Cashier)
+        if (user.UserStations.Count == 0 && (user.Role == UserRole.Cashier || user.Role == UserRole.Supervisor))
             return new LoginResponseDto { Success = false, Message = "No active station is assigned to your account. Please contact your administrator for assistance." };
-
-        user.UserStations = stations;
 
         var accessToken = _tokenService.GenerateAccessToken(user);
         var refreshToken = _tokenService.GenerateRefreshToken();
@@ -70,6 +80,9 @@ public class AuthService : IAuthService
 
         user.LastLoginAt = DateTime.UtcNow;
         await _unitOfWork.SaveChangesAsync();
+
+        _logger.LogInformation("[Login] Total: {TotalMs}ms (DB: {DbMs}ms, BCrypt: {BcryptMs}ms, rest: {RestMs}ms)",
+            sw.ElapsedMilliseconds, dbTime, bcryptTime, sw.ElapsedMilliseconds - dbTime - bcryptTime);
 
         return new LoginResponseDto
         {

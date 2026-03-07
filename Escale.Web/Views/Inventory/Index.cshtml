@@ -10,7 +10,10 @@
         <h1 class="h2"><i class="fas fa-boxes me-2"></i>Inventory Management</h1>
         <p class="text-muted mb-0">Monitor fuel stock levels and manage refills across all stations.</p>
     </div>
-    <div class="btn-toolbar mb-2 mb-md-0">
+    <div class="btn-toolbar mb-2 mb-md-0 gap-2">
+        <button type="button" class="btn btn-success" id="exportBtn" onclick="exportInventory()">
+            <i class="fas fa-file-excel me-2"></i>Export CSV
+        </button>
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#refillModal">
             <i class="fas fa-plus me-2"></i>Record Refill
         </button>
@@ -420,6 +423,11 @@
         $('#reorderItemName').text(name);
         $('#reorderLevel').val(currentLevel);
         $('#reorderModal').modal('show');
+    }
+
+    function exportInventory() {
+        var url = '@Url.Action("ExportReport", "Reports")' + '?reportType=Inventory';
+        exportCsv(url, document.getElementById('exportBtn'), 'inventory_report.csv');
     }
 </script>
 }

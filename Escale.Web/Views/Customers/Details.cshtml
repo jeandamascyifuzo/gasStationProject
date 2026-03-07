@@ -77,11 +77,11 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="text-xs mb-1">CURRENT CREDIT</div>
-                        <div class="h5 mb-0 fw-bold">@Model.Customer.CurrentCredit.ToString("N0") RWF</div>
+                        <div class="text-xs mb-1">TOTAL SPENT</div>
+                        <div class="h5 mb-0 fw-bold" id="totalSpentCard">Loading...</div>
                     </div>
                     <div class="icon-wrapper">
-                        <i class="fas fa-dollar-sign fa-2x"></i>
+                        <i class="fas fa-receipt fa-2x"></i>
                     </div>
                 </div>
             </div>
@@ -106,6 +106,11 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="subscriptions-tab" data-bs-toggle="tab" data-bs-target="#subscriptions" type="button" role="tab">
                     <i class="fas fa-wallet me-2"></i>Subscriptions <span class="badge bg-success">@Model.Customer.Subscriptions.Count</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="sales-tab" data-bs-toggle="tab" data-bs-target="#sales" type="button" role="tab">
+                    <i class="fas fa-receipt me-2"></i>Sales
                 </button>
             </li>
         </ul>
@@ -166,18 +171,15 @@
                                     <td>@Model.Customer.CreditLimit.ToString("N0") RWF</td>
                                 </tr>
                                 <tr>
-                                    <th>Current Credit:</th>
+                                    <th>Subscription Balance:</th>
                                     <td>
-                                        <span class="@(Model.Customer.CurrentCredit > 0 ? "text-danger fw-bold" : "")">
-                                            @Model.Customer.CurrentCredit.ToString("N0") RWF
-                                        </span>
-                                        @if (Model.Customer.CreditLimit > 0)
+                                        @if (activeSub != null)
                                         {
-                                            var creditPercent = (Model.Customer.CurrentCredit / Model.Customer.CreditLimit) * 100;
-                                            <div class="progress mt-1" style="height: 6px;">
-                                                <div class="progress-bar @(creditPercent > 80 ? "bg-danger" : creditPercent > 50 ? "bg-warning" : "bg-success")"
-                                                     style="width: @creditPercent%"></div>
-                                            </div>
+                                            <span class="text-success fw-bold">@activeSub.RemainingBalance.ToString("N0") RWF</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">No Active Subscription</span>
                                         }
                                     </td>
                                 </tr>
@@ -271,6 +273,78 @@
                             }
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- Sales Tab -->
+            <div class="tab-pane fade" id="sales" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Transaction History</h5>
+                    <button class="btn btn-sm btn-success" id="exportSalesBtn" onclick="exportTransactions()">
+                        <i class="fas fa-file-excel me-1"></i>Export CSV
+                    </button>
+                </div>
+                <!-- Filters -->
+                <div class="row g-2 mb-3">
+                    <div class="col-md-3">
+                        <input type="text" class="form-control form-control-sm" id="salesSearch" placeholder="Search receipt, car, fuel..." oninput="debouncedLoad()">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="date" class="form-control form-control-sm" id="salesStartDate" onchange="loadTransactions(1)">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="date" class="form-control form-control-sm" id="salesEndDate" onchange="loadTransactions(1)">
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select form-select-sm" id="salesStation" onchange="loadTransactions(1)">
+                            <option value="">All Stations</option>
+                            @foreach (var station in Model.Stations)
+                            {
+                                <option value="@station.Id">@station.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select form-select-sm" id="salesPageSize" onchange="loadTransactions(1)">
+                            <option value="10" selected>10 / page</option>
+                            <option value="25">25 / page</option>
+                            <option value="50">50 / page</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <button class="btn btn-outline-secondary btn-sm w-100" onclick="clearSalesFilters()" title="Clear filters">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="salesLoading" class="text-center py-4" style="display: none;">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="text-muted mt-2">Loading transactions...</p>
+                </div>
+                <div id="salesContent" style="display: none;">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="salesTable">
+                            <thead>
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>Receipt #</th>
+                                    <th>Car</th>
+                                    <th>Station</th>
+                                    <th>Fuel Type</th>
+                                    <th>Liters</th>
+                                    <th>Price/L</th>
+                                    <th>Total</th>
+                                    <th>Cashier</th>
+                                </tr>
+                            </thead>
+                            <tbody id="salesTableBody"></tbody>
+                        </table>
+                    </div>
+                    <nav id="salesPagination" class="mt-3"></nav>
+                </div>
+                <div id="salesEmpty" class="text-center text-muted py-4" style="display: none;">
+                    <i class="fas fa-receipt fa-3x mb-3 text-muted"></i>
+                    <p>No transactions found for this customer.</p>
                 </div>
             </div>
 
@@ -560,5 +634,137 @@
         document.getElementById('expiryDate').value = '';
         new bootstrap.Modal(document.getElementById('topUpModal')).show();
     }
+
+    // Sales tab
+    var salesLoaded = false;
+    var _debounceTimer = null;
+    var _today = new Date().toISOString().split('T')[0];
+
+    // Set default dates to today
+    document.getElementById('salesStartDate').value = _today;
+    document.getElementById('salesEndDate').value = _today;
+
+    document.getElementById('sales-tab').addEventListener('shown.bs.tab', function () {
+        if (!salesLoaded) {
+            loadTransactions(1);
+            salesLoaded = true;
+        }
+    });
+
+    function getSalesFilterParams(page) {
+        var params = { id: '@Model.Customer.Id', page: page, pageSize: document.getElementById('salesPageSize').value };
+        var sd = document.getElementById('salesStartDate').value;
+        var ed = document.getElementById('salesEndDate').value;
+        var st = document.getElementById('salesStation').value;
+        var sr = document.getElementById('salesSearch').value;
+        if (sd) params.startDate = sd;
+        if (ed) params.endDate = ed;
+        if (st) params.stationId = st;
+        if (sr) params.search = sr;
+        return params;
+    }
+
+    function debouncedLoad() {
+        clearTimeout(_debounceTimer);
+        _debounceTimer = setTimeout(function() { loadTransactions(1); }, 400);
+    }
+
+    function clearSalesFilters() {
+        document.getElementById('salesSearch').value = '';
+        document.getElementById('salesStartDate').value = '';
+        document.getElementById('salesEndDate').value = '';
+        document.getElementById('salesStation').value = '';
+        loadTransactions(1);
+    }
+
+    function loadTransactions(page) {
+        var params = getSalesFilterParams(page);
+        document.getElementById('salesLoading').style.display = '';
+        document.getElementById('salesContent').style.display = 'none';
+        document.getElementById('salesEmpty').style.display = 'none';
+
+        $.getJSON('@Url.Action("GetTransactions", "Customers")', params, function(data) {
+            document.getElementById('salesLoading').style.display = 'none';
+
+            if (!data || !data.Items || data.Items.length === 0) {
+                document.getElementById('salesEmpty').style.display = '';
+                return;
+            }
+
+            var tbody = document.getElementById('salesTableBody');
+            tbody.innerHTML = '';
+
+            data.Items.forEach(function(t) {
+                var dt = new Date(t.TransactionDate);
+                var dateStr = dt.toLocaleDateString('en-CA') + ' ' + dt.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+                var row = '<tr>' +
+                    '<td>' + dateStr + '</td>' +
+                    '<td><code>' + t.ReceiptNumber + '</code></td>' +
+                    '<td>' + (t.PlateNumber || '<span class="text-muted">N/A</span>') + '</td>' +
+                    '<td>' + t.StationName + '</td>' +
+                    '<td>' + t.FuelType + '</td>' +
+                    '<td>' + t.Liters.toFixed(1) + '</td>' +
+                    '<td>' + t.PricePerLiter.toLocaleString() + '</td>' +
+                    '<td class="fw-bold">' + t.Total.toLocaleString() + ' RWF</td>' +
+                    '<td>' + t.CashierName + '</td>' +
+                    '</tr>';
+                tbody.innerHTML += row;
+            });
+
+            document.getElementById('salesContent').style.display = '';
+
+            // Build pagination
+            var totalPages = data.TotalPages;
+            var currentPage = data.Page;
+            var nav = document.getElementById('salesPagination');
+
+            if (totalPages > 1) {
+                var html = '<ul class="pagination justify-content-center mb-0">';
+                html += '<li class="page-item ' + (currentPage <= 1 ? 'disabled' : '') + '">' +
+                    '<a class="page-link" href="#" onclick="loadTransactions(' + (currentPage - 1) + '); return false;">Previous</a></li>';
+                var startP = Math.max(1, currentPage - 2);
+                var endP = Math.min(totalPages, startP + 4);
+                if (startP > 1) html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                for (var i = startP; i <= endP; i++) {
+                    html += '<li class="page-item ' + (i === currentPage ? 'active' : '') + '">' +
+                        '<a class="page-link" href="#" onclick="loadTransactions(' + i + '); return false;">' + i + '</a></li>';
+                }
+                if (endP < totalPages) html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                html += '<li class="page-item ' + (currentPage >= totalPages ? 'disabled' : '') + '">' +
+                    '<a class="page-link" href="#" onclick="loadTransactions(' + (currentPage + 1) + '); return false;">Next</a></li>';
+                html += '</ul>';
+                html += '<div class="text-center text-muted small mt-2">Page ' + currentPage + ' of ' + totalPages + ' (' + data.TotalCount + ' transactions, ' + data.TotalSpent.toLocaleString() + ' RWF total)</div>';
+                nav.innerHTML = html;
+            } else {
+                nav.innerHTML = '<div class="text-center text-muted small">' + data.TotalCount + ' transaction(s) — ' + (data.TotalSpent || 0).toLocaleString() + ' RWF total</div>';
+            }
+        }).fail(function(jqXHR) {
+            document.getElementById('salesLoading').style.display = 'none';
+            document.getElementById('salesEmpty').style.display = '';
+            var msg = 'Failed to load transactions.';
+            try { var err = JSON.parse(jqXHR.responseText); if (err.Message) msg = err.Message; } catch(e) {}
+            document.getElementById('salesEmpty').innerHTML = '<i class="fas fa-exclamation-triangle fa-3x mb-3 text-danger"></i><p>' + msg + '</p>';
+        });
+    }
+
+    function exportTransactions() {
+        var params = getSalesFilterParams(1);
+        delete params.page;
+        delete params.pageSize;
+        var query = $.param(params);
+        var url = '@Url.Action("ExportTransactions", "Customers")' + '?' + query;
+        exportCsv(url, document.getElementById('exportSalesBtn'), 'customer_transactions.csv');
+    }
+
+    // Load all-time total spent on page load (no date filter)
+    $.getJSON('@Url.Action("GetTransactions", "Customers")', { id: '@Model.Customer.Id', page: 1, pageSize: 1 }, function(data) {
+        if (data) {
+            document.getElementById('totalSpentCard').textContent = (data.TotalSpent || 0).toLocaleString() + ' RWF';
+        } else {
+            document.getElementById('totalSpentCard').textContent = '0 RWF';
+        }
+    }).fail(function() {
+        document.getElementById('totalSpentCard').textContent = 'N/A';
+    });
 </script>
 }

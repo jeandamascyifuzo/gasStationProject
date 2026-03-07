@@ -44,7 +44,7 @@ namespace Escale.Web.Controllers
                 return View(model);
             }
 
-            // Block cashier from admin portal
+            // Block Cashier from admin portal — they use the mobile app
             if (result.User?.Role == "Cashier")
             {
                 model.ErrorMessage = "You don't have permission to access the admin portal. Please use the mobile app or contact your administrator.";
@@ -71,6 +71,11 @@ namespace Escale.Web.Controllers
                 HttpContext.Session.SetString(TokenHelper.SessionUserFullName, result.User.FullName);
                 HttpContext.Session.SetString(TokenHelper.SessionUserRole, result.User.Role);
                 HttpContext.Session.SetString(TokenHelper.SessionUserId, result.User.Id.ToString());
+                if (result.User.AssignedStations.Any())
+                {
+                    var stationIds = string.Join(",", result.User.AssignedStations.Select(s => s.Id));
+                    HttpContext.Session.SetString(TokenHelper.SessionStationIds, stationIds);
+                }
             }
 
             // SuperAdmin goes to Organizations, others go to Dashboard

@@ -1,3 +1,4 @@
+using System.Text;
 using Escale.Web.Models;
 using Escale.Web.Models.Api;
 using Escale.Web.Services.Interfaces;
@@ -9,15 +10,17 @@ namespace Escale.Web.Controllers
     public class CustomersController : Controller
     {
         private readonly IApiCustomerService _customerService;
+        private readonly IApiStationService _stationService;
 
-        public CustomersController(IApiCustomerService customerService)
+        public CustomersController(IApiCustomerService customerService, IApiStationService stationService)
         {
             _customerService = customerService;
+            _stationService = stationService;
         }
 
-        public async Task<IActionResult> Index(int page = 1, string? search = null)
+        public async Task<IActionResult> Index(int page = 1, string? search = null, string? type = null)
         {
-            var result = await _customerService.GetAllAsync(page, 20, search);
+            var result = await _customerService.GetAllAsync(page, 20, search, type);
 
             var model = new CustomerViewModel
             {
@@ -26,7 +29,8 @@ namespace Escale.Web.Controllers
                 Page = result.Data?.Page ?? 1,
                 PageSize = result.Data?.PageSize ?? 20,
                 TotalPages = result.Data?.TotalPages ?? 0,
-                SearchTerm = search
+                SearchTerm = search,
+                SelectedType = type
             };
 
             return View(model);
@@ -34,8 +38,12 @@ namespace Escale.Web.Controllers
 
         public async Task<IActionResult> Details(Guid id)
         {
-            var result = await _customerService.GetByIdAsync(id);
+            var customerTask = _customerService.GetByIdAsync(id);
+            var stationsTask = _stationService.GetAllAsync();
 
+            await Task.WhenAll(customerTask, stationsTask);
+
+            var result = customerTask.Result;
             if (!result.Success || result.Data == null)
             {
                 TempData["ErrorMessage"] = result.Message;
@@ -48,11 +56,16 @@ namespace Escale.Web.Controllers
             var model = new CustomerDetailsViewModel
             {
                 Customer = customer,
+                Stations = stationsTask.Result.Data?.Select(s => new Station
+                {
+                    Id = s.Id,
+                    Name = s.Name
+                }).ToList() ?? new(),
                 Stats = new CustomerStats
                 {
                     TotalCars = customer.Cars.Count,
                     ActiveSubscriptions = customer.Subscriptions.Count(s => s.Status == "Active"),
-                    TotalSpent = 0 // Not available from API yet
+                    TotalSpent = 0
                 }
             };
 
@@ -193,6 +206,34 @@ namespace Escale.Web.Controllers
                 result.Success ? $"Subscription topped up with {topUpAmount:N0} RWF!" : result.Message;
 
             return RedirectToAction("Details", new { id = customerId });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetTransactions(Guid id, int page = 1, int pageSize = 10,
+            DateTime? startDate = null, DateTime? endDate = null, Guid? stationId = null, string? search = null)
+        {
+            var result = await _customerService.GetCustomerTransactionsAsync(id, page, pageSize, startDate, endDate, stationId, search);
+            return Json(result.Data);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ExportTransactions(Guid id, DateTime? startDate = null, DateTime? endDate = null,
+            Guid? stationId = null, string? search = null)
+        {
+            var result = await _customerService.GetCustomerTransactionsAsync(id, 1, 999999, startDate, endDate, stationId, search);
+            var data = result.Data;
+            if (data == null || data.Items.Count == 0)
+                return NotFound("No data");
+
+            var sb = new StringBuilder();
+            sb.AppendLine("Receipt #,Date,Station,Car,Fuel Type,Liters,Price/Liter,Total,Payment,Cashier,EBM Link");
+            foreach (var t in data.Items)
+            {
+                sb.AppendLine($"{t.ReceiptNumber},{t.TransactionDate:yyyy-MM-dd HH:mm},{t.StationName},{t.PlateNumber ?? "N/A"},{t.FuelType},{t.Liters},{t.PricePerLiter},{t.Total},{t.PaymentMethod},{t.CashierName},{t.EBMReceiptUrl ?? ""}");
+            }
+
+            var filename = $"customer_transactions_{DateTime.Today:yyyyMMdd}.csv";
+            return File(Encoding.UTF8.GetBytes(sb.ToString()), "text/csv", filename);
         }
 
         [HttpPost]

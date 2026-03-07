@@ -71,12 +71,14 @@ namespace Escale.Web.Models
         public int PageSize { get; set; } = 20;
         public int TotalPages { get; set; }
         public string? SearchTerm { get; set; }
+        public string? SelectedType { get; set; }
     }
 
     public class CustomerDetailsViewModel
     {
         public Customer Customer { get; set; } = new();
         public CustomerStats Stats { get; set; } = new();
+        public List<Station> Stations { get; set; } = new();
     }
 
     public class CustomerStats

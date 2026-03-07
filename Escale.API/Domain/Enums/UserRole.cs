@@ -5,5 +5,7 @@ public enum UserRole
     Admin,
     Manager,
     Cashier,
+    Inventory,
+    Supervisor,
     SuperAdmin
 }

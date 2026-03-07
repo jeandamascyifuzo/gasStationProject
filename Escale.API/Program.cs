@@ -107,13 +107,23 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<EscaleHub>("/hubs/escale");
+app.MapGet("/health", () => Results.Ok("ok")).AllowAnonymous();
 
-// Database migration + seed
+// Database migration + seed + EF warm-up
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<EscaleDbContext>();
     await db.Database.MigrateAsync();
     await DatabaseSeeder.SeedAsync(db);
+
+    // Warm up EF Core query compilation — forces LINQ-to-SQL translation at startup
+    // so first login request doesn't pay the compilation cost (~1-2s)
+    var sw = System.Diagnostics.Stopwatch.StartNew();
+    _ = await db.Users.Include(u => u.UserStations).ThenInclude(us => us.Station)
+        .FirstOrDefaultAsync(u => u.Username == "__warmup__");
+    _ = await db.Organizations.FirstOrDefaultAsync(o => o.Id == Guid.Empty);
+    _ = await db.RefreshTokens.FirstOrDefaultAsync(rt => rt.Token == "__warmup__");
+    Log.Information("EF Core query warm-up completed in {ElapsedMs}ms", sw.ElapsedMilliseconds);
 }
 
 Log.Information("Escale API started successfully");

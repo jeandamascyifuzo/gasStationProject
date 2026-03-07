@@ -16,7 +16,7 @@ public partial class DashboardPage : ContentPage
         if (BindingContext is DashboardViewModel vm)
         {
             vm.SubscribeToNotifications();
-            vm.RefreshCommand.Execute(null);
+            vm.LoadDashboard();
         }
     }
 

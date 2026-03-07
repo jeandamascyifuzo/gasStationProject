@@ -31,17 +31,31 @@
                        TextColor="#1E293B"/>
             </Border>
 
-            <!-- Phone Number -->
-            <Border StrokeShape="RoundRectangle 10"
-                    Stroke="#E2E8F0"
-                    BackgroundColor="White"
-                    Padding="15,10">
-                <Entry Placeholder="Phone Number"
-                       Text="{Binding PhoneNumber}"
-                       Keyboard="Telephone"
-                       FontSize="16"
-                       TextColor="#1E293B"/>
-            </Border>
+            <!-- Phone Number & TIN (side by side) -->
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Border Grid.Column="0"
+                        StrokeShape="RoundRectangle 10"
+                        Stroke="#E2E8F0"
+                        BackgroundColor="White"
+                        Padding="15,10">
+                    <Entry Placeholder="Phone Number"
+                           Text="{Binding PhoneNumber}"
+                           Keyboard="Telephone"
+                           FontSize="16"
+                           TextColor="#1E293B"/>
+                </Border>
+                <Border Grid.Column="1"
+                        StrokeShape="RoundRectangle 10"
+                        Stroke="#E2E8F0"
+                        BackgroundColor="White"
+                        Padding="15,10">
+                    <Entry Placeholder="TIN (Optional)"
+                           Text="{Binding Tin}"
+                           Keyboard="Numeric"
+                           FontSize="16"
+                           TextColor="#1E293B"/>
+                </Border>
+            </Grid>
 
             <!-- Buttons -->
             <Button Text="Skip - Continue as Guest"

@@ -46,7 +46,7 @@ namespace Escale.Web.Models
     {
         public List<User> Users { get; set; } = new();
         public List<Station> Stations { get; set; } = new();
-        public List<string> Roles { get; set; } = new() { "Admin", "Manager", "Cashier" };
+        public List<string> Roles { get; set; } = new() { "Admin", "Manager", "Cashier", "Inventory", "Supervisor" };
         public int TotalCount { get; set; }
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 20;

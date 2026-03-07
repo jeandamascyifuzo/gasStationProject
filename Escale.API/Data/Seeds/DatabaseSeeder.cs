@@ -81,6 +81,8 @@ public static class DatabaseSeeder
                 ("admin", "admin123", "Jean Pierre Admin", "admin@escale-petroleum.rw", "+250788100001", UserRole.Admin),
                 ("manager", "manager123", "Marie Claire Manager", "manager@escale-petroleum.rw", "+250788100002", UserRole.Manager),
                 ("cashier", "cashier123", "Patrick Cashier", "cashier@escale-petroleum.rw", "+250788100003", UserRole.Cashier),
+                ("inventory", "inventory123", "Eric Inventory", "inventory@escale-petroleum.rw", "+250788100004", UserRole.Inventory),
+                ("supervisor", "supervisor123", "Grace Supervisor", "supervisor@escale-petroleum.rw", "+250788100005", UserRole.Supervisor),
             },
             Stations = new[]
             {
@@ -269,18 +271,11 @@ public static class DatabaseSeeder
             isFirst = false;
         }
 
-        // User-Station assignments
+        // User-Station assignments (only Cashier and Supervisor get assigned stations)
         foreach (var (userId, role) in userIds)
         {
-            if (role == UserRole.Admin || role == UserRole.Manager)
+            if ((role == UserRole.Cashier || role == UserRole.Supervisor) && stationIds.Count > 0)
             {
-                // Admin and Manager assigned to all stations
-                foreach (var stationId in stationIds)
-                    context.UserStations.Add(new UserStation { UserId = userId, StationId = stationId, AssignedAt = now });
-            }
-            else if (stationIds.Count > 0)
-            {
-                // Cashier assigned to first station only
                 context.UserStations.Add(new UserStation { UserId = userId, StationId = stationIds[0], AssignedAt = now });
             }
         }

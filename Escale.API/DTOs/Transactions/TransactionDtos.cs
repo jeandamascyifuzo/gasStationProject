@@ -14,6 +14,7 @@ public class TransactionResponseDto
     public string PaymentMethod { get; set; } = string.Empty;
     public string? CustomerName { get; set; }
     public string? CustomerPhone { get; set; }
+    public string? CustomerTIN { get; set; }
     public bool EBMSent { get; set; }
     public string? EBMReceiptUrl { get; set; }
     public DateTime? EBMSentAt { get; set; }

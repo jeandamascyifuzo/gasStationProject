@@ -46,7 +46,6 @@ namespace Escale.mobile
             builder.Services.AddTransient<SubscriptionCustomerSearchViewModel>();
             builder.Services.AddTransient<CustomerInfoViewModel>();
             builder.Services.AddTransient<SalePreviewViewModel>();
-            builder.Services.AddTransient<SaleCompleteViewModel>();
             builder.Services.AddTransient<StockViewModel>();
             builder.Services.AddTransient<TransactionsViewModel>();
             builder.Services.AddTransient<ProfileViewModel>();
@@ -61,7 +60,6 @@ namespace Escale.mobile
             builder.Services.AddTransient<SubscriptionCustomerSearchPage>();
             builder.Services.AddTransient<CustomerInfoPage>();
             builder.Services.AddTransient<SalePreviewPage>();
-            builder.Services.AddTransient<SaleCompletePage>();
             builder.Services.AddTransient<StockPage>();
             builder.Services.AddTransient<TransactionsPage>();
             builder.Services.AddTransient<ProfilePage>();

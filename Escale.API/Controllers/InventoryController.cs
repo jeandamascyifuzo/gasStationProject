@@ -33,7 +33,7 @@ public class InventoryController : ControllerBase
     }
 
     [HttpPost("refill")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = "Admin,Manager,Inventory")]
     public async Task<ActionResult<ApiResponse<RefillRecordResponseDto>>> RecordRefill([FromBody] CreateRefillRequestDto request)
     {
         var result = await _inventoryService.RecordRefillAsync(request);
@@ -41,7 +41,7 @@ public class InventoryController : ControllerBase
     }
 
     [HttpPut("reorder-level")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = "Admin,Manager,Inventory")]
     public async Task<ActionResult<ApiResponse>> UpdateReorderLevel([FromBody] UpdateReorderLevelRequestDto request)
     {
         await _inventoryService.UpdateReorderLevelAsync(request);

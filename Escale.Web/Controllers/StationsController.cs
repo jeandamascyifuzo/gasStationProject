@@ -1,3 +1,4 @@
+using Escale.Web.Helpers;
 using Escale.Web.Models;
 using Escale.Web.Models.Api;
 using Escale.Web.Services.Interfaces;
@@ -44,20 +45,33 @@ namespace Escale.Web.Controllers
                     Role = u.Role
                 }).ToList() ?? new();
 
+            var allStations = stations.Data?.Select(s => new Station
+            {
+                Id = s.Id,
+                Name = s.Name,
+                Location = s.Location,
+                Address = s.Address,
+                ContactNumber = s.PhoneNumber,
+                ManagerId = s.ManagerId,
+                ManagerName = s.Manager,
+                IsActive = s.IsActive,
+                CreatedAt = s.CreatedAt
+            }).ToList() ?? new();
+
+            // Supervisor can only see their assigned stations
+            var userRole = HttpContext.Session.GetString(TokenHelper.SessionUserRole);
+            if (userRole == "Supervisor")
+            {
+                var stationIdsStr = HttpContext.Session.GetString(TokenHelper.SessionStationIds) ?? "";
+                var assignedIds = stationIdsStr.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(id => Guid.TryParse(id, out var g) ? g : Guid.Empty)
+                    .Where(g => g != Guid.Empty).ToHashSet();
+                allStations = allStations.Where(s => assignedIds.Contains(s.Id)).ToList();
+            }
+
             var model = new StationViewModel
             {
-                Stations = stations.Data?.Select(s => new Station
-                {
-                    Id = s.Id,
-                    Name = s.Name,
-                    Location = s.Location,
-                    Address = s.Address,
-                    ContactNumber = s.PhoneNumber,
-                    ManagerId = s.ManagerId,
-                    ManagerName = s.Manager,
-                    IsActive = s.IsActive,
-                    CreatedAt = s.CreatedAt
-                }).ToList() ?? new(),
+                Stations = allStations,
                 Managers = managers
             };
 
@@ -66,6 +80,17 @@ namespace Escale.Web.Controllers
 
         public async Task<IActionResult> Details(Guid id)
         {
+            // Supervisor can only view their assigned stations
+            var userRole = HttpContext.Session.GetString(TokenHelper.SessionUserRole);
+            if (userRole == "Supervisor")
+            {
+                var stationIdsStr = HttpContext.Session.GetString(TokenHelper.SessionStationIds) ?? "";
+                var assignedIds = stationIdsStr.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(sid => Guid.TryParse(sid, out var g) ? g : Guid.Empty).ToHashSet();
+                if (!assignedIds.Contains(id))
+                    return RedirectToAction("Index");
+            }
+
             var stationTask = _stationService.GetByIdAsync(id);
             var inventoryTask = _inventoryService.GetAllAsync(id);
             var usersTask = _userService.GetAllAsync(1, 100);

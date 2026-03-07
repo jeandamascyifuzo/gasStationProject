@@ -34,6 +34,7 @@ public class SubscriptionCustomerLookupResponseDto
     public Guid CustomerId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
     public string? PhoneNumber { get; set; }
+    public string? CustomerTIN { get; set; }
     public bool CustomerIsActive { get; set; }
     public Guid CarId { get; set; }
     public string PlateNumber { get; set; } = string.Empty;

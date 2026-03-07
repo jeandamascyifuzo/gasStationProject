@@ -21,6 +21,8 @@ public class Transaction : TenantEntity
     public Customer? Customer { get; set; }
     public string? CustomerName { get; set; }
     public string? CustomerPhone { get; set; }
+    public string? CustomerTIN { get; set; }
+    public string? PlateNumber { get; set; }
     public Guid CashierId { get; set; }
     public User Cashier { get; set; } = null!;
     public Guid? ShiftId { get; set; }

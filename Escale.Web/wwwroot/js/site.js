@@ -264,3 +264,71 @@ function ajaxWithLoading(btn, ajaxFn, loadingText) {
     }
     return result;
 }
+
+// ============================================================
+// Global Toast Notification
+// ============================================================
+
+function showToast(message, type) {
+    type = type || 'info';
+    var bgClass = type === 'success' ? 'text-bg-success' :
+                  type === 'error' ? 'text-bg-danger' :
+                  type === 'warning' ? 'text-bg-warning text-dark' : 'text-bg-primary';
+    var icon = type === 'success' ? 'fa-check-circle' :
+               type === 'error' ? 'fa-exclamation-circle' :
+               type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+    var html = '<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 9999;">' +
+        '<div class="toast show align-items-center ' + bgClass + ' border-0" role="alert">' +
+        '<div class="d-flex"><div class="toast-body">' +
+        '<i class="fas ' + icon + ' me-2"></i>' + message +
+        '</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>' +
+        '</div></div></div>';
+    var container = document.createElement('div');
+    container.innerHTML = html;
+    document.body.appendChild(container);
+    setTimeout(function () { container.remove(); }, 4000);
+}
+
+// ============================================================
+// Global CSV Export Utility
+// ============================================================
+
+/**
+ * Export CSV using fetch with loading state and toast feedback.
+ * @param {string} url - The export endpoint URL (with query params)
+ * @param {HTMLElement} btn - The export button element
+ * @param {string} [fallbackFilename] - Fallback filename if not in Content-Disposition
+ */
+function exportCsv(url, btn, fallbackFilename) {
+    if (btn) startLoading(btn, 'Exporting...');
+
+    fetch(url)
+        .then(function (response) {
+            if (!response.ok) {
+                throw new Error(response.status === 404 ? 'No data to export for this period.' : 'Export failed.');
+            }
+            var disposition = response.headers.get('Content-Disposition');
+            var filename = fallbackFilename || 'export.csv';
+            if (disposition) {
+                var match = disposition.match(/filename[^;=\n]*=(["']?)([^"';\n]*)\1/);
+                if (match && match[2]) filename = match[2];
+            }
+            return response.blob().then(function (blob) { return { blob: blob, filename: filename }; });
+        })
+        .then(function (result) {
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(result.blob);
+            a.download = result.filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+            showToast('Export downloaded successfully.', 'success');
+        })
+        .catch(function (err) {
+            showToast(err.message, 'error');
+        })
+        .finally(function () {
+            if (btn) stopLoading(btn);
+        });
+}

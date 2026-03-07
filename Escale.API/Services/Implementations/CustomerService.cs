@@ -22,13 +22,18 @@ public class CustomerService : ICustomerService
         _mapper = mapper;
     }
 
-    public async Task<PagedResult<CustomerResponseDto>> GetCustomersAsync(PagedRequest request)
+    public async Task<PagedResult<CustomerResponseDto>> GetCustomersAsync(PagedRequest request, string? type = null)
     {
         var orgId = _currentUser.OrganizationId!.Value;
         var query = _unitOfWork.Customers.Query()
             .Include(c => c.Cars)
             .Include(c => c.Subscriptions)
             .Where(c => c.OrganizationId == orgId);
+
+        if (!string.IsNullOrEmpty(type) && Enum.TryParse<CustomerType>(type, out var ct))
+        {
+            query = query.Where(c => c.Type == ct);
+        }
 
         if (!string.IsNullOrEmpty(request.SearchTerm))
         {
@@ -269,5 +274,75 @@ public class CustomerService : ICustomerService
         car.IsActive = true;
         _unitOfWork.Cars.Update(car);
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task<CustomerTransactionsPagedResult> GetCustomerTransactionsAsync(Guid customerId, int page = 1, int pageSize = 20,
+        DateTime? startDate = null, DateTime? endDate = null, Guid? stationId = null, string? search = null)
+    {
+        var orgId = _currentUser.OrganizationId!.Value;
+
+        var customerExists = await _unitOfWork.Customers.Query()
+            .AnyAsync(c => c.Id == customerId && c.OrganizationId == orgId);
+        if (!customerExists)
+            throw new KeyNotFoundException("Customer not found");
+
+        var query = _unitOfWork.Transactions.Query()
+            .AsNoTracking()
+            .Include(t => t.FuelType)
+            .Include(t => t.Station)
+            .Include(t => t.Cashier)
+            .Where(t => t.CustomerId == customerId && t.OrganizationId == orgId);
+
+        if (startDate.HasValue)
+            query = query.Where(t => t.TransactionDate >= startDate.Value.Date);
+        if (endDate.HasValue)
+            query = query.Where(t => t.TransactionDate < endDate.Value.Date.AddDays(1));
+        if (stationId.HasValue)
+            query = query.Where(t => t.StationId == stationId.Value);
+        if (!string.IsNullOrEmpty(search))
+        {
+            var term = search.ToLower();
+            query = query.Where(t =>
+                t.ReceiptNumber.ToLower().Contains(term) ||
+                (t.PlateNumber != null && t.PlateNumber.ToLower().Contains(term)) ||
+                t.FuelType.Name.ToLower().Contains(term) ||
+                t.Station.Name.ToLower().Contains(term) ||
+                t.Cashier.FullName.ToLower().Contains(term));
+        }
+
+        var totalCount = await query.CountAsync();
+        var totalSpent = await query.SumAsync(t => (decimal?)t.Total) ?? 0;
+        var totalLiters = await query.SumAsync(t => (decimal?)t.Liters) ?? 0;
+
+        var transactions = await query
+            .OrderByDescending(t => t.TransactionDate)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(t => new CustomerTransactionDto
+            {
+                Id = t.Id,
+                ReceiptNumber = t.ReceiptNumber,
+                TransactionDate = t.TransactionDate,
+                StationName = t.Station.Name,
+                FuelType = t.FuelType.Name,
+                PlateNumber = t.PlateNumber,
+                Liters = t.Liters,
+                PricePerLiter = t.PricePerLiter,
+                Total = t.Total,
+                PaymentMethod = t.PaymentMethod.ToString(),
+                CashierName = t.Cashier.FullName,
+                EBMReceiptUrl = t.EBMCode
+            })
+            .ToListAsync();
+
+        return new CustomerTransactionsPagedResult
+        {
+            Items = transactions,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize,
+            TotalSpent = totalSpent,
+            TotalLiters = totalLiters
+        };
     }
 }

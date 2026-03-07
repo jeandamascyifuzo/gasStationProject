@@ -35,6 +35,7 @@ public static class IconFont
 
     // Payment
     public const string CreditCard = "\U000F0FEF";
+    public const string Printer = "\U000F042A";
 
     // Visibility
     public const string Eye = "\U000F0208";

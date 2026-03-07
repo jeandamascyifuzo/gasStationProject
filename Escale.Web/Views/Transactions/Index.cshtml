@@ -71,10 +71,9 @@
                 <a asp-action="Index" class="btn btn-secondary">
                     <i class="fas fa-redo me-2"></i>Reset
                 </a>
-                <a href="@Url.Action("ExportCsv", "Transactions", new { startDate = Model.StartDate?.ToString("yyyy-MM-dd"), endDate = Model.EndDate?.ToString("yyyy-MM-dd") })"
-                   class="btn btn-success ms-auto">
-                    <i class="fas fa-file-csv me-2"></i>Export CSV
-                </a>
+                <button type="button" class="btn btn-success ms-auto" id="exportBtn" onclick="exportTransactions()">
+                    <i class="fas fa-file-excel me-2"></i>Export CSV
+                </button>
             </div>
         </form>
     </div>
@@ -249,6 +248,19 @@
                 searchPlaceholder: 'Search all columns...'
             }
         });
+
+        window.exportTransactions = function() {
+            var url = '@Url.Action("ExportCsv", "Transactions")' +
+                '?startDate=' + ($('#startDate').val() || '@Model.StartDate?.ToString("yyyy-MM-dd")') +
+                '&endDate=' + ($('#endDate').val() || '@Model.EndDate?.ToString("yyyy-MM-dd")');
+            var stationId = $('#stationId').val();
+            var fuelTypeId = $('#fuelTypeId').val();
+            var paymentMethod = $('#paymentMethod').val();
+            if (stationId) url += '&stationId=' + stationId;
+            if (fuelTypeId) url += '&fuelTypeId=' + fuelTypeId;
+            if (paymentMethod) url += '&paymentMethod=' + paymentMethod;
+            exportCsv(url, document.getElementById('exportBtn'), 'transactions.csv');
+        };
 
         $(document).on('click', '.ebm-preview-btn', function(e) {
             e.preventDefault();

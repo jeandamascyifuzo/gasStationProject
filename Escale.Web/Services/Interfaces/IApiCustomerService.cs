@@ -4,7 +4,7 @@ namespace Escale.Web.Services.Interfaces;
 
 public interface IApiCustomerService
 {
-    Task<ApiResponse<PagedResult<CustomerResponseDto>>> GetAllAsync(int page = 1, int pageSize = 20, string? searchTerm = null);
+    Task<ApiResponse<PagedResult<CustomerResponseDto>>> GetAllAsync(int page = 1, int pageSize = 20, string? searchTerm = null, string? type = null);
     Task<ApiResponse<CustomerResponseDto>> GetByIdAsync(Guid id);
     Task<ApiResponse<CustomerResponseDto>> CreateAsync(CreateCustomerRequestDto request);
     Task<ApiResponse<CustomerResponseDto>> UpdateAsync(Guid id, UpdateCustomerRequestDto request);
@@ -20,4 +20,8 @@ public interface IApiCustomerService
     Task<ApiResponse<SubscriptionResponseDto>> TopUpSubscriptionAsync(TopUpSubscriptionRequestDto request);
     Task<ApiResponse<SubscriptionResponseDto>> CancelSubscriptionAsync(Guid subscriptionId);
     Task<ApiResponse<List<SubscriptionResponseDto>>> GetSubscriptionHistoryAsync(Guid customerId);
+
+    // Transactions
+    Task<ApiResponse<CustomerTransactionsPagedResult>> GetCustomerTransactionsAsync(Guid customerId, int page = 1, int pageSize = 20,
+        DateTime? startDate = null, DateTime? endDate = null, Guid? stationId = null, string? search = null);
 }

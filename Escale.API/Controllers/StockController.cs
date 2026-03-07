@@ -26,7 +26,7 @@ public class StockController : ControllerBase
     }
 
     [HttpPost("refill")]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = "Admin,Manager,Inventory")]
     public async Task<ActionResult<ApiResponse>> RecordRefill([FromBody] StockRefillRequest request)
     {
         await _stockService.RecordRefillAsync(request.StationId, request.FuelType, request.Quantity, request.UnitCost, request.SupplierName, request.InvoiceNumber, request.RefillDate);

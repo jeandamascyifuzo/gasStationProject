@@ -1,5 +1,6 @@
 using System.Text;
 using Escale.API.Data.Repositories;
+using Escale.API.Domain.Enums;
 using Escale.API.DTOs.Reports;
 using Escale.API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -127,6 +128,8 @@ public class ReportService : IReportService
         var orgId = _currentUser.OrganizationId!.Value;
         var customers = await _unitOfWork.Customers.Query()
             .Include(c => c.Transactions.Where(t => t.TransactionDate >= startDate.Date && t.TransactionDate < endDate.Date.AddDays(1)))
+            .Include(c => c.Cars)
+            .Include(c => c.Subscriptions)
             .Where(c => c.OrganizationId == orgId)
             .ToListAsync();
 
@@ -134,11 +137,20 @@ public class ReportService : IReportService
         {
             CustomerId = c.Id,
             Name = c.Name,
+            PhoneNumber = c.PhoneNumber,
+            Email = c.Email,
             Type = c.Type.ToString(),
+            TIN = c.TIN,
+            CreditLimit = c.CreditLimit,
+            CurrentCredit = c.CurrentCredit,
+            IsActive = c.IsActive,
             TransactionCount = c.Transactions.Count,
             TotalSpent = c.Transactions.Sum(t => t.Total),
             TotalLiters = c.Transactions.Sum(t => t.Liters),
-            CurrentCredit = c.CurrentCredit
+            CreditPurchases = c.Transactions.Where(t => t.PaymentMethod == PaymentMethod.Credit).Sum(t => t.Total),
+            SubscriptionBalance = c.Subscriptions.Where(s => s.Status == SubscriptionStatus.Active).Sum(s => s.RemainingBalance),
+            CarCount = c.Cars.Count,
+            SubscriptionCount = c.Subscriptions.Count
         }).ToList();
     }
 

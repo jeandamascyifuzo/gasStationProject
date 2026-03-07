@@ -1,3 +1,4 @@
+using Escale.Web.Helpers;
 using Escale.Web.Models;
 using Escale.Web.Models.Api;
 using Escale.Web.Services.Interfaces;
@@ -60,6 +61,24 @@ namespace Escale.Web.Controllers
 
         public async Task<IActionResult> Index(TransactionFilterViewModel filter)
         {
+            // Supervisor: force-filter to assigned stations
+            var userRole = HttpContext.Session.GetString(TokenHelper.SessionUserRole);
+            HashSet<Guid>? assignedStationIds = null;
+            if (userRole == "Supervisor")
+            {
+                var stationIdsStr = HttpContext.Session.GetString(TokenHelper.SessionStationIds) ?? "";
+                assignedStationIds = stationIdsStr.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(id => Guid.TryParse(id, out var g) ? g : Guid.Empty)
+                    .Where(g => g != Guid.Empty).ToHashSet();
+
+                // If supervisor hasn't selected a station, default to first assigned
+                if (!filter.StationId.HasValue && assignedStationIds.Count == 1)
+                    filter.StationId = assignedStationIds.First();
+                // If supervisor selected a station not assigned to them, reject
+                if (filter.StationId.HasValue && !assignedStationIds.Contains(filter.StationId.Value))
+                    filter.StationId = assignedStationIds.First();
+            }
+
             var apiFilter = new TransactionFilterDto
             {
                 StationId = filter.StationId,
@@ -111,11 +130,13 @@ namespace Escale.Web.Controllers
                     TransactionDate = t.TransactionDate,
                     Status = t.Status
                 }).ToList() ?? new(),
-                Stations = stations.Data?.Select(s => new Station
+                Stations = (stations.Data?.Select(s => new Station
                 {
                     Id = s.Id,
                     Name = s.Name
-                }).ToList() ?? new(),
+                }) ?? Enumerable.Empty<Station>())
+                .Where(s => assignedStationIds == null || assignedStationIds.Contains(s.Id))
+                .ToList(),
                 FuelTypes = fuelTypes.Data?.Select(f => new FuelType
                 {
                     Id = f.Id,
@@ -127,17 +148,15 @@ namespace Escale.Web.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> ExportCsv(DateTime? startDate, DateTime? endDate)
+        public async Task<IActionResult> ExportCsv(DateTime? startDate, DateTime? endDate,
+            Guid? stationId = null, Guid? fuelTypeId = null, string? paymentMethod = null)
         {
             var start = startDate ?? DateTime.Today;
             var end = endDate ?? DateTime.Today;
 
             var data = await _reportService.ExportTransactionsAsync(start, end);
             if (data == null)
-            {
-                TempData["ErrorMessage"] = "Failed to export transactions.";
-                return RedirectToAction("Index");
-            }
+                return NotFound("No data to export.");
 
             return File(data, "text/csv", $"transactions_{start:yyyyMMdd}_{end:yyyyMMdd}.csv");
         }

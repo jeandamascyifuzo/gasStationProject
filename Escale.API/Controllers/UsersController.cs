@@ -8,7 +8,7 @@ namespace Escale.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin,SuperAdmin")]
+[Authorize(Roles = "Admin,Manager,SuperAdmin")]
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;

@@ -89,8 +89,8 @@ public class UserService : IUserService
         await _unitOfWork.Users.AddAsync(user);
         await _unitOfWork.SaveChangesAsync();
 
-        // Assign stations
-        if (request.StationIds.Any())
+        // Assign stations (only for Cashier and Supervisor)
+        if (request.StationIds.Any() && (user.Role == UserRole.Cashier || user.Role == UserRole.Supervisor))
         {
             foreach (var stationId in request.StationIds)
             {
@@ -115,21 +115,28 @@ public class UserService : IUserService
             .FirstOrDefaultAsync(u => u.Id == id && u.OrganizationId == orgId)
             ?? throw new KeyNotFoundException("User not found");
 
+        // Manager cannot update Admin profiles
+        if (_currentUser.Role == "Manager" && user.Role == UserRole.Admin)
+            throw new InvalidOperationException("Managers cannot modify Admin profiles.");
+
         user.FullName = request.FullName;
         user.Email = request.Email;
         user.Phone = request.Phone;
         user.Role = Enum.Parse<UserRole>(request.Role);
 
-        // Update station assignments
+        // Update station assignments (only for Cashier and Supervisor)
         _unitOfWork.Context.UserStations.RemoveRange(user.UserStations);
-        foreach (var stationId in request.StationIds)
+        if (user.Role == UserRole.Cashier || user.Role == UserRole.Supervisor)
         {
-            _unitOfWork.Context.UserStations.Add(new UserStation
+            foreach (var stationId in request.StationIds)
             {
-                UserId = user.Id,
-                StationId = stationId,
-                AssignedAt = DateTime.UtcNow
-            });
+                _unitOfWork.Context.UserStations.Add(new UserStation
+                {
+                    UserId = user.Id,
+                    StationId = stationId,
+                    AssignedAt = DateTime.UtcNow
+                });
+            }
         }
 
         _unitOfWork.Users.Update(user);
@@ -144,6 +151,11 @@ public class UserService : IUserService
         var user = await _unitOfWork.Users.Query()
             .FirstOrDefaultAsync(u => u.Id == id && u.OrganizationId == orgId)
             ?? throw new KeyNotFoundException("User not found");
+
+        // Manager cannot delete Admin profiles
+        if (_currentUser.Role == "Manager" && user.Role == UserRole.Admin)
+            throw new InvalidOperationException("Managers cannot delete Admin profiles.");
+
         _unitOfWork.Users.Remove(user);
         await _unitOfWork.SaveChangesAsync();
     }

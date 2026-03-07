@@ -8,7 +8,7 @@ namespace Escale.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[Authorize(Roles = "Admin,Manager")]
 public class CustomersController : ControllerBase
 {
     private readonly ICustomerService _customerService;
@@ -19,9 +19,9 @@ public class CustomersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<PagedResult<CustomerResponseDto>>>> GetCustomers([FromQuery] PagedRequest request)
+    public async Task<ActionResult<ApiResponse<PagedResult<CustomerResponseDto>>>> GetCustomers([FromQuery] PagedRequest request, [FromQuery] string? type = null)
     {
-        var result = await _customerService.GetCustomersAsync(request);
+        var result = await _customerService.GetCustomersAsync(request, type);
         return Ok(ApiResponse<PagedResult<CustomerResponseDto>>.SuccessResponse(result));
     }
 
@@ -86,5 +86,15 @@ public class CustomersController : ControllerBase
     {
         await _customerService.ReactivateCarAsync(customerId, carId);
         return Ok(ApiResponse.SuccessResponse("Car reactivated"));
+    }
+
+    [HttpGet("{customerId}/transactions")]
+    public async Task<ActionResult<ApiResponse<CustomerTransactionsPagedResult>>> GetCustomerTransactions(
+        Guid customerId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20,
+        [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null,
+        [FromQuery] Guid? stationId = null, [FromQuery] string? search = null)
+    {
+        var result = await _customerService.GetCustomerTransactionsAsync(customerId, page, pageSize, startDate, endDate, stationId, search);
+        return Ok(ApiResponse<CustomerTransactionsPagedResult>.SuccessResponse(result));
     }
 }

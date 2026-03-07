@@ -70,3 +70,30 @@ public class TopUpSubscriptionRequestDto
     public decimal TopUpAmount { get; set; }
     public DateTime? ExpiryDate { get; set; }
 }
+
+public class CustomerTransactionDto
+{
+    public Guid Id { get; set; }
+    public string ReceiptNumber { get; set; } = string.Empty;
+    public DateTime TransactionDate { get; set; }
+    public string StationName { get; set; } = string.Empty;
+    public string FuelType { get; set; } = string.Empty;
+    public string? PlateNumber { get; set; }
+    public decimal Liters { get; set; }
+    public decimal PricePerLiter { get; set; }
+    public decimal Total { get; set; }
+    public string PaymentMethod { get; set; } = string.Empty;
+    public string CashierName { get; set; } = string.Empty;
+    public string? EBMReceiptUrl { get; set; }
+}
+
+public class CustomerTransactionsPagedResult
+{
+    public List<CustomerTransactionDto> Items { get; set; } = new();
+    public int TotalCount { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+    public decimal TotalSpent { get; set; }
+    public decimal TotalLiters { get; set; }
+}

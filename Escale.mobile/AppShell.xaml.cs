@@ -12,7 +12,6 @@ namespace Escale.mobile
             Routing.RegisterRoute("SubscriptionCustomerSearch", typeof(SubscriptionCustomerSearchPage));
             Routing.RegisterRoute("CustomerInfo", typeof(CustomerInfoPage));
             Routing.RegisterRoute("SalePreview", typeof(SalePreviewPage));
-            Routing.RegisterRoute("SaleComplete", typeof(SaleCompletePage));
             Routing.RegisterRoute("StationSelection", typeof(StationSelectionPage));
         }
     }
