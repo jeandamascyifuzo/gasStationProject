@@ -10,6 +10,8 @@ public class OrganizationResponseDto
     public string? Phone { get; set; }
     public string? Email { get; set; }
     public bool IsActive { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public int StationCount { get; set; }
     public int UserCount { get; set; }

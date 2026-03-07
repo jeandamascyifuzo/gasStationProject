@@ -22,11 +22,17 @@ public class ApiOrganizationService : BaseApiService, IApiOrganizationService
     public async Task<ApiResponse> DeleteAsync(Guid id)
         => await base.DeleteAsync($"/api/superadmin/organizations/{id}");
 
+    public async Task<ApiResponse> RestoreAsync(Guid id)
+        => await PostAsync($"/api/superadmin/organizations/{id}/restore", new { });
+
     public async Task<ApiResponse<List<StationResponseDto>>> GetStationsAsync(Guid orgId)
         => await GetAsync<List<StationResponseDto>>($"/api/superadmin/organizations/{orgId}/stations");
 
     public async Task<ApiResponse<StationResponseDto>> CreateStationAsync(Guid orgId, CreateStationRequestDto request)
         => await PostAsync<StationResponseDto>($"/api/superadmin/organizations/{orgId}/stations", request);
+
+    public async Task<ApiResponse> ToggleStationStatusAsync(Guid orgId, Guid stationId)
+        => await PostAsync($"/api/superadmin/organizations/{orgId}/stations/{stationId}/toggle-status", new { });
 
     public async Task<ApiResponse> ConfigureEbmAsync(Guid orgId, EbmConfigRequestDto request)
         => await PutAsync($"/api/superadmin/organizations/{orgId}/settings/ebm", request);
@@ -48,6 +54,12 @@ public class ApiOrganizationService : BaseApiService, IApiOrganizationService
 
     public async Task<ApiResponse> DeleteFuelTypeAsync(Guid orgId, Guid fuelTypeId)
         => await base.DeleteAsync($"/api/superadmin/organizations/{orgId}/fueltypes/{fuelTypeId}");
+
+    public async Task<ApiResponse<List<FuelTypeResponseDto>>> GetDeletedFuelTypesAsync(Guid orgId)
+        => await GetAsync<List<FuelTypeResponseDto>>($"/api/superadmin/organizations/{orgId}/fueltypes/deleted");
+
+    public async Task<ApiResponse> RestoreFuelTypeAsync(Guid orgId, Guid fuelTypeId)
+        => await PostAsync($"/api/superadmin/organizations/{orgId}/fueltypes/{fuelTypeId}/restore", new { });
 
     public async Task<ApiResponse<UserResponseDto>> GetAdminAsync(Guid orgId)
         => await GetAsync<UserResponseDto>($"/api/superadmin/organizations/{orgId}/admin");

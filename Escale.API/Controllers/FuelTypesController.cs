@@ -55,4 +55,5 @@ public class FuelTypesController : ControllerBase
         await _fuelTypeService.DeleteFuelTypeAsync(id);
         return Ok(ApiResponse.SuccessResponse("Fuel type deleted"));
     }
+
 }

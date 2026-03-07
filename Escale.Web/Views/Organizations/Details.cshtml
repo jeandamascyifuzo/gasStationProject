@@ -1,13 +1,38 @@
 @model Escale.Web.Models.OrganizationDetailsViewModel
 @{
     ViewData["Title"] = Model.Organization.Name;
+    var activeTab = TempData["ActiveTab"]?.ToString() ?? "details";
+    var isDeleted = Model.Organization.IsDeleted;
 }
 
 @await Html.PartialAsync("_ApiError")
 
+@if (isDeleted)
+{
+    <div class="alert alert-danger d-flex align-items-center mb-4 mt-3" role="alert">
+        <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+        <div class="flex-grow-1">
+            <strong>This organization has been deleted</strong> on @Model.Organization.DeletedAt?.ToString("yyyy-MM-dd HH:mm").
+            All actions are disabled. Restore the organization to make changes.
+        </div>
+        <form asp-action="Restore" method="post" class="ms-3">
+            <input type="hidden" name="id" value="@Model.Organization.Id" />
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-undo me-1"></i>Restore
+            </button>
+        </form>
+    </div>
+}
+
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 page-header">
     <div>
-        <h1 class="h2"><i class="fas fa-building me-2"></i>@Model.Organization.Name</h1>
+        <h1 class="h2">
+            <i class="fas fa-building me-2"></i>@Model.Organization.Name
+            @if (isDeleted)
+            {
+                <span class="badge bg-dark ms-2" style="font-size: 0.5em; vertical-align: middle;">Deleted</span>
+            }
+        </h1>
         <p class="text-muted mb-0">Organization details and configuration.</p>
     </div>
     <div>
@@ -17,92 +42,397 @@
     </div>
 </div>
 
-<!-- Organization Info -->
-<div class="row mb-4">
-    <div class="col-md-8">
+<!-- Tabs Navigation -->
+<ul class="nav nav-tabs mb-4" id="orgTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(activeTab == "details" ? "active" : "")" id="details-tab" data-bs-toggle="tab"
+                data-bs-target="#details-pane" type="button" role="tab" aria-controls="details-pane"
+                aria-selected="@(activeTab == "details" ? "true" : "false")">
+            <i class="fas fa-info-circle me-2"></i>Details
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(activeTab == "users" ? "active" : "")" id="users-tab" data-bs-toggle="tab"
+                data-bs-target="#users-pane" type="button" role="tab" aria-controls="users-pane"
+                aria-selected="@(activeTab == "users" ? "true" : "false")">
+            <i class="fas fa-users me-2"></i>User Management
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(activeTab == "ebm" ? "active" : "")" id="ebm-tab" data-bs-toggle="tab"
+                data-bs-target="#ebm-pane" type="button" role="tab" aria-controls="ebm-pane"
+                aria-selected="@(activeTab == "ebm" ? "true" : "false")">
+            <i class="fas fa-server me-2"></i>EBM Management
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(activeTab == "stations" ? "active" : "")" id="stations-tab" data-bs-toggle="tab"
+                data-bs-target="#stations-pane" type="button" role="tab" aria-controls="stations-pane"
+                aria-selected="@(activeTab == "stations" ? "true" : "false")">
+            <i class="fas fa-gas-pump me-2"></i>Station Management
+        </button>
+    </li>
+    @if (Model.DeletedFuelTypes.Any())
+    {
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(activeTab == "deleted-fuels" ? "active" : "")" id="deleted-fuels-tab" data-bs-toggle="tab"
+                    data-bs-target="#deleted-fuels-pane" type="button" role="tab" aria-controls="deleted-fuels-pane"
+                    aria-selected="@(activeTab == "deleted-fuels" ? "true" : "false")">
+                <i class="fas fa-trash me-2"></i>Deleted Fuel Types
+                <span class="badge bg-danger ms-1">@Model.DeletedFuelTypes.Count</span>
+            </button>
+        </li>
+    }
+</ul>
+
+<!-- Tabs Content -->
+<div class="tab-content" id="orgTabsContent">
+
+    <!-- Tab 1: Details -->
+    <div class="tab-pane fade @(activeTab == "details" ? "show active" : "")" id="details-pane" role="tabpanel" aria-labelledby="details-tab">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Organization Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Name:</strong> @Model.Organization.Name</p>
+                                <p><strong>Slug:</strong> @(Model.Organization.Slug ?? "N/A")</p>
+                                <p><strong>TIN:</strong> @(Model.Organization.TIN ?? "N/A")</p>
+                                <p><strong>Address:</strong> @(Model.Organization.Address ?? "N/A")</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Phone:</strong> @(Model.Organization.Phone ?? "N/A")</p>
+                                <p><strong>Email:</strong> @(Model.Organization.Email ?? "N/A")</p>
+                                <p><strong>Created:</strong> @Model.Organization.CreatedAt.ToString("yyyy-MM-dd")</p>
+                                <p>
+                                    <strong>Status:</strong>
+                                    <span class="badge @(Model.Organization.IsActive ? "bg-success" : "bg-danger")">
+                                        @Model.Organization.Status
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Quick Stats</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="row">
+                            <div class="col-6">
+                                <h3 class="text-primary">@Model.Organization.StationCount</h3>
+                                <small class="text-muted">Stations</small>
+                            </div>
+                            <div class="col-6">
+                                <h3 class="text-info">@Model.Organization.UserCount</h3>
+                                <small class="text-muted">Users</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 2: User Management -->
+    <div class="tab-pane fade @(activeTab == "users" ? "show active" : "")" id="users-pane" role="tabpanel" aria-labelledby="users-tab">
         <div class="card shadow-sm">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Organization Details</h5>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-user-shield me-2"></i>Admin User</h5>
+                @if (Model.AdminUser == null && !isDeleted)
+                {
+                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createAdminModal">
+                        <i class="fas fa-plus me-2"></i>Create Admin
+                    </button>
+                }
             </div>
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Name:</strong> @Model.Organization.Name</p>
-                        <p><strong>TIN:</strong> @(Model.Organization.TIN ?? "N/A")</p>
-                        <p><strong>Address:</strong> @(Model.Organization.Address ?? "N/A")</p>
+                @if (Model.AdminUser != null)
+                {
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Full Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Status</th>
+                                    <th>Last Login</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>@Model.AdminUser.Username</td>
+                                    <td>@Model.AdminUser.FullName</td>
+                                    <td>@(Model.AdminUser.Email ?? "N/A")</td>
+                                    <td>@(Model.AdminUser.Phone ?? "N/A")</td>
+                                    <td>
+                                        <span class="badge @(Model.AdminUser.IsActive ? "bg-success" : "bg-danger")">
+                                            @(Model.AdminUser.IsActive ? "Active" : "Inactive")
+                                        </span>
+                                    </td>
+                                    <td>@(Model.AdminUser.LastLoginAt?.ToString("yyyy-MM-dd HH:mm") ?? "Never")</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="col-md-6">
-                        <p><strong>Phone:</strong> @(Model.Organization.Phone ?? "N/A")</p>
-                        <p><strong>Email:</strong> @(Model.Organization.Email ?? "N/A")</p>
-                        <p>
-                            <strong>Status:</strong>
-                            <span class="badge @(Model.Organization.IsActive ? "bg-success" : "bg-danger")">
-                                @Model.Organization.Status
-                            </span>
-                        </p>
+                }
+                else
+                {
+                    <div class="text-center py-5">
+                        <i class="fas fa-user-slash fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No admin user assigned. Create one to manage this organization.</p>
                     </div>
-                </div>
+                }
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card shadow-sm">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Quick Stats</h5>
-            </div>
-            <div class="card-body text-center">
-                <div class="row">
-                    <div class="col-6">
-                        <h3 class="text-primary">@Model.Organization.StationCount</h3>
-                        <small class="text-muted">Stations</small>
-                    </div>
-                    <div class="col-6">
-                        <h3 class="text-info">@Model.Organization.UserCount</h3>
-                        <small class="text-muted">Users</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Admin User -->
-<div class="card shadow-sm mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="fas fa-user-shield me-2"></i>Admin User</h5>
-        @if (Model.AdminUser == null)
-        {
-            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createAdminModal">
-                <i class="fas fa-plus me-2"></i>Create Admin
-            </button>
-        }
-    </div>
-    <div class="card-body">
-        @if (Model.AdminUser != null)
-        {
-            <div class="row">
-                <div class="col-md-6">
-                    <p><strong>Username:</strong> @Model.AdminUser.Username</p>
-                    <p><strong>Full Name:</strong> @Model.AdminUser.FullName</p>
-                    <p><strong>Email:</strong> @(Model.AdminUser.Email ?? "N/A")</p>
-                </div>
-                <div class="col-md-6">
-                    <p><strong>Phone:</strong> @(Model.AdminUser.Phone ?? "N/A")</p>
-                    <p>
-                        <strong>Status:</strong>
-                        <span class="badge @(Model.AdminUser.IsActive ? "bg-success" : "bg-danger")">
-                            @(Model.AdminUser.IsActive ? "Active" : "Inactive")
-                        </span>
-                    </p>
-                    <p><strong>Last Login:</strong> @(Model.AdminUser.LastLoginAt?.ToString("yyyy-MM-dd HH:mm") ?? "Never")</p>
+    <!-- Tab 3: EBM Management -->
+    <div class="tab-pane fade @(activeTab == "ebm" ? "show active" : "")" id="ebm-pane" role="tabpanel" aria-labelledby="ebm-tab">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-server me-2"></i>EBM Configuration
+                </h5>
+                <div>
+                    @if (Model.EbmConfig.IsConfigured)
+                    {
+                        <span class="badge bg-success">Configured</span>
+                    }
+                    else if (Model.EbmConfig.EBMEnabled)
+                    {
+                        <span class="badge bg-warning">Incomplete</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Disabled</span>
+                    }
                 </div>
             </div>
-        }
-        else
-        {
-            <p class="text-muted text-center py-3">No admin user assigned. Create one to manage this organization.</p>
-        }
+            <div class="card-body">
+                <form asp-action="ConfigureEbm" method="post" data-loading-form>
+                    <input type="hidden" name="orgId" value="@Model.Organization.Id" />
+                    <fieldset @(isDeleted ? "disabled" : "")>
+
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <div class="form-check form-switch mt-4">
+                                <input class="form-check-input" type="checkbox" id="ebmEnabled" name="ebmEnabled"
+                                       value="true" @(Model.EbmConfig.EBMEnabled ? "checked" : "") />
+                                <label class="form-check-label fw-bold" for="ebmEnabled">EBM Enabled</label>
+                            </div>
+                        </div>
+                        <div class="col-md-9">
+                            <label for="ebmServerUrl" class="form-label">EBM Server URL</label>
+                            <input type="url" class="form-control" id="ebmServerUrl" name="ebmServerUrl"
+                                   value="@Model.EbmConfig.EBMServerUrl" placeholder="https://apihub.yegobox.com/api" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="ebmBusinessId" class="form-label">Business ID</label>
+                            <input type="text" class="form-control" id="ebmBusinessId" name="ebmBusinessId"
+                                   value="@Model.EbmConfig.EBMBusinessId" placeholder="YegoBox Business UUID" />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="ebmBranchId" class="form-label">Branch ID</label>
+                            <input type="text" class="form-control" id="ebmBranchId" name="ebmBranchId"
+                                   value="@Model.EbmConfig.EBMBranchId" placeholder="YegoBox Branch UUID" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="ebmCompanyName" class="form-label">Company Name</label>
+                            <input type="text" class="form-control" id="ebmCompanyName" name="ebmCompanyName"
+                                   value="@Model.EbmConfig.EBMCompanyName" placeholder="Company name for receipts" />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="ebmCompanyTIN" class="form-label">Company TIN</label>
+                            <input type="text" class="form-control" id="ebmCompanyTIN" name="ebmCompanyTIN"
+                                   value="@Model.EbmConfig.EBMCompanyTIN" placeholder="Tax Identification Number" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="ebmCompanyAddress" class="form-label">Company Address</label>
+                            <input type="text" class="form-control" id="ebmCompanyAddress" name="ebmCompanyAddress"
+                                   value="@Model.EbmConfig.EBMCompanyAddress" placeholder="Company address" />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="ebmCompanyPhone" class="form-label">Company Phone</label>
+                            <input type="text" class="form-control" id="ebmCompanyPhone" name="ebmCompanyPhone"
+                                   value="@Model.EbmConfig.EBMCompanyPhone" placeholder="+250..." />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="ebmCategoryId" class="form-label">Product Category ID</label>
+                            <input type="text" class="form-control" id="ebmCategoryId" name="ebmCategoryId"
+                                   value="@Model.EbmConfig.EBMCategoryId" placeholder="YegoBox Category UUID (for auto-registering fuel types)" />
+                            <small class="text-muted">Required for auto-registering new fuel types in EBM</small>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <form asp-action="TestEbmConnection" method="post" class="d-inline">
+                            <input type="hidden" name="orgId" value="@Model.Organization.Id" />
+                            <button type="submit" class="btn btn-outline-info" @(isDeleted ? "disabled" : "")>
+                                <i class="fas fa-plug me-2"></i>Test Connection
+                            </button>
+                        </form>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Save EBM Configuration
+                        </button>
+                    </div>
+
+                    </fieldset>
+                </form>
+            </div>
+        </div>
     </div>
+
+    <!-- Tab 4: Station Management -->
+    <div class="tab-pane fade @(activeTab == "stations" ? "show active" : "")" id="stations-pane" role="tabpanel" aria-labelledby="stations-tab">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-gas-pump me-2"></i>Stations</h5>
+                @if (!isDeleted)
+                {
+                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addStationModal">
+                        <i class="fas fa-plus me-2"></i>Add Station
+                    </button>
+                }
+            </div>
+            <div class="card-body">
+                @if (Model.Stations.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Location</th>
+                                    <th>Address</th>
+                                    <th>Manager</th>
+                                    <th>Status</th>
+                                    @if (!isDeleted)
+                                    {
+                                        <th>Actions</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var station in Model.Stations)
+                                {
+                                    <tr class="@(!station.IsActive ? "table-secondary" : "")">
+                                        <td>@station.Name</td>
+                                        <td>@station.Location</td>
+                                        <td>@(station.Address ?? "N/A")</td>
+                                        <td>@(station.ManagerName ?? "Unassigned")</td>
+                                        <td>
+                                            <span class="badge @(station.IsActive ? "bg-success" : "bg-danger")">
+                                                @station.Status
+                                            </span>
+                                        </td>
+                                        @if (!isDeleted)
+                                        {
+                                            <td>
+                                                @if (station.IsActive)
+                                                {
+                                                    <button type="button" class="btn btn-sm btn-warning"
+                                                            onclick="confirmToggleStation('@station.Id', '@station.Name', true)">
+                                                        <i class="fas fa-ban me-1"></i>Disable
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <button type="button" class="btn btn-sm btn-success"
+                                                            onclick="confirmToggleStation('@station.Id', '@station.Name', false)">
+                                                        <i class="fas fa-check me-1"></i>Enable
+                                                    </button>
+                                                }
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-5">
+                        <i class="fas fa-gas-pump fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No stations found. Add a station to get started.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 5: Deleted Fuel Types -->
+    @if (Model.DeletedFuelTypes.Any())
+    {
+        <div class="tab-pane fade @(activeTab == "deleted-fuels" ? "show active" : "")" id="deleted-fuels-pane" role="tabpanel" aria-labelledby="deleted-fuels-tab">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-trash me-2"></i>Deleted Fuel Types</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Fuel Name</th>
+                                    <th>Last Price/L (RWF)</th>
+                                    <th>Supply Price/L (RWF)</th>
+                                    <th>Deleted On</th>
+                                    @if (!isDeleted)
+                                    {
+                                        <th class="text-center">Actions</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var fuel in Model.DeletedFuelTypes)
+                                {
+                                    <tr class="table-secondary">
+                                        <td>@fuel.Name</td>
+                                        <td>@fuel.PricePerLiter.ToString("N0")</td>
+                                        <td>@(fuel.EBMSupplyPrice?.ToString("N0") ?? "-")</td>
+                                        <td>@(fuel.DeletedAt?.ToString("yyyy-MM-dd HH:mm") ?? "N/A")</td>
+                                        @if (!isDeleted)
+                                        {
+                                            <td class="text-center">
+                                                <button class="btn btn-sm btn-success"
+                                                        onclick="confirmRestoreFuel('@fuel.Id', '@fuel.Name')">
+                                                    <i class="fas fa-undo me-1"></i>Restore
+                                                </button>
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
 </div>
 
 <!-- Create Admin Modal -->
@@ -148,149 +478,23 @@
     </div>
 </div>
 
-<!-- EBM Configuration -->
-<div class="card shadow-sm mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i class="fas fa-server me-2"></i>EBM Configuration
-            @if (Model.EbmConfig.IsConfigured)
-            {
-                <span class="badge bg-success ms-2">Configured</span>
-            }
-            else if (Model.EbmConfig.EBMEnabled)
-            {
-                <span class="badge bg-warning ms-2">Incomplete</span>
-            }
-            else
-            {
-                <span class="badge bg-secondary ms-2">Disabled</span>
-            }
-        </h5>
-    </div>
-    <div class="card-body">
-        <form asp-action="ConfigureEbm" method="post" data-loading-form>
-            <input type="hidden" name="orgId" value="@Model.Organization.Id" />
-
-            <!-- Enable + Server URL -->
-            <div class="row mb-3">
-                <div class="col-md-3">
-                    <div class="form-check form-switch mt-4">
-                        <input class="form-check-input" type="checkbox" id="ebmEnabled" name="ebmEnabled"
-                               value="true" @(Model.EbmConfig.EBMEnabled ? "checked" : "") />
-                        <label class="form-check-label fw-bold" for="ebmEnabled">EBM Enabled</label>
-                    </div>
-                </div>
-                <div class="col-md-9">
-                    <label for="ebmServerUrl" class="form-label">EBM Server URL</label>
-                    <input type="url" class="form-control" id="ebmServerUrl" name="ebmServerUrl"
-                           value="@Model.EbmConfig.EBMServerUrl" placeholder="https://apihub.yegobox.com/api" />
-                </div>
+<!-- Toggle Station Status Modal -->
+<div class="modal fade" id="toggleStationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-bold" id="toggleStationTitle"></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-
-            <!-- Business ID + Branch ID -->
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label for="ebmBusinessId" class="form-label">Business ID</label>
-                    <input type="text" class="form-control" id="ebmBusinessId" name="ebmBusinessId"
-                           value="@Model.EbmConfig.EBMBusinessId" placeholder="YegoBox Business UUID" />
-                </div>
-                <div class="col-md-6">
-                    <label for="ebmBranchId" class="form-label">Branch ID</label>
-                    <input type="text" class="form-control" id="ebmBranchId" name="ebmBranchId"
-                           value="@Model.EbmConfig.EBMBranchId" placeholder="YegoBox Branch UUID" />
-                </div>
+            <div class="modal-body text-center">
+                <i id="toggleStationIcon" class="fa-3x mb-3"></i>
+                <p id="toggleStationMessage"></p>
             </div>
-
-            <!-- Company Name + TIN -->
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label for="ebmCompanyName" class="form-label">Company Name</label>
-                    <input type="text" class="form-control" id="ebmCompanyName" name="ebmCompanyName"
-                           value="@Model.EbmConfig.EBMCompanyName" placeholder="Company name for receipts" />
-                </div>
-                <div class="col-md-6">
-                    <label for="ebmCompanyTIN" class="form-label">Company TIN</label>
-                    <input type="text" class="form-control" id="ebmCompanyTIN" name="ebmCompanyTIN"
-                           value="@Model.EbmConfig.EBMCompanyTIN" placeholder="Tax Identification Number" />
-                </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-sm" id="toggleStationBtn" onclick="submitToggleStation()"></button>
             </div>
-
-            <!-- Address + Phone -->
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label for="ebmCompanyAddress" class="form-label">Company Address</label>
-                    <input type="text" class="form-control" id="ebmCompanyAddress" name="ebmCompanyAddress"
-                           value="@Model.EbmConfig.EBMCompanyAddress" placeholder="Company address" />
-                </div>
-                <div class="col-md-6">
-                    <label for="ebmCompanyPhone" class="form-label">Company Phone</label>
-                    <input type="text" class="form-control" id="ebmCompanyPhone" name="ebmCompanyPhone"
-                           value="@Model.EbmConfig.EBMCompanyPhone" placeholder="+250..." />
-                </div>
-            </div>
-
-            <!-- Category ID -->
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label for="ebmCategoryId" class="form-label">Product Category ID</label>
-                    <input type="text" class="form-control" id="ebmCategoryId" name="ebmCategoryId"
-                           value="@Model.EbmConfig.EBMCategoryId" placeholder="YegoBox Category UUID (for auto-registering fuel types)" />
-                    <small class="text-muted">Required for auto-registering new fuel types in EBM</small>
-                </div>
-            </div>
-
-            <div class="text-end">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save me-2"></i>Save EBM Configuration
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Stations -->
-<div class="card shadow-sm mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="fas fa-gas-pump me-2"></i>Stations</h5>
-        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addStationModal">
-            <i class="fas fa-plus me-2"></i>Add Station
-        </button>
-    </div>
-    <div class="card-body">
-        @if (Model.Stations.Any())
-        {
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Location</th>
-                            <th>Manager</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var station in Model.Stations)
-                        {
-                            <tr>
-                                <td>@station.Name</td>
-                                <td>@station.Location</td>
-                                <td>@(station.ManagerName ?? "Unassigned")</td>
-                                <td>
-                                    <span class="badge @(station.IsActive ? "bg-success" : "bg-secondary")">
-                                        @station.Status
-                                    </span>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        }
-        else
-        {
-            <p class="text-muted text-center py-3">No stations found. Add a station to get started.</p>
-        }
+        </div>
     </div>
 </div>
 
@@ -333,3 +537,76 @@
     </div>
 </div>
 
+<!-- Restore Fuel Type Modal -->
+<div class="modal fade" id="restoreFuelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-bold">Restore Fuel Type</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <i class="fas fa-undo fa-3x mb-3 text-success"></i>
+                <p id="restoreFuelMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <form id="restoreFuelForm" asp-action="RestoreFuelType" method="post" class="d-inline" data-loading-form>
+                    <input type="hidden" name="orgId" value="@Model.Organization.Id" />
+                    <input type="hidden" name="fuelTypeId" id="restoreFuelId" />
+                    <button type="submit" class="btn btn-sm btn-success">
+                        <i class="fas fa-undo me-1"></i>Restore
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    var pendingStationId = null;
+    var pendingStationDisabling = false;
+
+    function confirmToggleStation(stationId, stationName, isCurrentlyActive) {
+        pendingStationId = stationId;
+        pendingStationDisabling = isCurrentlyActive;
+
+        if (isCurrentlyActive) {
+            $('#toggleStationTitle').text('Disable Station');
+            $('#toggleStationIcon').attr('class', 'fas fa-ban fa-3x mb-3 text-warning');
+            $('#toggleStationMessage').html('Are you sure you want to disable <strong>' + stationName + '</strong>?<br><small class="text-muted">This station will no longer be visible to the organization\'s admin.</small>');
+            $('#toggleStationBtn').attr('class', 'btn btn-sm btn-warning').html('<i class="fas fa-ban me-1"></i>Disable');
+        } else {
+            $('#toggleStationTitle').text('Enable Station');
+            $('#toggleStationIcon').attr('class', 'fas fa-check-circle fa-3x mb-3 text-success');
+            $('#toggleStationMessage').html('Are you sure you want to enable <strong>' + stationName + '</strong>?<br><small class="text-muted">This station will become visible to the organization\'s admin.</small>');
+            $('#toggleStationBtn').attr('class', 'btn btn-sm btn-success').html('<i class="fas fa-check me-1"></i>Enable');
+        }
+
+        new bootstrap.Modal(document.getElementById('toggleStationModal')).show();
+    }
+
+    function confirmRestoreFuel(fuelTypeId, fuelName) {
+        $('#restoreFuelId').val(fuelTypeId);
+        $('#restoreFuelMessage').html('Are you sure you want to restore <strong>' + fuelName + '</strong>?<br><small class="text-muted">It will become available again for sales.</small>');
+        new bootstrap.Modal(document.getElementById('restoreFuelModal')).show();
+    }
+
+    function submitToggleStation() {
+        if (!pendingStationId) return;
+        var btn = document.getElementById('toggleStationBtn');
+        startLoading(btn, pendingStationDisabling ? 'Disabling...' : 'Enabling...');
+        $.post('@Url.Action("ToggleStationStatus", "Organizations")', {
+            orgId: '@Model.Organization.Id',
+            stationId: pendingStationId
+        }, function () {
+            location.reload();
+        }).fail(function () {
+            stopLoading(btn);
+            bootstrap.Modal.getInstance(document.getElementById('toggleStationModal')).hide();
+            alert('Failed to update station status.');
+        });
+    }
+</script>
+}

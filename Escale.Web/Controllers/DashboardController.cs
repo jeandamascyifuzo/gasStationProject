@@ -20,45 +20,44 @@ namespace Escale.Web.Controllers
             _reportService = reportService;
         }
 
-        public async Task<IActionResult> Index(string period = "today")
+        public async Task<IActionResult> Index(DateTime? startDate = null, DateTime? endDate = null)
         {
             // SuperAdmin is platform-level, redirect to Organizations
             if (HttpContext.Session.GetString("UserRole") == "SuperAdmin")
                 return RedirectToAction("Index", "Organizations");
 
-            ViewBag.Period = period;
-            var model = await BuildDashboardModelAsync(period);
+            var start = startDate ?? DateTime.Today;
+            var end = endDate ?? DateTime.Today;
+
+            // Ensure start <= end
+            if (start > end) (start, end) = (end, start);
+
+            ViewBag.StartDate = start;
+            ViewBag.EndDate = end;
+
+            var model = await BuildDashboardModelAsync(start, end);
             return View(model);
         }
 
         [HttpGet]
-        public async Task<IActionResult> Data(string period = "today")
+        public async Task<IActionResult> Data(DateTime? startDate = null, DateTime? endDate = null)
         {
-            var model = await BuildDashboardModelAsync(period);
+            var start = startDate ?? DateTime.Today;
+            var end = endDate ?? DateTime.Today;
+            if (start > end) (start, end) = (end, start);
+
+            var model = await BuildDashboardModelAsync(start, end);
             return Json(model);
         }
 
-        private async Task<DashboardViewModel> BuildDashboardModelAsync(string period)
+        private async Task<DashboardViewModel> BuildDashboardModelAsync(DateTime start, DateTime end)
         {
-            DateTime date = DateTime.Today;
-            DateTime chartStart = DateTime.Today.AddDays(-6);
+            var chartStart = start.AddDays(-6);
 
-            if (period == "week")
-            {
-                date = DateTime.Today.AddDays(-7);
-                chartStart = DateTime.Today.AddDays(-13);
-            }
-            else if (period == "month")
-            {
-                date = DateTime.Today.AddDays(-30);
-                chartStart = DateTime.Today.AddDays(-30);
-            }
-
-            var summaryTask = _dashboardService.GetSummaryAsync(date: date);
+            var summaryTask = _dashboardService.GetSummaryAsync(startDate: start, endDate: end);
             var stationsTask = _stationService.GetAllAsync();
-            var salesReportTask = _reportService.GetSalesReportAsync(
-                chartStart, DateTime.Today);
-            var performanceTask = _dashboardService.GetStationPerformanceAsync(date, DateTime.Today, 5);
+            var salesReportTask = _reportService.GetSalesReportAsync(chartStart, end);
+            var performanceTask = _dashboardService.GetStationPerformanceAsync(start, end, 5);
 
             await Task.WhenAll(summaryTask, stationsTask, salesReportTask, performanceTask);
 
@@ -74,14 +73,20 @@ namespace Escale.Web.Controllers
                 TransactionCount = summary.Data?.TransactionCount ?? 0,
                 LowStockAlerts = summary.Data?.LowStockAlerts?.Count ?? 0,
                 AverageSale = summary.Data?.AverageSale ?? 0,
+                CreditSales = summary.Data?.CreditSales ?? 0,
+                CreditTransactionCount = summary.Data?.CreditTransactionCount ?? 0,
                 RecentTransactions = summary.Data?.RecentTransactions?
                     .Select(t => new RecentTransaction
                     {
                         TransactionId = t.ReceiptNumber,
+                        Time = t.TransactionDate,
+                        StationName = t.StationName,
+                        CashierName = t.CashierName,
+                        CustomerName = t.CustomerName,
                         FuelType = t.FuelType,
                         Quantity = t.Liters,
-                        Total = t.Total,
-                        Time = t.TransactionDate
+                        PaymentMethod = t.PaymentMethod,
+                        Total = t.Total
                     }).ToList() ?? new(),
                 TopStations = performance.Data?.Select(p => new StationPerformance
                 {
@@ -90,6 +95,8 @@ namespace Escale.Web.Controllers
                     TotalSales = p.TotalSales,
                     TransactionCount = p.TransactionCount,
                     TotalLiters = p.TotalLiters,
+                    CashSales = p.CashSales,
+                    CreditSales = p.CreditSales,
                     Rank = p.Rank
                 }).ToList() ?? new()
             };
@@ -100,7 +107,7 @@ namespace Escale.Web.Controllers
                 model.SalesChart = salesReport.Data.DailySales
                     .Select(d => new DailySales
                     {
-                        Date = d.Date.ToString("ddd"),
+                        Date = d.Date.ToString("dd MMM"),
                         Sales = d.Amount
                     }).ToList();
             }

@@ -1,6 +1,9 @@
 @model Escale.Web.Models.DashboardViewModel
 @{
     ViewData["Title"] = "Dashboard";
+    var startDate = (DateTime)ViewBag.StartDate;
+    var endDate = (DateTime)ViewBag.EndDate;
+    var isToday = startDate == DateTime.Today && endDate == DateTime.Today;
 }
 
 @await Html.PartialAsync("_ApiError")
@@ -8,23 +11,37 @@
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 page-header">
     <div>
         <h1 class="h2"><i class="fas fa-chart-line me-2"></i>Dashboard</h1>
-        <p class="text-muted mb-0">Welcome back! Here's what's happening today.</p>
+        <p class="text-muted mb-0">
+            @if (isToday)
+            {
+                <span>Welcome back! Here's what's happening today.</span>
+            }
+            else
+            {
+                <span>Showing data from @startDate.ToString("dd MMM yyyy") to @endDate.ToString("dd MMM yyyy")</span>
+            }
+        </p>
     </div>
-    @{
-        var currentPeriod = ViewBag.Period as string ?? "today";
-    }
     <div class="btn-toolbar mb-2 mb-md-0">
-        <div class="btn-group me-2">
-            <a asp-action="Index" asp-route-period="today" class="btn btn-sm @(currentPeriod == "today" ? "btn-primary" : "btn-outline-secondary")">
-                <i class="fas fa-calendar-day me-1"></i>Today
-            </a>
-            <a asp-action="Index" asp-route-period="week" class="btn btn-sm @(currentPeriod == "week" ? "btn-primary" : "btn-outline-secondary")">
-                <i class="fas fa-calendar-week me-1"></i>Week
-            </a>
-            <a asp-action="Index" asp-route-period="month" class="btn btn-sm @(currentPeriod == "month" ? "btn-primary" : "btn-outline-secondary")">
-                <i class="fas fa-calendar-alt me-1"></i>Month
-            </a>
-        </div>
+        <form asp-action="Index" method="get" class="d-flex align-items-center gap-2">
+            <div class="btn-group me-2">
+                <a asp-action="Index" class="btn btn-sm @(isToday ? "btn-primary" : "btn-outline-secondary")">
+                    <i class="fas fa-calendar-day me-1"></i>Today
+                </a>
+                <a asp-action="Index" asp-route-startDate="@DateTime.Today.AddDays(-6).ToString("yyyy-MM-dd")" asp-route-endDate="@DateTime.Today.ToString("yyyy-MM-dd")" class="btn btn-sm @(!isToday && (endDate - startDate).Days == 6 ? "btn-primary" : "btn-outline-secondary")">
+                    <i class="fas fa-calendar-week me-1"></i>Week
+                </a>
+                <a asp-action="Index" asp-route-startDate="@DateTime.Today.AddDays(-29).ToString("yyyy-MM-dd")" asp-route-endDate="@DateTime.Today.ToString("yyyy-MM-dd")" class="btn btn-sm @(!isToday && (endDate - startDate).Days == 29 ? "btn-primary" : "btn-outline-secondary")">
+                    <i class="fas fa-calendar-alt me-1"></i>Month
+                </a>
+            </div>
+            <input type="date" name="startDate" class="form-control form-control-sm" value="@startDate.ToString("yyyy-MM-dd")" max="@DateTime.Today.ToString("yyyy-MM-dd")" style="width: 140px;" />
+            <span class="text-muted">to</span>
+            <input type="date" name="endDate" class="form-control form-control-sm" value="@endDate.ToString("yyyy-MM-dd")" max="@DateTime.Today.ToString("yyyy-MM-dd")" style="width: 140px;" />
+            <button type="submit" class="btn btn-sm btn-primary">
+                <i class="fas fa-filter me-1"></i>Filter
+            </button>
+        </form>
     </div>
 </div>
 
@@ -51,11 +68,12 @@
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Transactions</div>
-                        <div id="stat-transactions" class="h5 mb-0 font-weight-bold text-gray-800">@Model.TransactionCount</div>
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Revenue</div>
+                        <div id="stat-sales" class="h5 mb-0 font-weight-bold text-gray-800">@((Model.TodaysSales - Model.CreditSales).ToString("N0")) RWF</div>
+                        <div class="text-xs text-muted mt-1"><span id="stat-transactions">@(Model.TransactionCount - Model.CreditTransactionCount)</span> transactions</div>
                     </div>
                     <div class="col-auto">
-                        <i class="fas fa-exchange-alt fa-2x text-gray-300"></i>
+                        <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
                     </div>
                 </div>
             </div>
@@ -63,15 +81,16 @@
     </div>
 
     <div class="col-xl-3 col-md-6 mb-3">
-        <div class="card border-left-info shadow h-100 py-2">
+        <div class="card border-left-danger shadow h-100 py-2">
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Today's Sales</div>
-                        <div id="stat-sales" class="h5 mb-0 font-weight-bold text-gray-800">@Model.TodaysSales.ToString("N0") RWF</div>
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Credit Sales</div>
+                        <div id="stat-credit" class="h5 mb-0 font-weight-bold text-gray-800">@Model.CreditSales.ToString("N0") RWF</div>
+                        <div class="text-xs text-muted mt-1">@Model.CreditTransactionCount transactions</div>
                     </div>
                     <div class="col-auto">
-                        <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                        <i class="fas fa-hand-holding-usd fa-2x text-gray-300"></i>
                     </div>
                 </div>
             </div>
@@ -112,6 +131,8 @@
                                 <tr>
                                     <th style="width: 60px;" class="text-center">Rank</th>
                                     <th>Station</th>
+                                    <th class="text-end">Cash/MoMo/Card</th>
+                                    <th class="text-end">Credit</th>
                                     <th class="text-end">Total Sales</th>
                                     <th class="text-center">Transactions</th>
                                     <th class="text-end">Volume (L)</th>
@@ -128,6 +149,8 @@
                                             </span>
                                         </td>
                                         <td class="fw-semibold">@station.StationName</td>
+                                        <td class="text-end text-success fw-bold">@station.CashSales.ToString("N0") RWF</td>
+                                        <td class="text-end text-danger fw-bold">@station.CreditSales.ToString("N0") RWF</td>
                                         <td class="text-end fw-bold text-primary">@station.TotalSales.ToString("N0") RWF</td>
                                         <td class="text-center">@station.TransactionCount</td>
                                         <td class="text-end">@station.TotalLiters.ToString("N0")</td>
@@ -188,22 +211,45 @@
                     <table class="table table-sm">
                         <thead>
                             <tr>
-                                <th>ID</th>
+                                <th>Date</th>
+                                <th>Station</th>
+                                <th>Cashier</th>
+                                <th>Customer</th>
                                 <th>Fuel</th>
                                 <th>Qty</th>
-                                <th>Total</th>
-                                <th>Time</th>
+                                <th>Payment</th>
+                                <th class="text-end">Amount</th>
                             </tr>
                         </thead>
                         <tbody id="recent-transactions-body">
                             @foreach (var txn in Model.RecentTransactions)
                             {
                                 <tr>
-                                    <td>@txn.TransactionId</td>
+                                    <td>@txn.Time.ToString("dd MMM HH:mm")</td>
+                                    <td>@txn.StationName</td>
+                                    <td>@txn.CashierName</td>
+                                    <td>@(txn.CustomerName ?? "—")</td>
                                     <td>@txn.FuelType</td>
                                     <td>@txn.Quantity.ToString("N1")L</td>
-                                    <td>@txn.Total.ToString("N0") RWF</td>
-                                    <td>@txn.Time.ToString("HH:mm")</td>
+                                    <td>
+                                        @if (txn.PaymentMethod == "Credit")
+                                        {
+                                            <span class="badge bg-danger">Credit</span>
+                                        }
+                                        else if (txn.PaymentMethod == "MobileMoney")
+                                        {
+                                            <span class="badge bg-success">MoMo</span>
+                                        }
+                                        else if (txn.PaymentMethod == "Card")
+                                        {
+                                            <span class="badge bg-primary">Card</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Cash</span>
+                                        }
+                                    </td>
+                                    <td class="text-end fw-bold">@txn.Total.ToString("N0") RWF</td>
                                 </tr>
                             }
                         </tbody>
@@ -256,7 +302,8 @@
         }
     });
 
-    // Current period for seamless refresh
-    window.escaleDashboardPeriod = '@(ViewBag.Period ?? "today")';
+    // Current date range for seamless refresh
+    window.escaleDashboardStartDate = '@startDate.ToString("yyyy-MM-dd")';
+    window.escaleDashboardEndDate = '@endDate.ToString("yyyy-MM-dd")';
 </script>
 }

@@ -74,5 +74,6 @@ namespace Escale.Web.Controllers
 
             return RedirectToAction("Index");
         }
+
     }
 }

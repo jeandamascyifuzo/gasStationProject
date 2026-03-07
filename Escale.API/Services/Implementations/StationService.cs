@@ -30,7 +30,7 @@ public class StationService : IStationService
         var stations = await _unitOfWork.Stations.Query()
             .AsNoTracking()
             .Include(s => s.Manager)
-            .Where(s => s.OrganizationId == orgId)
+            .Where(s => s.OrganizationId == orgId && s.IsActive)
             .OrderBy(s => s.Name)
             .ToListAsync();
         return _mapper.Map<List<StationResponseDto>>(stations);

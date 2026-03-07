@@ -15,8 +15,20 @@ namespace Escale.Web.Models
 
         public bool IsActive { get; set; } = true;
 
+        public bool IsDeleted { get; set; }
+
+        public DateTime? DeletedAt { get; set; }
+
+        public string? EBMProductId { get; set; }
+
+        public string? EBMVariantId { get; set; }
+
         public decimal? EBMSupplyPrice { get; set; }
 
+        public bool IsEBMRegistered => !string.IsNullOrEmpty(EBMProductId) || !string.IsNullOrEmpty(EBMVariantId) || EBMSupplyPrice.HasValue;
+
         public DateTime CreatedAt { get; set; }
+
+        public string Status => IsDeleted ? "Deleted" : IsActive ? "Active" : "Inactive";
     }
 }

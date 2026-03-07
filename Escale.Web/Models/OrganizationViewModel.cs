@@ -10,15 +10,18 @@ public class OrganizationListItem
     public string? Phone { get; set; }
     public string? Email { get; set; }
     public bool IsActive { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTime? DeletedAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public int StationCount { get; set; }
     public int UserCount { get; set; }
-    public string Status => IsActive ? "Active" : "Inactive";
+    public string Status => IsDeleted ? "Deleted" : IsActive ? "Active" : "Inactive";
 }
 
 public class OrganizationViewModel
 {
     public List<OrganizationListItem> Organizations { get; set; } = new();
+    public string Filter { get; set; } = "active";
 }
 
 public class OrganizationDetailsViewModel
@@ -27,6 +30,7 @@ public class OrganizationDetailsViewModel
     public List<Station> Stations { get; set; } = new();
     public EbmConfig EbmConfig { get; set; } = new();
     public AdminUser? AdminUser { get; set; }
+    public List<FuelType> DeletedFuelTypes { get; set; } = new();
 }
 
 public class AdminUser

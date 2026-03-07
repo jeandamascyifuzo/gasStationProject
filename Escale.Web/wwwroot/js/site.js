@@ -56,14 +56,19 @@
     }
 
     function refreshDashboardData() {
-        var period = window.escaleDashboardPeriod || 'today';
-        fetch('/Dashboard/Data?period=' + encodeURIComponent(period))
+        var startDate = window.escaleDashboardStartDate || '';
+        var endDate = window.escaleDashboardEndDate || '';
+        var qs = '';
+        if (startDate) qs += 'startDate=' + encodeURIComponent(startDate);
+        if (endDate) qs += (qs ? '&' : '') + 'endDate=' + encodeURIComponent(endDate);
+        fetch('/Dashboard/Data?' + qs)
             .then(function (res) { return res.json(); })
             .then(function (data) {
                 // Update stat cards with animation (PascalCase from server)
                 animateValue('stat-stations', data.TotalStations);
-                animateValue('stat-transactions', data.TransactionCount);
-                animateValue('stat-sales', formatNumber(data.TodaysSales) + ' RWF');
+                animateValue('stat-sales', formatNumber(data.TodaysSales - data.CreditSales) + ' RWF');
+                animateValue('stat-transactions', data.TransactionCount - data.CreditTransactionCount);
+                animateValue('stat-credit', formatNumber(data.CreditSales) + ' RWF');
                 updateAlerts('stat-alerts', data.LowStockAlerts);
 
                 // Update recent transactions table
@@ -117,16 +122,27 @@
         tbody.style.opacity = '0.3';
         setTimeout(function () {
             var html = '';
+            var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
             transactions.forEach(function (txn) {
                 var time = new Date(txn.Time);
+                var dd = String(time.getDate()).padStart(2, '0');
+                var mon = months[time.getMonth()];
                 var hh = String(time.getHours()).padStart(2, '0');
                 var mm = String(time.getMinutes()).padStart(2, '0');
+                var paymentBadge = '';
+                if (txn.PaymentMethod === 'Credit') paymentBadge = '<span class="badge bg-danger">Credit</span>';
+                else if (txn.PaymentMethod === 'MobileMoney') paymentBadge = '<span class="badge bg-success">MoMo</span>';
+                else if (txn.PaymentMethod === 'Card') paymentBadge = '<span class="badge bg-primary">Card</span>';
+                else paymentBadge = '<span class="badge bg-secondary">Cash</span>';
                 html += '<tr>' +
-                    '<td>' + escapeHtml(txn.TransactionId) + '</td>' +
+                    '<td>' + dd + ' ' + mon + ' ' + hh + ':' + mm + '</td>' +
+                    '<td>' + escapeHtml(txn.StationName || '') + '</td>' +
+                    '<td>' + escapeHtml(txn.CashierName || '') + '</td>' +
+                    '<td>' + escapeHtml(txn.CustomerName || '—') + '</td>' +
                     '<td>' + escapeHtml(txn.FuelType) + '</td>' +
                     '<td>' + txn.Quantity.toFixed(1) + 'L</td>' +
-                    '<td>' + formatNumber(txn.Total) + ' RWF</td>' +
-                    '<td>' + hh + ':' + mm + '</td>' +
+                    '<td>' + paymentBadge + '</td>' +
+                    '<td class="text-end fw-bold">' + formatNumber(txn.Total) + ' RWF</td>' +
                     '</tr>';
             });
             tbody.innerHTML = html;

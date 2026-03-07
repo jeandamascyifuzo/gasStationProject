@@ -8,6 +8,7 @@ using Escale.API.DTOs.Organizations;
 using Escale.API.DTOs.Settings;
 using Escale.API.DTOs.Stations;
 using Escale.API.DTOs.Users;
+using Escale.API.Hubs;
 using Escale.API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,24 +19,28 @@ public class OrganizationService : IOrganizationService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly IEBMService _ebmService;
+    private readonly INotificationService _notificationService;
     private readonly ILogger<OrganizationService> _logger;
 
     public OrganizationService(IUnitOfWork unitOfWork, IMapper mapper,
-        IEBMService ebmService, ILogger<OrganizationService> logger)
+        IEBMService ebmService, INotificationService notificationService, ILogger<OrganizationService> logger)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _ebmService = ebmService;
+        _notificationService = notificationService;
         _logger = logger;
     }
 
     public async Task<List<OrganizationResponseDto>> GetAllOrganizationsAsync()
     {
         var orgs = await _unitOfWork.Organizations.Query()
+            .IgnoreQueryFilters()
             .Include(o => o.Stations.Where(s => !s.IsDeleted))
             .Include(o => o.Users.Where(u => !u.IsDeleted))
             .Where(o => o.Slug != "system")
-            .OrderBy(o => o.Name)
+            .OrderBy(o => o.IsDeleted)
+            .ThenBy(o => o.Name)
             .ToListAsync();
 
         return orgs.Select(o => new OrganizationResponseDto
@@ -48,6 +53,8 @@ public class OrganizationService : IOrganizationService
             Phone = o.Phone,
             Email = o.Email,
             IsActive = o.IsActive,
+            IsDeleted = o.IsDeleted,
+            DeletedAt = o.DeletedAt,
             CreatedAt = o.CreatedAt,
             StationCount = o.Stations.Count,
             UserCount = o.Users.Count
@@ -57,6 +64,7 @@ public class OrganizationService : IOrganizationService
     public async Task<OrganizationResponseDto> GetOrganizationByIdAsync(Guid id)
     {
         var org = await _unitOfWork.Organizations.Query()
+            .IgnoreQueryFilters()
             .Include(o => o.Stations.Where(s => !s.IsDeleted))
             .Include(o => o.Users.Where(u => !u.IsDeleted))
             .FirstOrDefaultAsync(o => o.Id == id)
@@ -72,6 +80,8 @@ public class OrganizationService : IOrganizationService
             Phone = org.Phone,
             Email = org.Email,
             IsActive = org.IsActive,
+            IsDeleted = org.IsDeleted,
+            DeletedAt = org.DeletedAt,
             CreatedAt = org.CreatedAt,
             StationCount = org.Stations.Count,
             UserCount = org.Users.Count
@@ -101,22 +111,6 @@ public class OrganizationService : IOrganizationService
             CreatedAt = now
         };
         await _unitOfWork.Organizations.AddAsync(org);
-
-        // Default fuel types
-        var fuelTypes = new[]
-        {
-            new FuelType { Id = Guid.NewGuid(), OrganizationId = orgId, Name = "Petrol 95", CurrentPrice = 1450m, IsActive = true, CreatedAt = now },
-            new FuelType { Id = Guid.NewGuid(), OrganizationId = orgId, Name = "Diesel", CurrentPrice = 1380m, IsActive = true, CreatedAt = now }
-        };
-        foreach (var ft in fuelTypes)
-        {
-            await _unitOfWork.FuelTypes.AddAsync(ft);
-            await _unitOfWork.FuelPrices.AddAsync(new FuelPrice
-            {
-                Id = Guid.NewGuid(), FuelTypeId = ft.Id, Price = ft.CurrentPrice,
-                EffectiveFrom = now, CreatedAt = now
-            });
-        }
 
         // Default settings
         await _unitOfWork.OrganizationSettings.AddAsync(new OrganizationSettings
@@ -156,6 +150,7 @@ public class OrganizationService : IOrganizationService
 
     public async Task<OrganizationResponseDto> UpdateOrganizationAsync(Guid id, UpdateOrganizationRequestDto request)
     {
+        await EnsureOrganizationNotDeleted(id);
         var org = await _unitOfWork.Organizations.GetByIdAsync(id)
             ?? throw new KeyNotFoundException("Organization not found");
 
@@ -180,8 +175,40 @@ public class OrganizationService : IOrganizationService
         if (org.Slug == "system")
             throw new InvalidOperationException("Cannot delete the system organization");
 
-        _unitOfWork.Organizations.Remove(org);
+        org.IsDeleted = true;
+        org.IsActive = false;
+        org.DeletedAt = DateTime.UtcNow;
+        _unitOfWork.Organizations.Update(org);
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task RestoreOrganizationAsync(Guid id)
+    {
+        var org = await _unitOfWork.Organizations.Query()
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(o => o.Id == id)
+            ?? throw new KeyNotFoundException("Organization not found");
+
+        if (!org.IsDeleted)
+            throw new InvalidOperationException("Organization is not deleted");
+
+        org.IsDeleted = false;
+        org.IsActive = true;
+        org.DeletedAt = null;
+        _unitOfWork.Organizations.Update(org);
+        await _unitOfWork.SaveChangesAsync();
+    }
+
+    private async Task EnsureOrganizationNotDeleted(Guid orgId)
+    {
+        var org = await _unitOfWork.Organizations.Query()
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(o => o.Id == orgId);
+
+        if (org == null)
+            throw new KeyNotFoundException("Organization not found");
+        if (org.IsDeleted)
+            throw new InvalidOperationException("Cannot perform this action on a deleted organization. Restore it first.");
     }
 
     public async Task<List<StationResponseDto>> GetOrganizationStationsAsync(Guid orgId)
@@ -189,13 +216,27 @@ public class OrganizationService : IOrganizationService
         var stations = await _unitOfWork.Stations.Query()
             .Include(s => s.Manager)
             .Where(s => s.OrganizationId == orgId)
+            .OrderBy(s => s.Name)
             .ToListAsync();
 
         return _mapper.Map<List<StationResponseDto>>(stations);
     }
 
+    public async Task ToggleOrganizationStationStatusAsync(Guid orgId, Guid stationId)
+    {
+        await EnsureOrganizationNotDeleted(orgId);
+        var station = await _unitOfWork.Stations.Query()
+            .FirstOrDefaultAsync(s => s.Id == stationId && s.OrganizationId == orgId)
+            ?? throw new KeyNotFoundException("Station not found");
+
+        station.IsActive = !station.IsActive;
+        _unitOfWork.Stations.Update(station);
+        await _unitOfWork.SaveChangesAsync();
+    }
+
     public async Task<StationResponseDto> CreateOrganizationStationAsync(Guid orgId, CreateStationRequestDto request)
     {
+        await EnsureOrganizationNotDeleted(orgId);
         var org = await _unitOfWork.Organizations.GetByIdAsync(orgId)
             ?? throw new KeyNotFoundException("Organization not found");
 
@@ -211,6 +252,7 @@ public class OrganizationService : IOrganizationService
 
     public async Task ConfigureEbmAsync(Guid orgId, EbmConfigRequestDto request)
     {
+        await EnsureOrganizationNotDeleted(orgId);
         var settings = await _unitOfWork.OrganizationSettings.Query()
             .FirstOrDefaultAsync(s => s.OrganizationId == orgId)
             ?? throw new KeyNotFoundException("Organization settings not found");
@@ -262,6 +304,7 @@ public class OrganizationService : IOrganizationService
 
     public async Task<FuelTypeResponseDto> CreateOrganizationFuelTypeAsync(Guid orgId, CreateFuelTypeRequestDto request)
     {
+        await EnsureOrganizationNotDeleted(orgId);
         var org = await _unitOfWork.Organizations.GetByIdAsync(orgId)
             ?? throw new KeyNotFoundException("Organization not found");
 
@@ -350,6 +393,7 @@ public class OrganizationService : IOrganizationService
 
     public async Task<FuelTypeResponseDto> UpdateOrganizationFuelTypeAsync(Guid orgId, Guid fuelTypeId, UpdateFuelTypeRequestDto request)
     {
+        await EnsureOrganizationNotDeleted(orgId);
         var ft = await _unitOfWork.FuelTypes.Query()
             .FirstOrDefaultAsync(f => f.Id == fuelTypeId && f.OrganizationId == orgId)
             ?? throw new KeyNotFoundException("Fuel type not found");
@@ -408,12 +452,40 @@ public class OrganizationService : IOrganizationService
 
     public async Task DeleteOrganizationFuelTypeAsync(Guid orgId, Guid fuelTypeId)
     {
+        await EnsureOrganizationNotDeleted(orgId);
         var ft = await _unitOfWork.FuelTypes.Query()
             .FirstOrDefaultAsync(f => f.Id == fuelTypeId && f.OrganizationId == orgId)
             ?? throw new KeyNotFoundException("Fuel type not found");
 
         _unitOfWork.FuelTypes.Remove(ft);
         await _unitOfWork.SaveChangesAsync();
+        _ = _notificationService.NotifyDataChangedAsync(orgId, NotificationConstants.FuelTypesChanged);
+    }
+
+    public async Task<List<FuelTypeResponseDto>> GetDeletedOrganizationFuelTypesAsync(Guid orgId)
+    {
+        var fuelTypes = await _unitOfWork.FuelTypes.Query()
+            .IgnoreQueryFilters()
+            .Where(f => f.OrganizationId == orgId && f.IsDeleted)
+            .OrderBy(f => f.Name)
+            .ToListAsync();
+
+        return _mapper.Map<List<FuelTypeResponseDto>>(fuelTypes);
+    }
+
+    public async Task RestoreOrganizationFuelTypeAsync(Guid orgId, Guid fuelTypeId)
+    {
+        await EnsureOrganizationNotDeleted(orgId);
+        var ft = await _unitOfWork.FuelTypes.Query()
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(f => f.Id == fuelTypeId && f.OrganizationId == orgId && f.IsDeleted)
+            ?? throw new KeyNotFoundException("Deleted fuel type not found");
+
+        ft.IsDeleted = false;
+        ft.DeletedAt = null;
+        _unitOfWork.FuelTypes.Update(ft);
+        await _unitOfWork.SaveChangesAsync();
+        _ = _notificationService.NotifyDataChangedAsync(orgId, NotificationConstants.FuelTypesChanged);
     }
 
     public async Task<UserResponseDto?> GetOrganizationAdminAsync(Guid orgId)
@@ -439,6 +511,7 @@ public class OrganizationService : IOrganizationService
 
     public async Task<UserResponseDto> CreateOrganizationAdminAsync(Guid orgId, CreateOrgAdminRequestDto request)
     {
+        await EnsureOrganizationNotDeleted(orgId);
         var org = await _unitOfWork.Organizations.GetByIdAsync(orgId)
             ?? throw new KeyNotFoundException("Organization not found");
 

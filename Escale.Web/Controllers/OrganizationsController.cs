@@ -14,7 +14,7 @@ public class OrganizationsController : Controller
         _organizationService = organizationService;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string filter = "active")
     {
         var userRole = HttpContext.Session.GetString("UserRole");
         if (userRole != "SuperAdmin")
@@ -22,22 +22,34 @@ public class OrganizationsController : Controller
 
         var result = await _organizationService.GetAllAsync();
 
+        var allOrgs = result.Data?.Select(o => new OrganizationListItem
+        {
+            Id = o.Id,
+            Name = o.Name,
+            Slug = o.Slug,
+            TIN = o.TIN,
+            Address = o.Address,
+            Phone = o.Phone,
+            Email = o.Email,
+            IsActive = o.IsActive,
+            IsDeleted = o.IsDeleted,
+            DeletedAt = o.DeletedAt,
+            CreatedAt = o.CreatedAt,
+            StationCount = o.StationCount,
+            UserCount = o.UserCount
+        }).ToList() ?? new();
+
+        var filtered = filter switch
+        {
+            "deleted" => allOrgs.Where(o => o.IsDeleted).ToList(),
+            "all" => allOrgs,
+            _ => allOrgs.Where(o => !o.IsDeleted).ToList()
+        };
+
         var model = new OrganizationViewModel
         {
-            Organizations = result.Data?.Select(o => new OrganizationListItem
-            {
-                Id = o.Id,
-                Name = o.Name,
-                Slug = o.Slug,
-                TIN = o.TIN,
-                Address = o.Address,
-                Phone = o.Phone,
-                Email = o.Email,
-                IsActive = o.IsActive,
-                CreatedAt = o.CreatedAt,
-                StationCount = o.StationCount,
-                UserCount = o.UserCount
-            }).ToList() ?? new()
+            Organizations = filtered,
+            Filter = filter
         };
 
         return View(model);
@@ -53,13 +65,15 @@ public class OrganizationsController : Controller
         var stationsTask = _organizationService.GetStationsAsync(id);
         var ebmTask = _organizationService.GetEbmConfigAsync(id);
         var adminTask = _organizationService.GetAdminAsync(id);
+        var deletedFuelTypesTask = _organizationService.GetDeletedFuelTypesAsync(id);
 
-        await Task.WhenAll(orgTask, stationsTask, ebmTask, adminTask);
+        await Task.WhenAll(orgTask, stationsTask, ebmTask, adminTask, deletedFuelTypesTask);
 
         var orgResult = orgTask.Result;
         var stationsResult = stationsTask.Result;
         var ebmResult = ebmTask.Result;
         var adminResult = adminTask.Result;
+        var deletedFuelTypesResult = deletedFuelTypesTask.Result;
 
         if (!orgResult.Success || orgResult.Data == null)
         {
@@ -81,6 +95,8 @@ public class OrganizationsController : Controller
                 Phone = o.Phone,
                 Email = o.Email,
                 IsActive = o.IsActive,
+                IsDeleted = o.IsDeleted,
+                DeletedAt = o.DeletedAt,
                 CreatedAt = o.CreatedAt,
                 StationCount = o.StationCount,
                 UserCount = o.UserCount
@@ -119,7 +135,18 @@ public class OrganizationsController : Controller
                 IsActive = adminResult.Data.IsActive,
                 LastLoginAt = adminResult.Data.LastLoginAt,
                 CreatedAt = adminResult.Data.CreatedAt
-            } : null
+            } : null,
+            DeletedFuelTypes = deletedFuelTypesResult.Data?.Select(f => new FuelType
+            {
+                Id = f.Id,
+                Name = f.Name,
+                PricePerLiter = f.PricePerLiter,
+                IsActive = f.IsActive,
+                IsDeleted = f.IsDeleted,
+                DeletedAt = f.DeletedAt,
+                EBMSupplyPrice = f.EBMSupplyPrice,
+                CreatedAt = f.CreatedAt
+            }).ToList() ?? new()
         };
 
         return View(model);
@@ -175,6 +202,16 @@ public class OrganizationsController : Controller
     }
 
     [HttpPost]
+    public async Task<IActionResult> Restore(Guid id)
+    {
+        var result = await _organizationService.RestoreAsync(id);
+        TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+            result.Success ? "Organization restored successfully!" : result.Message;
+
+        return RedirectToAction("Index");
+    }
+
+    [HttpPost]
     public async Task<IActionResult> ConfigureEbm(Guid orgId, bool ebmEnabled, string? ebmServerUrl,
         string? ebmBusinessId, string? ebmBranchId, string? ebmCompanyName,
         string? ebmCompanyAddress, string? ebmCompanyPhone, string? ebmCompanyTIN, string? ebmCategoryId)
@@ -195,6 +232,7 @@ public class OrganizationsController : Controller
         var result = await _organizationService.ConfigureEbmAsync(orgId, request);
         TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
             result.Success ? "EBM configuration updated!" : result.Message;
+        TempData["ActiveTab"] = "ebm";
 
         return RedirectToAction("Details", new { id = orgId });
     }
@@ -208,6 +246,18 @@ public class OrganizationsController : Controller
             TempData["SuccessMessage"] = "EBM connection successful!";
         else
             TempData["ErrorMessage"] = "EBM connection failed. Check the server URL and try again.";
+        TempData["ActiveTab"] = "ebm";
+
+        return RedirectToAction("Details", new { id = orgId });
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ToggleStationStatus(Guid orgId, Guid stationId)
+    {
+        var result = await _organizationService.ToggleStationStatusAsync(orgId, stationId);
+        TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+            result.Success ? "Station status updated!" : result.Message;
+        TempData["ActiveTab"] = "stations";
 
         return RedirectToAction("Details", new { id = orgId });
     }
@@ -226,6 +276,18 @@ public class OrganizationsController : Controller
         var result = await _organizationService.CreateStationAsync(orgId, request);
         TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
             result.Success ? "Station added successfully!" : result.Message;
+        TempData["ActiveTab"] = "stations";
+
+        return RedirectToAction("Details", new { id = orgId });
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> RestoreFuelType(Guid orgId, Guid fuelTypeId)
+    {
+        var result = await _organizationService.RestoreFuelTypeAsync(orgId, fuelTypeId);
+        TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+            result.Success ? "Fuel type restored successfully!" : result.Message;
+        TempData["ActiveTab"] = "deleted-fuels";
 
         return RedirectToAction("Details", new { id = orgId });
     }
@@ -245,6 +307,7 @@ public class OrganizationsController : Controller
         var result = await _organizationService.CreateAdminAsync(orgId, request);
         TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
             result.Success ? "Admin user created successfully!" : result.Message;
+        TempData["ActiveTab"] = "users";
 
         return RedirectToAction("Details", new { id = orgId });
     }

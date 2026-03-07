@@ -242,4 +242,5 @@ public class FuelTypeService : IFuelTypeService
         await _unitOfWork.SaveChangesAsync();
         _ = _notificationService.NotifyDataChangedAsync(orgId, NotificationConstants.FuelTypesChanged);
     }
+
 }

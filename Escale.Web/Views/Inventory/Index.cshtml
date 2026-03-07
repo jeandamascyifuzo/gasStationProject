@@ -1,6 +1,8 @@
 @model Escale.Web.Models.InventoryViewModel
 @{
     ViewData["Title"] = "Inventory";
+    var userRole = Context.Session.GetString("UserRole");
+    var isAdmin = userRole == "Admin";
 }
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 page-header">
@@ -16,24 +18,6 @@
 </div>
 
 @await Html.PartialAsync("_ApiError")
-
-<!-- Station Filter -->
-<div class="row mb-4">
-    <div class="col-md-4">
-        <form method="get" asp-action="Index">
-            <div class="input-group">
-                <label class="input-group-text"><i class="fas fa-filter"></i></label>
-                <select class="form-select" name="stationId" onchange="this.form.submit()">
-                    <option value="">All Stations</option>
-                    @foreach (var station in Model.Stations)
-                    {
-                        <option value="@station.Id" selected="@(Model.SelectedStationId == station.Id ? "selected" : null)">@station.Name</option>
-                    }
-                </select>
-            </div>
-        </form>
-    </div>
-</div>
 
 <!-- Stats Cards -->
 <div class="row mb-4">
@@ -101,111 +85,177 @@
     </div>
 </div>
 
-<!-- Current Stock Levels -->
-<div class="card shadow mb-4">
-    <div class="card-header">
-        <h5 class="mb-0"><i class="fas fa-warehouse me-2"></i>Current Stock Levels</h5>
-    </div>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table id="inventoryTable" class="table table-bordered table-hover">
-                <thead>
-                    <tr>
-                        <th>Station</th>
-                        <th>Fuel Type</th>
-                        <th>Current Level</th>
-                        <th>Capacity</th>
-                        <th>Stock %</th>
-                        <th>Reorder Level</th>
-                        <th>Status</th>
-                        <th>Last Refill</th>
-                        <th>Next Delivery</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in Model.InventoryItems)
-                    {
-                        <tr class="@(item.Status == "Critical" ? "table-danger" : item.Status == "Low Stock" ? "table-warning" : "")">
-                            <td>@item.StationName</td>
-                            <td>
-                                <span class="badge @(item.FuelType == "Petrol" ? "bg-success" : item.FuelType == "Diesel" ? "bg-primary" : "bg-warning")">
-                                    @item.FuelType
-                                </span>
-                            </td>
-                            <td><strong>@item.CurrentLevel.ToString("N0")L</strong></td>
-                            <td>@item.Capacity.ToString("N0")L</td>
-                            <td>
-                                <div class="progress" style="height: 25px;">
-                                    <div class="progress-bar @(item.IsLowStock ? "bg-danger" : item.PercentageFull > 70 ? "bg-success" : "bg-warning")"
-                                         style="width: @item.PercentageFull%">
-                                        @item.PercentageFull.ToString("F1")%
-                                    </div>
-                                </div>
-                            </td>
-                            <td>@item.ReorderLevel.ToString("N0")L</td>
-                            <td>
-                                <span class="badge @(item.Status == "Critical" ? "bg-danger" : item.Status == "Low Stock" ? "bg-warning" : "bg-success")">
-                                    @item.Status
-                                </span>
-                            </td>
-                            <td>@(item.LastRefill?.ToString("yyyy-MM-dd") ?? "N/A")</td>
-                            <td>@(item.NextDeliveryDate?.ToString("yyyy-MM-dd") ?? "TBD")</td>
-                            <td>
-                                <button class="btn btn-sm btn-primary" onclick="openReorderModal('@item.Id', '@item.StationName - @item.FuelType', @item.ReorderLevel)" title="Set Reorder Level">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-0" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link active" id="stock-tab" data-bs-toggle="tab" href="#stock" role="tab">
+            <i class="fas fa-warehouse me-1"></i>Current Stock Levels
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" id="refills-tab" data-bs-toggle="tab" href="#refills" role="tab">
+            <i class="fas fa-history me-1"></i>Recent Refills
+        </a>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- Current Stock Levels Tab -->
+    <div class="tab-pane fade show active" id="stock" role="tabpanel">
+        <div class="card shadow mb-4 border-top-0 rounded-top-0">
+            <div class="card-body">
+                <div class="row mb-3 align-items-center">
+                    <div class="col-md-3">
+                        <select id="stockStationFilter" class="form-select form-select-sm">
+                            <option value="">All Stations</option>
+                            @foreach (var station in Model.Stations)
+                            {
+                                <option value="@station.Name">@station.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select id="stockFuelFilter" class="form-select form-select-sm">
+                            <option value="">All Fuel Types</option>
+                            @foreach (var fuel in Model.FuelTypes)
+                            {
+                                <option value="@fuel.Name">@fuel.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <div id="stockExportBtns" class="d-inline-flex gap-1"></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="inventoryTable" class="table table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th>Station</th>
+                                <th>Fuel Type</th>
+                                <th>Current Level</th>
+                                <th>Capacity</th>
+                                <th>Stock %</th>
+                                <th>Reorder Level</th>
+                                <th>Status</th>
+                                <th>Last Refill</th>
+                                <th>Next Delivery</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.InventoryItems)
+                            {
+                                <tr class="@(item.Status == "Critical" ? "table-danger" : item.Status == "Low Stock" ? "table-warning" : "")">
+                                    <td>@item.StationName</td>
+                                    <td>
+                                        <span class="badge @(item.FuelType == "Petrol" ? "bg-success" : item.FuelType == "Diesel" ? "bg-primary" : "bg-warning")">
+                                            @item.FuelType
+                                        </span>
+                                    </td>
+                                    <td><strong>@item.CurrentLevel.ToString("N0")L</strong></td>
+                                    <td>@item.Capacity.ToString("N0")L</td>
+                                    <td>
+                                        <div class="progress" style="height: 25px;">
+                                            <div class="progress-bar @(item.IsLowStock ? "bg-danger" : item.PercentageFull > 70 ? "bg-success" : "bg-warning")"
+                                                 style="width: @item.PercentageFull%">
+                                                @item.PercentageFull.ToString("F1")%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>@item.ReorderLevel.ToString("N0")L</td>
+                                    <td>
+                                        <span class="badge @(item.Status == "Critical" ? "bg-danger" : item.Status == "Low Stock" ? "bg-warning" : "bg-success")">
+                                            @item.Status
+                                        </span>
+                                    </td>
+                                    <td>@(item.LastRefill?.ToString("yyyy-MM-dd") ?? "N/A")</td>
+                                    <td>@(item.NextDeliveryDate?.ToString("yyyy-MM-dd") ?? "TBD")</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" onclick="openReorderModal('@item.Id', '@item.StationName - @item.FuelType', @item.ReorderLevel)" title="Set Reorder Level">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Recent Refills -->
-<div class="card shadow">
-    <div class="card-header">
-        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Refills</h5>
-    </div>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table id="refillsTable" class="table table-bordered table-hover">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Station</th>
-                        <th>Fuel Type</th>
-                        <th>Quantity (L)</th>
-                        <th>Unit Cost</th>
-                        <th>Total Cost</th>
-                        <th>Supplier</th>
-                        <th>Invoice #</th>
-                        <th>Recorded By</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var refill in Model.RecentRefills)
-                    {
-                        <tr>
-                            <td>@refill.RefillDate.ToString("yyyy-MM-dd HH:mm")</td>
-                            <td>@refill.StationName</td>
-                            <td>
-                                <span class="badge @(refill.FuelType == "Petrol" ? "bg-success" : refill.FuelType == "Diesel" ? "bg-primary" : "bg-warning")">
-                                    @refill.FuelType
-                                </span>
-                            </td>
-                            <td>@refill.Quantity.ToString("N0")</td>
-                            <td>@refill.UnitCost.ToString("N0") RWF</td>
-                            <td><strong>@refill.TotalCost.ToString("N0") RWF</strong></td>
-                            <td>@refill.SupplierName</td>
-                            <td>@refill.InvoiceNumber</td>
-                            <td>@refill.RecordedBy</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+    <!-- Recent Refills Tab -->
+    <div class="tab-pane fade" id="refills" role="tabpanel">
+        <div class="card shadow mb-4 border-top-0 rounded-top-0">
+            <div class="card-body">
+                <div class="row mb-3 align-items-center">
+                    <div class="col-md-3">
+                        <select id="refillStationFilter" class="form-select form-select-sm">
+                            <option value="">All Stations</option>
+                            @foreach (var station in Model.Stations)
+                            {
+                                <option value="@station.Name">@station.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select id="refillFuelFilter" class="form-select form-select-sm">
+                            <option value="">All Fuel Types</option>
+                            @foreach (var fuel in Model.FuelTypes)
+                            {
+                                <option value="@fuel.Name">@fuel.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <div id="refillExportBtns" class="d-inline-flex gap-1"></div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="refillsTable" class="table table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Station</th>
+                                <th>Fuel Type</th>
+                                <th>Quantity (L)</th>
+                                @if (isAdmin)
+                                {
+                                    <th>Unit Cost</th>
+                                    <th>Total Cost</th>
+                                }
+                                <th>Supplier</th>
+                                <th>Invoice #</th>
+                                <th>Recorded By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var refill in Model.RecentRefills)
+                            {
+                                <tr>
+                                    <td>@refill.RefillDate.ToString("yyyy-MM-dd HH:mm")</td>
+                                    <td>@refill.StationName</td>
+                                    <td>
+                                        <span class="badge @(refill.FuelType == "Petrol" ? "bg-success" : refill.FuelType == "Diesel" ? "bg-primary" : "bg-warning")">
+                                            @refill.FuelType
+                                        </span>
+                                    </td>
+                                    <td>@refill.Quantity.ToString("N0")</td>
+                                    @if (isAdmin)
+                                    {
+                                        <td>@refill.UnitCost.ToString("N0") RWF</td>
+                                        <td><strong>@refill.TotalCost.ToString("N0") RWF</strong></td>
+                                    }
+                                    <td>@refill.SupplierName</td>
+                                    <td>@refill.InvoiceNumber</td>
+                                    <td>@refill.RecordedBy</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -306,14 +356,51 @@
 @section Scripts {
 <script>
     $(document).ready(function() {
-        $('#inventoryTable').DataTable({
+        var stockTable = $('#inventoryTable').DataTable({
             pageLength: 10,
-            order: [[6, 'desc']]
+            order: [[6, 'desc']],
+            searching: true,
+            dom: 'lrtip',
+            buttons: [
+                { extend: 'excel', text: '<i class="fas fa-file-excel me-1"></i>Excel', className: 'btn btn-sm btn-success' },
+                { extend: 'csv', text: '<i class="fas fa-file-csv me-1"></i>CSV', className: 'btn btn-sm btn-info' },
+                { extend: 'pdf', text: '<i class="fas fa-file-pdf me-1"></i>PDF', className: 'btn btn-sm btn-danger' }
+            ]
+        });
+        stockTable.buttons().container().appendTo('#stockExportBtns');
+
+        var refillTable = $('#refillsTable').DataTable({
+            pageLength: 10,
+            order: [[0, 'desc']],
+            searching: true,
+            dom: 'lrtip',
+            buttons: [
+                { extend: 'excel', text: '<i class="fas fa-file-excel me-1"></i>Excel', className: 'btn btn-sm btn-success' },
+                { extend: 'csv', text: '<i class="fas fa-file-csv me-1"></i>CSV', className: 'btn btn-sm btn-info' },
+                { extend: 'pdf', text: '<i class="fas fa-file-pdf me-1"></i>PDF', className: 'btn btn-sm btn-danger' }
+            ]
+        });
+        refillTable.buttons().container().appendTo('#refillExportBtns');
+
+        // Stock filters
+        $('#stockStationFilter').on('change', function() {
+            stockTable.column(0).search(this.value).draw();
+        });
+        $('#stockFuelFilter').on('change', function() {
+            stockTable.column(1).search(this.value).draw();
         });
 
-        $('#refillsTable').DataTable({
-            pageLength: 10,
-            order: [[0, 'desc']]
+        // Refill filters
+        $('#refillStationFilter').on('change', function() {
+            refillTable.column(1).search(this.value).draw();
+        });
+        $('#refillFuelFilter').on('change', function() {
+            refillTable.column(2).search(this.value).draw();
+        });
+
+        // Recalculate DataTable columns when switching tabs
+        $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function(e) {
+            $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
         });
 
         $('#refillDate').val(new Date().toISOString().slice(0, 16));

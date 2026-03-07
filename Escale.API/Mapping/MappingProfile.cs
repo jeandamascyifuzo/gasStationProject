@@ -79,6 +79,10 @@ public class MappingProfile : Profile
             .ForMember(d => d.EBMReceiptUrl, o => o.MapFrom(s => s.EBMCode));
         CreateMap<Transaction, RecentTransactionDto>()
             .ForMember(d => d.FuelType, o => o.MapFrom(s => s.FuelType.Name))
+            .ForMember(d => d.StationName, o => o.MapFrom(s => s.Station.Name))
+            .ForMember(d => d.CashierName, o => o.MapFrom(s => s.Cashier.FullName))
+            .ForMember(d => d.PaymentMethod, o => o.MapFrom(s => s.PaymentMethod.ToString()))
+            .ForMember(d => d.CustomerName, o => o.MapFrom(s => s.Customer != null ? s.Customer.Name : s.CustomerName))
             .ForMember(d => d.EBMReceiptUrl, o => o.MapFrom(s => s.EBMCode));
 
         // InventoryItem

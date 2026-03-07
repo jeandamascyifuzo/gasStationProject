@@ -44,6 +44,13 @@ namespace Escale.Web.Controllers
                 return View(model);
             }
 
+            // Block cashier from admin portal
+            if (result.User?.Role == "Cashier")
+            {
+                model.ErrorMessage = "You don't have permission to access the admin portal. Please use the mobile app or contact your administrator.";
+                return View(model);
+            }
+
             // Store tokens in HttpOnly secure cookies
             var cookieOptions = new CookieOptions
             {

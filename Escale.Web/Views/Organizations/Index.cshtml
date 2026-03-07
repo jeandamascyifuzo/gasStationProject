@@ -23,14 +23,14 @@
         <div class="card shadow-sm">
             <div class="card-body text-center">
                 <h3 class="text-primary">@Model.Organizations.Count</h3>
-                <small class="text-muted">Total Organizations</small>
+                <small class="text-muted">Showing</small>
             </div>
         </div>
     </div>
     <div class="col-md-4">
         <div class="card shadow-sm">
             <div class="card-body text-center">
-                <h3 class="text-success">@Model.Organizations.Count(o => o.IsActive)</h3>
+                <h3 class="text-success">@Model.Organizations.Count(o => o.IsActive && !o.IsDeleted)</h3>
                 <small class="text-muted">Active</small>
             </div>
         </div>
@@ -42,6 +42,24 @@
                 <small class="text-muted">Total Stations</small>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Filter Buttons -->
+<div class="mb-3">
+    <div class="btn-group" role="group">
+        <a asp-action="Index" asp-route-filter="active"
+           class="btn @(Model.Filter == "active" ? "btn-primary" : "btn-outline-primary")">
+            <i class="fas fa-check-circle me-1"></i>Active
+        </a>
+        <a asp-action="Index" asp-route-filter="deleted"
+           class="btn @(Model.Filter == "deleted" ? "btn-danger" : "btn-outline-danger")">
+            <i class="fas fa-trash me-1"></i>Deleted
+        </a>
+        <a asp-action="Index" asp-route-filter="all"
+           class="btn @(Model.Filter == "all" ? "btn-secondary" : "btn-outline-secondary")">
+            <i class="fas fa-list me-1"></i>All
+        </a>
     </div>
 </div>
 
@@ -63,7 +81,7 @@
                 <tbody>
                     @foreach (var org in Model.Organizations)
                     {
-                        <tr>
+                        <tr class="@(org.IsDeleted ? "table-secondary" : "")">
                             <td>
                                 <strong>@org.Name</strong>
                                 <br /><small class="text-muted">@org.Slug</small>
@@ -73,20 +91,39 @@
                             <td><span class="badge bg-info">@org.StationCount</span></td>
                             <td><span class="badge bg-secondary">@org.UserCount</span></td>
                             <td>
-                                <span class="badge @(org.IsActive ? "bg-success" : "bg-danger")">
-                                    @org.Status
-                                </span>
+                                @if (org.IsDeleted)
+                                {
+                                    <span class="badge bg-dark">
+                                        <i class="fas fa-trash-alt me-1"></i>Deleted
+                                    </span>
+                                    <br /><small class="text-muted">@org.DeletedAt?.ToString("yyyy-MM-dd HH:mm")</small>
+                                }
+                                else
+                                {
+                                    <span class="badge @(org.IsActive ? "bg-success" : "bg-danger")">
+                                        @org.Status
+                                    </span>
+                                }
                             </td>
                             <td>
-                                <a asp-action="Details" asp-route-id="@org.Id" class="btn btn-sm btn-info" title="Details">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <button class="btn btn-sm btn-primary" onclick="editOrg('@org.Id', '@org.Name', '@org.TIN', '@org.Address', '@org.Phone', '@org.Email', @org.IsActive.ToString().ToLower())" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger" onclick="deleteOrg('@org.Id', '@org.Name')" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                @if (org.IsDeleted)
+                                {
+                                    <button class="btn btn-sm btn-success" onclick="restoreOrg('@org.Id', '@org.Name')" title="Restore">
+                                        <i class="fas fa-undo"></i> Restore
+                                    </button>
+                                }
+                                else
+                                {
+                                    <a asp-action="Details" asp-route-id="@org.Id" class="btn btn-sm btn-info" title="Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-primary" onclick="editOrg('@org.Id', '@org.Name', '@org.TIN', '@org.Address', '@org.Phone', '@org.Email', @org.IsActive.ToString().ToLower())" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteOrg('@org.Id', '@org.Name')" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                }
                             </td>
                         </tr>
                     }
@@ -171,6 +208,28 @@
     </div>
 </div>
 
+<!-- Restore Organization Confirm Modal -->
+<div class="modal fade" id="restoreOrgModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-bold">Restore Organization</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <i class="fas fa-undo fa-3x mb-3 text-success"></i>
+                <p id="restoreOrgMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-sm btn-success" id="restoreOrgBtn" onclick="submitRestoreOrg()">
+                    <i class="fas fa-undo me-1"></i>Restore
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
     $(document).ready(function () {
@@ -206,7 +265,7 @@
 
     function deleteOrg(id, name) {
         pendingDeleteOrgId = id;
-        $('#deleteOrgMessage').html('Are you sure you want to delete <strong>' + name + '</strong>?<br><small class="text-muted">This will soft-delete all associated data.</small>');
+        $('#deleteOrgMessage').html('Are you sure you want to delete <strong>' + name + '</strong>?<br><small class="text-muted">The organization will be deactivated and can be restored later.</small>');
         new bootstrap.Modal(document.getElementById('deleteOrgModal')).show();
     }
 
@@ -220,6 +279,27 @@
             stopLoading(btn);
             bootstrap.Modal.getInstance(document.getElementById('deleteOrgModal')).hide();
             alert('Failed to delete organization.');
+        });
+    }
+
+    var pendingRestoreOrgId = null;
+
+    function restoreOrg(id, name) {
+        pendingRestoreOrgId = id;
+        $('#restoreOrgMessage').html('Are you sure you want to restore <strong>' + name + '</strong>?<br><small class="text-muted">The organization will be reactivated.</small>');
+        new bootstrap.Modal(document.getElementById('restoreOrgModal')).show();
+    }
+
+    function submitRestoreOrg() {
+        if (!pendingRestoreOrgId) return;
+        var btn = document.getElementById('restoreOrgBtn');
+        startLoading(btn, 'Restoring...');
+        $.post('@Url.Action("Restore", "Organizations")', { id: pendingRestoreOrgId }, function () {
+            location.reload();
+        }).fail(function() {
+            stopLoading(btn);
+            bootstrap.Modal.getInstance(document.getElementById('restoreOrgModal')).hide();
+            alert('Failed to restore organization.');
         });
     }
 </script>

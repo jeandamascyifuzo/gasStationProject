@@ -54,7 +54,7 @@
                     <label asp-for="Username" class="form-label">Username</label>
                     <div class="login-input-group">
                         <i class="fas fa-user"></i>
-                        <input asp-for="Username" class="form-control" placeholder="Enter your username" />
+                        <input asp-for="Username" class="form-control" placeholder="Enter your username" required />
                     </div>
                     <span asp-validation-for="Username" class="text-danger small"></span>
                 </div>
@@ -63,17 +63,16 @@
                     <label asp-for="Password" class="form-label">Password</label>
                     <div class="login-input-group">
                         <i class="fas fa-lock"></i>
-                        <input asp-for="Password" class="form-control" placeholder="Enter your password" />
+                        <input asp-for="Password" class="form-control" placeholder="Enter your password" required />
                     </div>
                     <span asp-validation-for="Password" class="text-danger small"></span>
                 </div>
 
-                <div class="mb-4 d-flex justify-content-between align-items-center">
+                <div class="mb-4">
                     <div class="form-check">
                         <input asp-for="RememberMe" class="form-check-input" />
                         <label asp-for="RememberMe" class="form-check-label">Remember me</label>
                     </div>
-                    <a href="#" class="login-forgot-link">Forgot Password?</a>
                 </div>
 
                 <div class="d-grid mb-4">
@@ -101,7 +100,11 @@
     <partial name="_ValidationScriptsPartial" />
     <script>
         document.querySelector('form').addEventListener('submit', function (e) {
-            if (!this.checkValidity()) return;
+            var $form = $(this);
+            if ($form.valid && !$form.valid()) {
+                e.preventDefault();
+                return;
+            }
             var btn = this.querySelector('button[type="submit"]');
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Signing in...';

@@ -59,11 +59,25 @@ public class SuperAdminController : ControllerBase
         return Ok(ApiResponse.SuccessResponse("Organization deleted"));
     }
 
+    [HttpPost("organizations/{id}/restore")]
+    public async Task<ActionResult<ApiResponse>> RestoreOrganization(Guid id)
+    {
+        await _organizationService.RestoreOrganizationAsync(id);
+        return Ok(ApiResponse.SuccessResponse("Organization restored"));
+    }
+
     [HttpGet("organizations/{orgId}/stations")]
     public async Task<ActionResult<ApiResponse<List<StationResponseDto>>>> GetOrganizationStations(Guid orgId)
     {
         var result = await _organizationService.GetOrganizationStationsAsync(orgId);
         return Ok(ApiResponse<List<StationResponseDto>>.SuccessResponse(result));
+    }
+
+    [HttpPost("organizations/{orgId}/stations/{stationId}/toggle-status")]
+    public async Task<ActionResult<ApiResponse>> ToggleStationStatus(Guid orgId, Guid stationId)
+    {
+        await _organizationService.ToggleOrganizationStationStatusAsync(orgId, stationId);
+        return Ok(ApiResponse.SuccessResponse("Station status updated"));
     }
 
     [HttpPost("organizations/{orgId}/stations")]
@@ -121,6 +135,20 @@ public class SuperAdminController : ControllerBase
     {
         await _organizationService.DeleteOrganizationFuelTypeAsync(orgId, fuelTypeId);
         return Ok(ApiResponse.SuccessResponse("Fuel type deleted"));
+    }
+
+    [HttpGet("organizations/{orgId}/fueltypes/deleted")]
+    public async Task<ActionResult<ApiResponse<List<FuelTypeResponseDto>>>> GetDeletedOrganizationFuelTypes(Guid orgId)
+    {
+        var result = await _organizationService.GetDeletedOrganizationFuelTypesAsync(orgId);
+        return Ok(ApiResponse<List<FuelTypeResponseDto>>.SuccessResponse(result));
+    }
+
+    [HttpPost("organizations/{orgId}/fueltypes/{fuelTypeId}/restore")]
+    public async Task<ActionResult<ApiResponse>> RestoreOrganizationFuelType(Guid orgId, Guid fuelTypeId)
+    {
+        await _organizationService.RestoreOrganizationFuelTypeAsync(orgId, fuelTypeId);
+        return Ok(ApiResponse.SuccessResponse("Fuel type restored"));
     }
 
     [HttpGet("organizations/{orgId}/admin")]

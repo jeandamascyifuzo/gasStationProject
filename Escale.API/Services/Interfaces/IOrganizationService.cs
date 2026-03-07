@@ -13,14 +13,18 @@ public interface IOrganizationService
     Task<OrganizationResponseDto> CreateOrganizationAsync(CreateOrganizationRequestDto request);
     Task<OrganizationResponseDto> UpdateOrganizationAsync(Guid id, UpdateOrganizationRequestDto request);
     Task DeleteOrganizationAsync(Guid id);
+    Task RestoreOrganizationAsync(Guid id);
     Task<List<StationResponseDto>> GetOrganizationStationsAsync(Guid orgId);
     Task<StationResponseDto> CreateOrganizationStationAsync(Guid orgId, CreateStationRequestDto request);
+    Task ToggleOrganizationStationStatusAsync(Guid orgId, Guid stationId);
     Task ConfigureEbmAsync(Guid orgId, EbmConfigRequestDto request);
     Task<EbmConfigResponseDto> GetEbmConfigAsync(Guid orgId);
     Task<List<FuelTypeResponseDto>> GetOrganizationFuelTypesAsync(Guid orgId);
     Task<FuelTypeResponseDto> CreateOrganizationFuelTypeAsync(Guid orgId, CreateFuelTypeRequestDto request);
     Task<FuelTypeResponseDto> UpdateOrganizationFuelTypeAsync(Guid orgId, Guid fuelTypeId, UpdateFuelTypeRequestDto request);
     Task DeleteOrganizationFuelTypeAsync(Guid orgId, Guid fuelTypeId);
+    Task<List<FuelTypeResponseDto>> GetDeletedOrganizationFuelTypesAsync(Guid orgId);
+    Task RestoreOrganizationFuelTypeAsync(Guid orgId, Guid fuelTypeId);
     Task<UserResponseDto?> GetOrganizationAdminAsync(Guid orgId);
     Task<UserResponseDto> CreateOrganizationAdminAsync(Guid orgId, CreateOrgAdminRequestDto request);
 }

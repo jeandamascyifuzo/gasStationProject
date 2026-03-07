@@ -19,9 +19,10 @@ public class DashboardController : ControllerBase
     }
 
     [HttpGet("summary")]
-    public async Task<ActionResult<ApiResponse<DashboardSummaryDto>>> GetSummary([FromQuery] Guid? stationId, [FromQuery] DateTime? date)
+    public async Task<ActionResult<ApiResponse<DashboardSummaryDto>>> GetSummary(
+        [FromQuery] Guid? stationId, [FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
     {
-        var result = await _dashboardService.GetSummaryAsync(stationId, date);
+        var result = await _dashboardService.GetSummaryAsync(stationId, startDate, endDate);
         return Ok(ApiResponse<DashboardSummaryDto>.SuccessResponse(result));
     }
 

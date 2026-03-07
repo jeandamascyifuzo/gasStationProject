@@ -9,8 +9,10 @@ public interface IApiOrganizationService
     Task<ApiResponse<OrganizationResponseDto>> CreateAsync(CreateOrganizationRequestDto request);
     Task<ApiResponse<OrganizationResponseDto>> UpdateAsync(Guid id, UpdateOrganizationRequestDto request);
     Task<ApiResponse> DeleteAsync(Guid id);
+    Task<ApiResponse> RestoreAsync(Guid id);
     Task<ApiResponse<List<StationResponseDto>>> GetStationsAsync(Guid orgId);
     Task<ApiResponse<StationResponseDto>> CreateStationAsync(Guid orgId, CreateStationRequestDto request);
+    Task<ApiResponse> ToggleStationStatusAsync(Guid orgId, Guid stationId);
     Task<ApiResponse> ConfigureEbmAsync(Guid orgId, EbmConfigRequestDto request);
     Task<ApiResponse<EbmConfigResponseDto>> GetEbmConfigAsync(Guid orgId);
     Task<ApiResponse<bool>> TestEbmConnectionAsync(Guid orgId);
@@ -18,6 +20,8 @@ public interface IApiOrganizationService
     Task<ApiResponse<FuelTypeResponseDto>> CreateFuelTypeAsync(Guid orgId, CreateFuelTypeRequestDto request);
     Task<ApiResponse<FuelTypeResponseDto>> UpdateFuelTypeAsync(Guid orgId, Guid fuelTypeId, UpdateFuelTypeRequestDto request);
     Task<ApiResponse> DeleteFuelTypeAsync(Guid orgId, Guid fuelTypeId);
+    Task<ApiResponse<List<FuelTypeResponseDto>>> GetDeletedFuelTypesAsync(Guid orgId);
+    Task<ApiResponse> RestoreFuelTypeAsync(Guid orgId, Guid fuelTypeId);
     Task<ApiResponse<UserResponseDto>> GetAdminAsync(Guid orgId);
     Task<ApiResponse<UserResponseDto>> CreateAdminAsync(Guid orgId, CreateOrgAdminRequestDto request);
 }

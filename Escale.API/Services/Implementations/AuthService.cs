@@ -37,11 +37,22 @@ public class AuthService : IAuthService
         if (!user.IsActive)
             return new LoginResponseDto { Success = false, Message = "Account is disabled" };
 
+        // Check if organization is active (skip for SuperAdmin)
+        if (user.Role != UserRole.SuperAdmin)
+        {
+            var org = await _unitOfWork.Organizations.GetByIdAsync(user.OrganizationId);
+            if (org == null || !org.IsActive)
+                return new LoginResponseDto { Success = false, Message = "Unable to sign in. Please contact your administrator for assistance." };
+        }
+
         // Only load stations after password is verified (avoid unnecessary joins on bad passwords)
         var stations = await _unitOfWork.Context.UserStations
             .Include(us => us.Station)
-            .Where(us => us.UserId == user.Id)
+            .Where(us => us.UserId == user.Id && us.Station.IsActive)
             .ToListAsync();
+
+        if (stations.Count == 0 && user.Role == UserRole.Cashier)
+            return new LoginResponseDto { Success = false, Message = "No active station is assigned to your account. Please contact your administrator for assistance." };
 
         user.UserStations = stations;
 
@@ -183,6 +194,14 @@ public class AuthService : IAuthService
 
         if (existingToken == null)
             return new LoginResponseDto { Success = false, Message = "Invalid or expired refresh token" };
+
+        // Check if organization is still active
+        if (existingToken.User.Role != UserRole.SuperAdmin)
+        {
+            var org = await _unitOfWork.Organizations.GetByIdAsync(existingToken.User.OrganizationId);
+            if (org == null || !org.IsActive)
+                return new LoginResponseDto { Success = false, Message = "Unable to sign in. Please contact your administrator for assistance." };
+        }
 
         // Revoke old token
         existingToken.IsRevoked = true;

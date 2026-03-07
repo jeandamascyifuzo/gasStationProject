@@ -87,14 +87,15 @@
             <table id="transactionsTable" class="table table-bordered table-hover">
                 <thead>
                     <tr>
+                        <th>Date</th>
                         <th>Station</th>
+                        <th>Cashier</th>
+                        <th>Customer</th>
                         <th>Fuel</th>
                         <th>Liters</th>
                         <th>Price/L</th>
                         <th>Total (RWF)</th>
                         <th>Payment</th>
-                        <th>Cashier</th>
-                        <th>Date</th>
                         <th>EBM</th>
                         <th style="width: 50px;">Receipt</th>
                     </tr>
@@ -103,16 +104,32 @@
                     @foreach (var txn in Model.Transactions)
                     {
                         <tr>
+                            <td>@txn.TransactionDate.ToString("dd MMM HH:mm")</td>
                             <td>@txn.StationName</td>
+                            <td>@txn.CashierName</td>
+                            <td>@(txn.CustomerName ?? "—")</td>
                             <td>@txn.FuelType</td>
                             <td>@txn.Liters.ToString("N2")</td>
                             <td>@txn.PricePerLiter.ToString("N0")</td>
                             <td><strong>@txn.Total.ToString("N0")</strong></td>
                             <td>
-                                <span class="badge bg-info">@txn.PaymentMethod</span>
+                                @if (txn.PaymentMethod == "Credit")
+                                {
+                                    <span class="badge bg-danger">Credit</span>
+                                }
+                                else if (txn.PaymentMethod == "MobileMoney")
+                                {
+                                    <span class="badge bg-success">MoMo</span>
+                                }
+                                else if (txn.PaymentMethod == "Card")
+                                {
+                                    <span class="badge bg-primary">Card</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Cash</span>
+                                }
                             </td>
-                            <td>@txn.CashierName</td>
-                            <td>@txn.TransactionDate.ToString("yyyy-MM-dd HH:mm")</td>
                             <td>
                                 @if (txn.EBMSent)
                                 {
@@ -219,13 +236,18 @@
 <script>
     $(document).ready(function() {
         $('#transactionsTable').DataTable({
-            pageLength: 50,
-            paging: false,
-            info: false,
-            order: [[7, 'desc']],
+            pageLength: 25,
+            paging: true,
+            searching: true,
+            info: true,
+            order: [[0, 'desc']],
             columnDefs: [
-                { orderable: false, targets: [8, 9] }
-            ]
+                { orderable: false, targets: [9, 10] }
+            ],
+            language: {
+                search: '<i class="fas fa-search me-1"></i>',
+                searchPlaceholder: 'Search all columns...'
+            }
         });
 
         $(document).on('click', '.ebm-preview-btn', function(e) {

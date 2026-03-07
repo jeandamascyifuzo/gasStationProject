@@ -5,6 +5,8 @@ public class DashboardSummaryDto
     public decimal TodaysSales { get; set; }
     public int TransactionCount { get; set; }
     public decimal AverageSale { get; set; }
+    public decimal CreditSales { get; set; }
+    public int CreditTransactionCount { get; set; }
     public List<StockAlertDto> LowStockAlerts { get; set; } = new();
     public List<RecentTransactionDto> RecentTransactions { get; set; } = new();
 }
@@ -22,8 +24,12 @@ public class RecentTransactionDto
     public Guid Id { get; set; }
     public string ReceiptNumber { get; set; } = string.Empty;
     public DateTime TransactionDate { get; set; }
+    public string StationName { get; set; } = string.Empty;
+    public string CashierName { get; set; } = string.Empty;
+    public string? CustomerName { get; set; }
     public string FuelType { get; set; } = string.Empty;
     public decimal Liters { get; set; }
+    public string PaymentMethod { get; set; } = string.Empty;
     public decimal Total { get; set; }
     public bool EBMSent { get; set; }
     public string? EBMReceiptUrl { get; set; }
@@ -36,5 +42,7 @@ public class StationPerformanceDto
     public decimal TotalSales { get; set; }
     public int TransactionCount { get; set; }
     public decimal TotalLiters { get; set; }
+    public decimal CashSales { get; set; }
+    public decimal CreditSales { get; set; }
     public int Rank { get; set; }
 }
