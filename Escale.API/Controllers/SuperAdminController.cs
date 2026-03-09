@@ -1,3 +1,4 @@
+using Escale.API.DTOs.AuditLogs;
 using Escale.API.DTOs.Common;
 using Escale.API.DTOs.FuelTypes;
 using Escale.API.DTOs.Organizations;
@@ -17,11 +18,13 @@ public class SuperAdminController : ControllerBase
 {
     private readonly IOrganizationService _organizationService;
     private readonly IEBMService _ebmService;
+    private readonly IAuditLogService _auditLogService;
 
-    public SuperAdminController(IOrganizationService organizationService, IEBMService ebmService)
+    public SuperAdminController(IOrganizationService organizationService, IEBMService ebmService, IAuditLogService auditLogService)
     {
         _organizationService = organizationService;
         _ebmService = ebmService;
+        _auditLogService = auditLogService;
     }
 
     [HttpGet("organizations")]
@@ -163,5 +166,32 @@ public class SuperAdminController : ControllerBase
     {
         var result = await _organizationService.CreateOrganizationAdminAsync(orgId, request);
         return Ok(ApiResponse<UserResponseDto>.SuccessResponse(result, "Admin user created"));
+    }
+
+    [HttpPost("organizations/{orgId}/logo")]
+    public async Task<ActionResult<ApiResponse<string>>> UploadLogo(Guid orgId, IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(ApiResponse<string>.ErrorResponse("No file uploaded"));
+
+        if (file.Length > 2 * 1024 * 1024)
+            return BadRequest(ApiResponse<string>.ErrorResponse("File size must be less than 2MB"));
+
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(ext))
+            return BadRequest(ApiResponse<string>.ErrorResponse("Only image files (jpg, png, gif, webp) are allowed"));
+
+        using var stream = file.OpenReadStream();
+        var logoUrl = await _organizationService.UploadLogoAsync(orgId, stream, file.FileName);
+        return Ok(ApiResponse<string>.SuccessResponse(logoUrl, "Logo uploaded successfully"));
+    }
+
+    [HttpGet("organizations/{orgId}/audit-logs")]
+    public async Task<ActionResult<ApiResponse<PagedAuditLogResponseDto>>> GetAuditLogs(
+        Guid orgId, [FromQuery] AuditLogQueryDto query)
+    {
+        var result = await _auditLogService.GetAuditLogsAsync(orgId, query);
+        return Ok(ApiResponse<PagedAuditLogResponseDto>.SuccessResponse(result));
     }
 }

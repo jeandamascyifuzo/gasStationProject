@@ -16,8 +16,14 @@ public class RequireAuthAttribute : ActionFilterAttribute
         }
 
         var token = context.HttpContext.Request.Cookies[TokenHelper.AccessTokenCookie];
-        if (string.IsNullOrEmpty(token))
+        var hasSession = !string.IsNullOrEmpty(context.HttpContext.Session.GetString(TokenHelper.SessionUserId));
+
+        if (string.IsNullOrEmpty(token) || !hasSession)
         {
+            // Clear everything — no partial state
+            context.HttpContext.Response.Cookies.Delete(TokenHelper.AccessTokenCookie);
+            context.HttpContext.Response.Cookies.Delete(TokenHelper.RefreshTokenCookie);
+            context.HttpContext.Session.Clear();
             context.Result = new RedirectToActionResult("Login", "Account", null);
             return;
         }
@@ -41,6 +47,10 @@ public class RequireAuthAttribute : ActionFilterAttribute
 
         if (tokenDeleted || string.IsNullOrEmpty(token))
         {
+            // Clean clear — remove all state
+            context.HttpContext.Response.Cookies.Delete(TokenHelper.AccessTokenCookie);
+            context.HttpContext.Response.Cookies.Delete(TokenHelper.RefreshTokenCookie);
+            context.HttpContext.Session.Clear();
             context.Result = new RedirectToActionResult("Login", "Account", null);
             return;
         }

@@ -17,14 +17,17 @@ public class AuthService : IAuthService
     private readonly IMapper _mapper;
     private readonly IConfiguration _configuration;
     private readonly ILogger<AuthService> _logger;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public AuthService(IUnitOfWork unitOfWork, ITokenService tokenService, IMapper mapper, IConfiguration configuration, ILogger<AuthService> logger)
+    public AuthService(IUnitOfWork unitOfWork, ITokenService tokenService, IMapper mapper,
+        IConfiguration configuration, ILogger<AuthService> logger, IHttpContextAccessor httpContextAccessor)
     {
         _unitOfWork = unitOfWork;
         _tokenService = tokenService;
         _mapper = mapper;
         _configuration = configuration;
         _logger = logger;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<LoginResponseDto> LoginAsync(LoginRequestDto request)
@@ -47,15 +50,22 @@ public class AuthService : IAuthService
         _logger.LogInformation("[Login] DB query: {DbTime}ms, BCrypt verify: {BcryptTime}ms", dbTime, bcryptTime);
 
         if (!bcryptResult)
+        {
+            await LogFailedLoginAsync(user, "Invalid password");
             return new LoginResponseDto { Success = false, Message = "Invalid username or password" };
+        }
 
         if (!user.IsActive)
+        {
+            await LogFailedLoginAsync(user, "Account disabled");
             return new LoginResponseDto { Success = false, Message = "Account is disabled" };
+        }
 
         // Check if organization is active (skip for SuperAdmin)
+        Organization? org = null;
         if (user.Role != UserRole.SuperAdmin)
         {
-            var org = await _unitOfWork.Organizations.GetByIdAsync(user.OrganizationId);
+            org = await _unitOfWork.Organizations.GetByIdAsync(user.OrganizationId);
             if (org == null || !org.IsActive)
                 return new LoginResponseDto { Success = false, Message = "Unable to sign in. Please contact your administrator for assistance." };
         }
@@ -84,13 +94,41 @@ public class AuthService : IAuthService
         _logger.LogInformation("[Login] Total: {TotalMs}ms (DB: {DbMs}ms, BCrypt: {BcryptMs}ms, rest: {RestMs}ms)",
             sw.ElapsedMilliseconds, dbTime, bcryptTime, sw.ElapsedMilliseconds - dbTime - bcryptTime);
 
+        // Log login to audit trail
+        var ipAddress = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString();
+        _unitOfWork.Context.AuditLogs.Add(new AuditLog
+        {
+            OrganizationId = user.Role != UserRole.SuperAdmin ? user.OrganizationId : null,
+            UserId = user.Id,
+            UserName = user.FullName,
+            Action = "Login",
+            EntityType = "User",
+            EntityId = user.Id.ToString(),
+            Details = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                Username = user.Username,
+                Role = user.Role.ToString(),
+                StationCount = user.UserStations.Count
+            }),
+            IpAddress = ipAddress,
+            Timestamp = DateTime.UtcNow
+        });
+        await _unitOfWork.SaveChangesAsync();
+
+        var userInfo = _mapper.Map<UserInfoDto>(user);
+        if (org != null)
+        {
+            userInfo.OrganizationName = org.Name;
+            userInfo.LogoUrl = org.LogoUrl;
+        }
+
         return new LoginResponseDto
         {
             Success = true,
             Token = accessToken,
             RefreshToken = refreshToken,
             Message = "Login successful",
-            User = _mapper.Map<UserInfoDto>(user)
+            User = userInfo
         };
     }
 
@@ -311,5 +349,27 @@ public class AuthService : IAuthService
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
         _unitOfWork.Users.Update(user);
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    private async Task LogFailedLoginAsync(User user, string reason)
+    {
+        try
+        {
+            var ip = _httpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString();
+            _unitOfWork.Context.AuditLogs.Add(new AuditLog
+            {
+                OrganizationId = user.OrganizationId != Guid.Empty ? user.OrganizationId : null,
+                UserId = user.Id,
+                UserName = user.FullName,
+                Action = "LoginFailed",
+                EntityType = "User",
+                EntityId = user.Id.ToString(),
+                Details = System.Text.Json.JsonSerializer.Serialize(new { Username = user.Username, Reason = reason }),
+                IpAddress = ip,
+                Timestamp = DateTime.UtcNow
+            });
+            await _unitOfWork.SaveChangesAsync();
+        }
+        catch { /* Don't fail login flow for audit issues */ }
     }
 }

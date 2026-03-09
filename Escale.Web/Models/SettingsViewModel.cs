@@ -31,6 +31,9 @@ namespace Escale.Web.Models
         public string? EBMCompanyPhone { get; set; }
         public string? EBMCompanyTIN { get; set; }
 
+        // Company Logo
+        public string? LogoUrl { get; set; }
+
         // Fuel prices from FuelTypes API
         public List<FuelType> FuelTypes { get; set; } = new();
     }

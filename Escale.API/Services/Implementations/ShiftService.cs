@@ -13,12 +13,14 @@ public class ShiftService : IShiftService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
+    private readonly IAuditLogger _audit;
 
-    public ShiftService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper)
+    public ShiftService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper, IAuditLogger audit)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _mapper = mapper;
+        _audit = audit;
     }
 
     public async Task<ShiftResponseDto?> GetCurrentShiftAsync(Guid userId, Guid stationId)
@@ -61,6 +63,11 @@ public class ShiftService : IShiftService
             await _unitOfWork.Shifts.AddAsync(shift);
             await _unitOfWork.SaveChangesAsync();
 
+            await _audit.LogAsync("ShiftOpen", "Shift", shift.Id.ToString(), new
+            {
+                UserId = request.UserId, StationId = request.StationId, StartTime = shift.StartTime
+            });
+
             return new ClockResponseDto
             {
                 Success = true,
@@ -85,6 +92,15 @@ public class ShiftService : IShiftService
             var dto = _mapper.Map<ShiftResponseDto>(shift);
             dto.TransactionCount = shift.Transactions.Count;
             dto.TotalSales = shift.Transactions.Sum(t => t.Total);
+
+            await _audit.LogAsync("ShiftClose", "Shift", shift.Id.ToString(), new
+            {
+                UserId = request.UserId, StationId = request.StationId,
+                StartTime = shift.StartTime, EndTime = shift.EndTime,
+                TransactionCount = dto.TransactionCount, TotalSales = dto.TotalSales,
+                CashSales = shift.Transactions.Where(t => t.PaymentMethod == PaymentMethod.Cash).Sum(t => t.Total),
+                CreditSales = shift.Transactions.Where(t => t.PaymentMethod == PaymentMethod.Credit).Sum(t => t.Total)
+            });
 
             return new ClockResponseDto
             {

@@ -88,6 +88,8 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IEBMService, EBMService>();
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IAuditLogService, AuditLogService>();
+        services.AddScoped<IAuditLogger, AuditLogger>();
 
         return services;
     }

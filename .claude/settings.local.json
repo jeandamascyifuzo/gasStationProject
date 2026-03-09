@@ -76,7 +76,12 @@
       "Bash(xargs basename:*)",
       "Bash(dotnet tool:*)",
       "Bash(grep:*)",
-      "Bash(echo exit:$?:*)"
+      "Bash(echo exit:$?:*)",
+      "Bash(~/.dotnet/tools/dotnet-ef migrations:*)",
+      "Bash(~/.dotnet/tools/dotnet-ef database:*)",
+      "Bash(sqlcmd:*)",
+      "Bash(echo Token length: ${#TOKEN}:*)",
+      "Bash(tasklist:*)"
     ]
   }
 }

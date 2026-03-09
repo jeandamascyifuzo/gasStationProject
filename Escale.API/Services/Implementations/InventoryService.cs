@@ -16,9 +16,10 @@ public class InventoryService : IInventoryService
     private readonly IEBMService _ebmService;
     private readonly INotificationService _notificationService;
     private readonly ILogger<InventoryService> _logger;
+    private readonly IAuditLogger _audit;
 
     public InventoryService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper,
-        IEBMService ebmService, INotificationService notificationService, ILogger<InventoryService> logger)
+        IEBMService ebmService, INotificationService notificationService, ILogger<InventoryService> logger, IAuditLogger audit)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
@@ -26,6 +27,7 @@ public class InventoryService : IInventoryService
         _ebmService = ebmService;
         _notificationService = notificationService;
         _logger = logger;
+        _audit = audit;
     }
 
     public async Task<List<InventoryItemResponseDto>> GetInventoryAsync(Guid? stationId = null)
@@ -138,6 +140,15 @@ public class InventoryService : IInventoryService
                 .Include(r => r.RecordedBy)
                 .FirstAsync(r => r.Id == refill.Id);
 
+            await _audit.LogAsync("Refill", "InventoryItem", item.Id.ToString(), new
+            {
+                Station = item.Station.Name, FuelType = item.FuelType.Name,
+                OldLevel = oldLevel, NewLevel = newLevel, Quantity = request.Quantity,
+                UnitCost = request.UnitCost, TotalCost = request.Quantity * request.UnitCost,
+                Supplier = request.SupplierName, Invoice = request.InvoiceNumber,
+                EBMStockUpdated = ebmStockUpdated
+            });
+
             _ = _notificationService.NotifyDataChangedAsync(orgId, NotificationConstants.InventoryChanged);
             return _mapper.Map<RefillRecordResponseDto>(saved);
         }
@@ -149,6 +160,14 @@ public class InventoryService : IInventoryService
                 _logger.LogError("CRITICAL: DB save failed but EBM stock already increased by {Quantity} for inventory {ItemId} (StockId={StockId}). EBM stock addition cannot be reverted. Manual fix required.",
                     request.Quantity, item.Id, item.EBMStockId);
             }
+
+            await _audit.LogAsync("RefillFailed", "InventoryItem", item.Id.ToString(), new
+            {
+                Station = item.Station.Name, FuelType = item.FuelType.Name,
+                Quantity = request.Quantity, EBMStockUpdated = ebmStockUpdated,
+                Error = ex.Message
+            });
+
             throw new InvalidOperationException(
                 $"Failed to save refill to database. EBM stock was already updated — please contact support. Error: {ex.Message}");
         }

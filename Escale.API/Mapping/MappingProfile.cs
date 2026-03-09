@@ -43,7 +43,8 @@ public class MappingProfile : Profile
 
         // FuelType
         CreateMap<FuelType, FuelTypeResponseDto>()
-            .ForMember(d => d.PricePerLiter, o => o.MapFrom(s => s.CurrentPrice));
+            .ForMember(d => d.PricePerLiter, o => o.MapFrom(s => s.CurrentPrice))
+            .ForMember(d => d.EBMRegistered, o => o.MapFrom(s => !string.IsNullOrEmpty(s.EBMVariantId)));
         CreateMap<CreateFuelTypeRequestDto, FuelType>()
             .ForMember(d => d.CurrentPrice, o => o.MapFrom(s => s.PricePerLiter));
 

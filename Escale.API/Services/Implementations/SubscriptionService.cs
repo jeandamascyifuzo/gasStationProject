@@ -13,12 +13,14 @@ public class SubscriptionService : ISubscriptionService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
+    private readonly IAuditLogger _audit;
 
-    public SubscriptionService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper)
+    public SubscriptionService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper, IAuditLogger audit)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _mapper = mapper;
+        _audit = audit;
     }
 
     public async Task<SubscriptionResponseDto> TopUpAsync(TopUpSubscriptionRequestDto request)
@@ -65,6 +67,13 @@ public class SubscriptionService : ISubscriptionService
         var saved = await _unitOfWork.Subscriptions.Query()
             .Include(s => s.Customer)
             .FirstAsync(s => s.Id == newSubscription.Id);
+
+        await _audit.LogAsync("SubscriptionTopUp", "Subscription", newSubscription.Id.ToString(), new
+        {
+            CustomerId = request.CustomerId, CustomerName = customer.Name,
+            PreviousBalance = previousBalance, TopUpAmount = request.TopUpAmount,
+            NewBalance = newSubscription.RemainingBalance, ExpiryDate = request.ExpiryDate
+        });
 
         return _mapper.Map<SubscriptionResponseDto>(saved);
     }
@@ -228,6 +237,12 @@ public class SubscriptionService : ISubscriptionService
         sub.UpdatedAt = DateTime.UtcNow;
         _unitOfWork.Subscriptions.Update(sub);
         await _unitOfWork.SaveChangesAsync();
+
+        await _audit.LogAsync("SubscriptionCancel", "Subscription", sub.Id.ToString(), new
+        {
+            CustomerId = sub.CustomerId, CustomerName = sub.Customer.Name,
+            RemainingBalance = sub.RemainingBalance
+        });
 
         return _mapper.Map<SubscriptionResponseDto>(sub);
     }

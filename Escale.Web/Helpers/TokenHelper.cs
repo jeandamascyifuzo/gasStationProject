@@ -8,4 +8,6 @@ public static class TokenHelper
     public const string SessionUserRole = "UserRole";
     public const string SessionUserId = "UserId";
     public const string SessionStationIds = "AssignedStationIds";
+    public const string SessionOrgName = "OrganizationName";
+    public const string SessionLogoUrl = "LogoUrl";
 }

@@ -20,9 +20,10 @@ public class SaleService : ISaleService
     private readonly IEBMService _ebmService;
     private readonly INotificationService _notificationService;
     private readonly IMemoryCache _cache;
+    private readonly IAuditLogger _audit;
 
     public SaleService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper,
-        IEBMService ebmService, INotificationService notificationService, IMemoryCache cache)
+        IEBMService ebmService, INotificationService notificationService, IMemoryCache cache, IAuditLogger audit)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
@@ -30,6 +31,7 @@ public class SaleService : ISaleService
         _ebmService = ebmService;
         _notificationService = notificationService;
         _cache = cache;
+        _audit = audit;
     }
 
     public async Task<SaleResponseDto> CreateSaleAsync(CreateSaleRequestDto request)
@@ -238,7 +240,15 @@ public class SaleService : ISaleService
             Console.WriteLine($"[Sale Timing] DB save + commit: {stepWatch.ElapsedMilliseconds}ms");
             stepWatch.Restart();
 
-            // Fire-and-forget — don't block the sale response for SignalR
+            // Fire-and-forget — don't block the sale response for audit or SignalR
+            await _audit.LogAsync("Sale", "Transaction", transaction.Id.ToString(), new
+            {
+                ReceiptNumber = receiptNumber, FuelType = fuelType.Name, Liters = request.Liters,
+                PricePerLiter = request.PricePerLiter, Total = total, VAT = vatAmount,
+                PaymentMethod = paymentMethod.ToString(), CustomerName = customerName,
+                PlateNumber = request.Customer?.PlateNumber, EBMSent = ebmSent,
+                EBMReceiptUrl = ebmReceiptUrl, StationId = request.StationId
+            });
             _ = _notificationService.NotifyDataChangedAsync(orgId, NotificationConstants.SaleCompleted);
 
             totalStopwatch.Stop();
@@ -266,9 +276,15 @@ public class SaleService : ISaleService
                 }
             };
         }
-        catch
+        catch (Exception ex)
         {
             await dbTransaction.RollbackAsync();
+            await _audit.LogAsync("SaleFailed", "Transaction", null, new
+            {
+                Error = ex.Message, FuelType = request.FuelType, Liters = request.Liters,
+                PricePerLiter = request.PricePerLiter, StationId = request.StationId,
+                PaymentMethod = request.PaymentMethod
+            });
             throw;
         }
     }

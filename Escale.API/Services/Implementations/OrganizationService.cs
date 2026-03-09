@@ -21,15 +21,18 @@ public class OrganizationService : IOrganizationService
     private readonly IEBMService _ebmService;
     private readonly INotificationService _notificationService;
     private readonly ILogger<OrganizationService> _logger;
+    private readonly IWebHostEnvironment _env;
 
     public OrganizationService(IUnitOfWork unitOfWork, IMapper mapper,
-        IEBMService ebmService, INotificationService notificationService, ILogger<OrganizationService> logger)
+        IEBMService ebmService, INotificationService notificationService, ILogger<OrganizationService> logger,
+        IWebHostEnvironment env)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _ebmService = ebmService;
         _notificationService = notificationService;
         _logger = logger;
+        _env = env;
     }
 
     public async Task<List<OrganizationResponseDto>> GetAllOrganizationsAsync()
@@ -56,6 +59,7 @@ public class OrganizationService : IOrganizationService
             IsDeleted = o.IsDeleted,
             DeletedAt = o.DeletedAt,
             CreatedAt = o.CreatedAt,
+            LogoUrl = o.LogoUrl,
             StationCount = o.Stations.Count,
             UserCount = o.Users.Count
         }).ToList();
@@ -79,6 +83,7 @@ public class OrganizationService : IOrganizationService
             Address = org.Address,
             Phone = org.Phone,
             Email = org.Email,
+            LogoUrl = org.LogoUrl,
             IsActive = org.IsActive,
             IsDeleted = org.IsDeleted,
             DeletedAt = org.DeletedAt,
@@ -552,5 +557,40 @@ public class OrganizationService : IOrganizationService
             IsActive = admin.IsActive,
             CreatedAt = admin.CreatedAt
         };
+    }
+
+    public async Task<string> UploadLogoAsync(Guid orgId, Stream fileStream, string fileName)
+    {
+        var org = await _unitOfWork.Organizations.Query()
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(o => o.Id == orgId)
+            ?? throw new KeyNotFoundException("Organization not found");
+
+        var uploadsDir = Path.Combine(_env.ContentRootPath, "wwwroot", "uploads", "logos");
+        Directory.CreateDirectory(uploadsDir);
+
+        // Delete old logo if exists
+        if (!string.IsNullOrEmpty(org.LogoUrl))
+        {
+            var oldFileName = Path.GetFileName(org.LogoUrl);
+            var oldPath = Path.Combine(uploadsDir, oldFileName);
+            if (File.Exists(oldPath)) File.Delete(oldPath);
+        }
+
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
+        var newFileName = $"{orgId}{ext}";
+        var filePath = Path.Combine(uploadsDir, newFileName);
+
+        using (var fs = new FileStream(filePath, FileMode.Create))
+        {
+            await fileStream.CopyToAsync(fs);
+        }
+
+        var logoUrl = $"/uploads/logos/{newFileName}";
+        org.LogoUrl = logoUrl;
+        _unitOfWork.Organizations.Update(org);
+        await _unitOfWork.SaveChangesAsync();
+
+        return logoUrl;
     }
 }

@@ -1,8 +1,28 @@
+@{
+    var orgName = Context.Session.GetString("OrganizationName") ?? "";
+    var logoUrl = Context.Session.GetString("LogoUrl") ?? "";
+    var apiBaseUrl = ((Microsoft.Extensions.Options.IOptions<Escale.Web.Configuration.ApiSettings>)
+        Context.RequestServices.GetService(typeof(Microsoft.Extensions.Options.IOptions<Escale.Web.Configuration.ApiSettings>)))?.Value?.BaseUrl ?? "https://localhost:7015/api";
+    var fullLogoUrl = !string.IsNullOrEmpty(logoUrl) ? apiBaseUrl.Replace("/api", "") + logoUrl : "";
+    var role = Context.Session.GetString("UserRole") ?? "";
+}
 <nav class="navbar navbar-dark sticky-top flex-md-nowrap p-0 shadow-lg">
-    <a class="navbar-brand col-md-3 col-lg-2 me-0 px-4 py-3" asp-controller="Dashboard" asp-action="Index">
-        <i class="fas fa-gas-pump me-2"></i>
-        <span class="fw-bold">Escale</span>
-        <span style="color: var(--secondary-color); font-weight: 300;">Gas</span>
+    <a class="navbar-brand col-md-3 col-lg-2 me-0 px-4 py-3 d-flex align-items-center" asp-controller="Dashboard" asp-action="Index">
+        @if (!string.IsNullOrEmpty(fullLogoUrl))
+        {
+            <img src="@fullLogoUrl" alt="@orgName" style="max-height: 28px; max-width: 100px; object-fit: contain; margin-right: 8px; border-radius: 4px;" />
+            <span class="fw-bold" style="font-size: 0.9rem;">@orgName</span>
+        }
+        else if (!string.IsNullOrEmpty(orgName))
+        {
+            <i class="fas fa-gas-pump me-2"></i>
+            <span class="fw-bold">@orgName</span>
+        }
+        else
+        {
+            <i class="fas fa-gas-pump me-2"></i>
+            <span class="fw-bold">Gas</span><span style="color: var(--secondary-color); font-weight: 300;">Management</span>
+        }
     </a>
     <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>

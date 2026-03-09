@@ -16,14 +16,16 @@ public class UserService : IUserService
     private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
     private readonly INotificationService _notificationService;
+    private readonly IAuditLogger _audit;
 
     public UserService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper,
-        INotificationService notificationService)
+        INotificationService notificationService, IAuditLogger audit)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _mapper = mapper;
         _notificationService = notificationService;
+        _audit = audit;
     }
 
     public async Task<PagedResult<UserResponseDto>> GetUsersAsync(PagedRequest request)
@@ -104,6 +106,12 @@ public class UserService : IUserService
             await _unitOfWork.SaveChangesAsync();
         }
 
+        await _audit.LogAsync("UserCreate", "User", user.Id.ToString(), new
+        {
+            Username = user.Username, FullName = user.FullName, Role = user.Role.ToString(),
+            Email = user.Email, StationCount = request.StationIds.Count
+        });
+
         return await GetUserByIdAsync(user.Id);
     }
 
@@ -118,6 +126,9 @@ public class UserService : IUserService
         // Manager cannot update Admin profiles
         if (_currentUser.Role == "Manager" && user.Role == UserRole.Admin)
             throw new InvalidOperationException("Managers cannot modify Admin profiles.");
+
+        var oldRole = user.Role.ToString();
+        var oldName = user.FullName;
 
         user.FullName = request.FullName;
         user.Email = request.Email;
@@ -141,6 +152,15 @@ public class UserService : IUserService
 
         _unitOfWork.Users.Update(user);
         await _unitOfWork.SaveChangesAsync();
+
+        await _audit.LogAsync("UserUpdate", "User", user.Id.ToString(), new
+        {
+            Username = user.Username,
+            FullName = new { Before = oldName, After = user.FullName },
+            Role = new { Before = oldRole, After = user.Role.ToString() },
+            StationCount = request.StationIds.Count
+        });
+
         _ = _notificationService.NotifyDataChangedAsync(orgId, NotificationConstants.UserChanged);
         return await GetUserByIdAsync(user.Id);
     }
@@ -173,6 +193,11 @@ public class UserService : IUserService
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
         _unitOfWork.Users.Update(user);
         await _unitOfWork.SaveChangesAsync();
+
+        await _audit.LogAsync("PasswordChange", "User", user.Id.ToString(), new
+        {
+            Username = user.Username
+        });
     }
 
     public async Task ToggleStatusAsync(Guid id)
@@ -184,6 +209,12 @@ public class UserService : IUserService
         user.IsActive = !user.IsActive;
         _unitOfWork.Users.Update(user);
         await _unitOfWork.SaveChangesAsync();
+
+        await _audit.LogAsync(user.IsActive ? "UserActivated" : "UserDeactivated", "User", user.Id.ToString(), new
+        {
+            Username = user.Username, FullName = user.FullName, IsActive = user.IsActive
+        });
+
         _ = _notificationService.NotifyDataChangedAsync(orgId, NotificationConstants.UserChanged);
     }
 }

@@ -39,6 +39,8 @@ public class UserInfoDto
     public string Username { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
+    public string? OrganizationName { get; set; }
+    public string? LogoUrl { get; set; }
     public List<StationInfoDto> AssignedStations { get; set; } = new();
 }
 

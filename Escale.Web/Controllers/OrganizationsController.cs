@@ -31,6 +31,7 @@ public class OrganizationsController : Controller
             Address = o.Address,
             Phone = o.Phone,
             Email = o.Email,
+            LogoUrl = o.LogoUrl,
             IsActive = o.IsActive,
             IsDeleted = o.IsDeleted,
             DeletedAt = o.DeletedAt,
@@ -94,6 +95,7 @@ public class OrganizationsController : Controller
                 Address = o.Address,
                 Phone = o.Phone,
                 Email = o.Email,
+                LogoUrl = o.LogoUrl,
                 IsActive = o.IsActive,
                 IsDeleted = o.IsDeleted,
                 DeletedAt = o.DeletedAt,
@@ -288,6 +290,48 @@ public class OrganizationsController : Controller
         TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
             result.Success ? "Fuel type restored successfully!" : result.Message;
         TempData["ActiveTab"] = "deleted-fuels";
+
+        return RedirectToAction("Details", new { id = orgId });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> AuditLogs([FromQuery] Guid orgId, [FromQuery] int page = 1, [FromQuery] int pageSize = 50,
+        [FromQuery] string? action = null, [FromQuery] string? entityType = null, [FromQuery] string? startDate = null,
+        [FromQuery] string? endDate = null, [FromQuery] string? search = null)
+    {
+        var userRole = HttpContext.Session.GetString("UserRole");
+        Console.WriteLine($"[AuditLogs] Called for orgId={orgId}, role={userRole}, page={page}, action={action}, startDate={startDate}, endDate={endDate}");
+
+        if (userRole != "SuperAdmin")
+        {
+            Console.WriteLine("[AuditLogs] Denied: not SuperAdmin");
+            return Json(new Models.Api.PagedAuditLogResponseDto());
+        }
+
+        var result = await _organizationService.GetAuditLogsAsync(orgId, page, pageSize, action, entityType, startDate, endDate, search);
+
+        if (!result.Success || result.Data == null)
+        {
+            Console.WriteLine($"[AuditLogs] API call failed: {result.Message}");
+            return Json(new Models.Api.PagedAuditLogResponseDto());
+        }
+
+        Console.WriteLine($"[AuditLogs] Returning {result.Data.TotalCount} total logs, {result.Data.Items.Count} items on page {result.Data.Page}");
+        return Json(result.Data);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> UploadLogo(Guid orgId, IFormFile logo)
+    {
+        if (logo == null || logo.Length == 0)
+        {
+            TempData["ErrorMessage"] = "Please select an image file.";
+            return RedirectToAction("Details", new { id = orgId });
+        }
+
+        var result = await _organizationService.UploadLogoAsync(orgId, logo);
+        TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+            result.Success ? "Logo uploaded successfully!" : result.Message;
 
         return RedirectToAction("Details", new { id = orgId });
     }

@@ -71,6 +71,10 @@ namespace Escale.Web.Controllers
                 HttpContext.Session.SetString(TokenHelper.SessionUserFullName, result.User.FullName);
                 HttpContext.Session.SetString(TokenHelper.SessionUserRole, result.User.Role);
                 HttpContext.Session.SetString(TokenHelper.SessionUserId, result.User.Id.ToString());
+                if (!string.IsNullOrEmpty(result.User.OrganizationName))
+                    HttpContext.Session.SetString(TokenHelper.SessionOrgName, result.User.OrganizationName);
+                if (!string.IsNullOrEmpty(result.User.LogoUrl))
+                    HttpContext.Session.SetString(TokenHelper.SessionLogoUrl, result.User.LogoUrl);
                 if (result.User.AssignedStations.Any())
                 {
                     var stationIds = string.Join(",", result.User.AssignedStations.Select(s => s.Id));
@@ -78,10 +82,31 @@ namespace Escale.Web.Controllers
                 }
             }
 
-            // SuperAdmin goes to Organizations, others go to Dashboard
-            if (result.User?.Role == "SuperAdmin")
-                return RedirectToAction("Index", "Organizations");
-            return RedirectToAction("Index", "Dashboard");
+            // Redirect to splash screen which sets up the app then navigates
+            return RedirectToAction("Splash");
+        }
+
+        public IActionResult Splash()
+        {
+            var token = HttpContext.Request.Cookies[TokenHelper.AccessTokenCookie];
+            if (string.IsNullOrEmpty(token))
+                return RedirectToAction("Login");
+
+            var role = HttpContext.Session.GetString(TokenHelper.SessionUserRole);
+            if (string.IsNullOrEmpty(role))
+            {
+                // No session data — clear everything and go to login
+                Response.Cookies.Delete(TokenHelper.AccessTokenCookie);
+                Response.Cookies.Delete(TokenHelper.RefreshTokenCookie);
+                HttpContext.Session.Clear();
+                return RedirectToAction("Login");
+            }
+
+            ViewBag.Role = role;
+            ViewBag.OrgName = HttpContext.Session.GetString(TokenHelper.SessionOrgName) ?? "";
+            ViewBag.LogoUrl = HttpContext.Session.GetString(TokenHelper.SessionLogoUrl) ?? "";
+            ViewBag.UserName = HttpContext.Session.GetString(TokenHelper.SessionUserFullName) ?? "User";
+            return View();
         }
 
         public async Task<IActionResult> Logout()

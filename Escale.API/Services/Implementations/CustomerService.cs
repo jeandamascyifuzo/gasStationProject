@@ -14,12 +14,14 @@ public class CustomerService : ICustomerService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
+    private readonly IAuditLogger _audit;
 
-    public CustomerService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper)
+    public CustomerService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper, IAuditLogger audit)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _mapper = mapper;
+        _audit = audit;
     }
 
     public async Task<PagedResult<CustomerResponseDto>> GetCustomersAsync(PagedRequest request, string? type = null)
@@ -140,6 +142,12 @@ public class CustomerService : ICustomerService
             await _unitOfWork.SaveChangesAsync();
         }
 
+        await _audit.LogAsync("CustomerCreate", "Customer", customer.Id.ToString(), new
+        {
+            Name = customer.Name, Type = customer.Type.ToString(), Phone = customer.PhoneNumber,
+            TIN = customer.TIN, CarCount = request.Cars?.Count ?? 0
+        });
+
         return await GetCustomerByIdAsync(customer.Id);
     }
 
@@ -160,6 +168,13 @@ public class CustomerService : ICustomerService
 
         _unitOfWork.Customers.Update(customer);
         await _unitOfWork.SaveChangesAsync();
+
+        await _audit.LogAsync("CustomerUpdate", "Customer", customer.Id.ToString(), new
+        {
+            Name = customer.Name, Type = customer.Type.ToString(), IsActive = customer.IsActive,
+            CreditLimit = customer.CreditLimit
+        });
+
         return await GetCustomerByIdAsync(customer.Id);
     }
 

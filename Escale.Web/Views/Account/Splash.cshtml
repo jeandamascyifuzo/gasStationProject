@@ -1,0 +1,178 @@
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Loading";
+    var role = ViewBag.Role as string ?? "";
+    var orgName = ViewBag.OrgName as string ?? "";
+    var logoUrl = ViewBag.LogoUrl as string ?? "";
+    var userName = ViewBag.UserName as string ?? "User";
+    var apiBaseUrl = ((Microsoft.Extensions.Options.IOptions<Escale.Web.Configuration.ApiSettings>)
+        Context.RequestServices.GetService(typeof(Microsoft.Extensions.Options.IOptions<Escale.Web.Configuration.ApiSettings>)))?.Value?.BaseUrl ?? "https://localhost:7015/api";
+    var fullLogoUrl = !string.IsNullOrEmpty(logoUrl) ? apiBaseUrl.Replace("/api", "") + logoUrl : "";
+    var redirectUrl = role == "SuperAdmin"
+        ? Url.Action("Index", "Organizations")
+        : Url.Action("Index", "Dashboard");
+}
+
+<div class="splash-screen" id="splashScreen">
+    <div class="splash-content">
+        <div class="splash-logo-container">
+            @if (!string.IsNullOrEmpty(fullLogoUrl))
+            {
+                <img src="@fullLogoUrl" alt="@orgName" class="splash-logo-img" />
+            }
+            else if (!string.IsNullOrEmpty(orgName))
+            {
+                <div class="splash-logo-text">@orgName</div>
+            }
+            else
+            {
+                <div class="splash-logo-icon">
+                    <i class="fas fa-gas-pump"></i>
+                </div>
+            }
+        </div>
+
+        <div class="splash-welcome">
+            Welcome, <strong>@userName</strong>
+        </div>
+
+        <div class="splash-steps" id="splashSteps">
+            <div class="splash-step active" id="step1">
+                <i class="fas fa-circle-notch fa-spin me-2"></i>Setting up your workspace...
+            </div>
+            <div class="splash-step" id="step2">
+                <i class="fas fa-circle-notch fa-spin me-2"></i>Loading company data...
+            </div>
+            <div class="splash-step" id="step3">
+                <i class="fas fa-check-circle me-2 text-success"></i>Ready!
+            </div>
+        </div>
+
+        <div class="splash-progress">
+            <div class="splash-progress-bar" id="splashProgress"></div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .splash-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #1a2332 0%, #212b3d 50%, #1a2332 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+    .splash-content {
+        text-align: center;
+        color: white;
+    }
+    .splash-logo-container {
+        margin-bottom: 2rem;
+        animation: fadeInDown 0.6s ease;
+    }
+    .splash-logo-img {
+        max-width: 150px;
+        max-height: 150px;
+        border-radius: 16px;
+        object-fit: contain;
+        background: white;
+        padding: 10px;
+    }
+    .splash-logo-text {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #f5d04b;
+        letter-spacing: 2px;
+    }
+    .splash-logo-icon {
+        font-size: 4rem;
+        color: #f5d04b;
+    }
+    .splash-welcome {
+        font-size: 1.3rem;
+        color: #b0bec5;
+        margin-bottom: 2.5rem;
+        animation: fadeIn 0.8s ease 0.3s both;
+    }
+    .splash-steps {
+        margin-bottom: 2rem;
+    }
+    .splash-step {
+        font-size: 0.95rem;
+        color: #546e7a;
+        margin-bottom: 0.5rem;
+        opacity: 0;
+        transition: opacity 0.4s ease, color 0.4s ease;
+    }
+    .splash-step.active {
+        opacity: 1;
+        color: #b0bec5;
+    }
+    .splash-step.done {
+        opacity: 1;
+        color: #66bb6a;
+    }
+    .splash-progress {
+        width: 250px;
+        height: 4px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 2px;
+        margin: 0 auto;
+        overflow: hidden;
+    }
+    .splash-progress-bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #219ebc, #f5d04b);
+        border-radius: 2px;
+        transition: width 0.5s ease;
+    }
+    @@keyframes fadeInDown {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @@keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+</style>
+
+@section Scripts {
+<script>
+    (function() {
+        var progress = document.getElementById('splashProgress');
+        var step1 = document.getElementById('step1');
+        var step2 = document.getElementById('step2');
+        var step3 = document.getElementById('step3');
+        var redirectUrl = '@Html.Raw(redirectUrl)';
+
+        // Step 1: Setting up workspace
+        progress.style.width = '30%';
+
+        setTimeout(function() {
+            step1.className = 'splash-step done';
+            step1.innerHTML = '<i class="fas fa-check-circle me-2 text-success"></i>Workspace ready';
+            step2.className = 'splash-step active';
+            progress.style.width = '60%';
+        }, 800);
+
+        // Step 2: Loading company data
+        setTimeout(function() {
+            step2.className = 'splash-step done';
+            step2.innerHTML = '<i class="fas fa-check-circle me-2 text-success"></i>Company data loaded';
+            step3.className = 'splash-step active';
+            progress.style.width = '100%';
+        }, 1600);
+
+        // Step 3: Redirect
+        setTimeout(function() {
+            window.location.href = redirectUrl;
+        }, 2200);
+    })();
+</script>
+}

@@ -22,18 +22,21 @@ namespace Escale.Web.Controllers
             var ebmTask = _settingsService.GetEbmStatusAsync();
             var ebmConfigTask = _settingsService.GetEbmConfigAsync();
             var fuelTypesTask = _fuelTypeService.GetAllAsync();
+            var logoTask = _settingsService.GetLogoUrlAsync();
 
-            await Task.WhenAll(settingsTask, ebmTask, ebmConfigTask, fuelTypesTask);
+            await Task.WhenAll(settingsTask, ebmTask, ebmConfigTask, fuelTypesTask, logoTask);
 
             var settings = settingsTask.Result;
             var ebm = ebmTask.Result;
             var ebmConfig = ebmConfigTask.Result;
             var fuelTypes = fuelTypesTask.Result;
+            var logo = logoTask.Result;
 
             var s = settings.Data ?? new AppSettingsResponseDto();
             var ec = ebmConfig.Data;
             var model = new SettingsViewModel
             {
+                LogoUrl = logo.Data,
                 CompanyName = s.CompanyName,
                 TaxRate = s.TaxRate,
                 Currency = s.Currency,
@@ -115,6 +118,28 @@ namespace Escale.Web.Controllers
             var result = await _settingsService.SyncEbmAsync();
             TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
                 result.Success ? "EBM synchronized successfully!" : result.Message;
+
+            return RedirectToAction("Index");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UploadLogo(IFormFile logo)
+        {
+            if (logo == null || logo.Length == 0)
+            {
+                TempData["ErrorMessage"] = "Please select an image file.";
+                return RedirectToAction("Index");
+            }
+
+            var result = await _settingsService.UploadLogoAsync(logo);
+            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+                result.Success ? "Logo uploaded successfully!" : result.Message;
+
+            // Update session logo URL so it reflects immediately in the nav
+            if (result.Success && !string.IsNullOrEmpty(result.Data))
+            {
+                HttpContext.Session.SetString("LogoUrl", result.Data);
+            }
 
             return RedirectToAction("Index");
         }

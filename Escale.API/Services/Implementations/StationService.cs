@@ -14,14 +14,16 @@ public class StationService : IStationService
     private readonly ICurrentUserService _currentUser;
     private readonly IMapper _mapper;
     private readonly INotificationService _notificationService;
+    private readonly IAuditLogger _audit;
 
     public StationService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper,
-        INotificationService notificationService)
+        INotificationService notificationService, IAuditLogger audit)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _mapper = mapper;
         _notificationService = notificationService;
+        _audit = audit;
     }
 
     public async Task<List<StationResponseDto>> GetStationsAsync()
@@ -86,6 +88,12 @@ public class StationService : IStationService
         }
         await _unitOfWork.SaveChangesAsync();
 
+        await _audit.LogAsync("StationCreate", "Station", station.Id.ToString(), new
+        {
+            Name = station.Name, Location = station.Location, Address = station.Address,
+            FuelTypesAssigned = fuelTypes.Count
+        });
+
         return _mapper.Map<StationResponseDto>(station);
     }
 
@@ -97,6 +105,9 @@ public class StationService : IStationService
             .FirstOrDefaultAsync(s => s.Id == id && s.OrganizationId == orgId)
             ?? throw new KeyNotFoundException("Station not found");
 
+        var oldName = station.Name;
+        var oldIsActive = station.IsActive;
+
         station.Name = request.Name;
         station.Location = request.Location;
         station.Address = request.Address;
@@ -106,6 +117,15 @@ public class StationService : IStationService
 
         _unitOfWork.Stations.Update(station);
         await _unitOfWork.SaveChangesAsync();
+
+        await _audit.LogAsync("StationUpdate", "Station", station.Id.ToString(), new
+        {
+            Name = new { Before = oldName, After = station.Name },
+            Location = station.Location,
+            IsActive = new { Before = oldIsActive, After = station.IsActive },
+            ManagerId = station.ManagerId
+        });
+
         _ = _notificationService.NotifyDataChangedAsync(orgId, NotificationConstants.StationChanged);
         return _mapper.Map<StationResponseDto>(station);
     }

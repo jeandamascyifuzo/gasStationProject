@@ -66,4 +66,47 @@ public class ApiOrganizationService : BaseApiService, IApiOrganizationService
 
     public async Task<ApiResponse<UserResponseDto>> CreateAdminAsync(Guid orgId, CreateOrgAdminRequestDto request)
         => await PostAsync<UserResponseDto>($"/api/superadmin/organizations/{orgId}/admin", request);
+
+    public async Task<ApiResponse<PagedAuditLogResponseDto>> GetAuditLogsAsync(Guid orgId, int page = 1, int pageSize = 50,
+        string? action = null, string? entityType = null, string? startDate = null, string? endDate = null, string? search = null)
+    {
+        var queryParams = $"?page={page}&pageSize={pageSize}";
+        if (!string.IsNullOrEmpty(action)) queryParams += $"&action={Uri.EscapeDataString(action)}";
+        if (!string.IsNullOrEmpty(entityType)) queryParams += $"&entityType={Uri.EscapeDataString(entityType)}";
+        if (!string.IsNullOrEmpty(startDate)) queryParams += $"&startDate={Uri.EscapeDataString(startDate)}";
+        if (!string.IsNullOrEmpty(endDate)) queryParams += $"&endDate={Uri.EscapeDataString(endDate)}";
+        if (!string.IsNullOrEmpty(search)) queryParams += $"&search={Uri.EscapeDataString(search)}";
+        return await GetAsync<PagedAuditLogResponseDto>($"/api/superadmin/organizations/{orgId}/audit-logs{queryParams}");
+    }
+
+    public async Task<ApiResponse<string>> UploadLogoAsync(Guid orgId, IFormFile file)
+    {
+        try
+        {
+            var content = new MultipartFormDataContent();
+            var stream = file.OpenReadStream();
+            var fileContent = new StreamContent(stream);
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+            content.Add(fileContent, "file", file.FileName);
+
+            var response = await HttpClient.PostAsync($"/api/superadmin/organizations/{orgId}/logo", content);
+            var json = await response.Content.ReadAsStringAsync();
+
+            stream.Dispose();
+            content.Dispose();
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = System.Text.Json.JsonSerializer.Deserialize<ApiResponse<string>>(json,
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                return result ?? new ApiResponse<string> { Success = true };
+            }
+
+            return new ApiResponse<string> { Success = false, Message = $"Upload failed: {response.StatusCode}" };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<string> { Success = false, Message = ex.Message };
+        }
+    }
 }

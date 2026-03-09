@@ -37,7 +37,10 @@ public class FuelTypesController : ControllerBase
     public async Task<ActionResult<ApiResponse<FuelTypeResponseDto>>> CreateFuelType([FromBody] CreateFuelTypeRequestDto request)
     {
         var result = await _fuelTypeService.CreateFuelTypeAsync(request);
-        return Ok(ApiResponse<FuelTypeResponseDto>.SuccessResponse(result, "Fuel type created"));
+        var message = result.EBMRegistered
+            ? "Fuel type created and registered in EBM successfully"
+            : "Fuel type created";
+        return Ok(ApiResponse<FuelTypeResponseDto>.SuccessResponse(result, message));
     }
 
     [HttpPut("{id}")]

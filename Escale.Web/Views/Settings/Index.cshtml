@@ -1,6 +1,9 @@
 @model Escale.Web.Models.SettingsViewModel
 @{
     ViewData["Title"] = "Settings";
+    var apiBaseUrl = ((Microsoft.Extensions.Options.IOptions<Escale.Web.Configuration.ApiSettings>)
+        Context.RequestServices.GetService(typeof(Microsoft.Extensions.Options.IOptions<Escale.Web.Configuration.ApiSettings>)))?.Value?.BaseUrl ?? "https://localhost:7015/api";
+    var fullLogoUrl = !string.IsNullOrEmpty(Model.LogoUrl) ? apiBaseUrl.Replace("/api", "") + Model.LogoUrl : "";
 }
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-4 page-header">
@@ -19,6 +22,11 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link active text-white" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">
                     <i class="fas fa-sliders-h me-2"></i>General Settings
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link text-white" id="branding-tab" data-bs-toggle="tab" data-bs-target="#branding" type="button" role="tab">
+                    <i class="fas fa-image me-2"></i>Company Logo
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -126,6 +134,52 @@
                     </div>
                 </div>
 
+                <!-- Company Logo Tab -->
+                <div class="tab-pane fade" id="branding" role="tabpanel">
+                    <h5 class="mb-3">Company Logo</h5>
+                    <p class="text-muted mb-4">Upload your company logo. It will appear in the navigation bar and login screen.</p>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="card border">
+                                <div class="card-body text-center p-4">
+                                    @if (!string.IsNullOrEmpty(fullLogoUrl))
+                                    {
+                                        <img src="@fullLogoUrl" alt="Company Logo" class="img-fluid mb-3" style="max-height: 120px; max-width: 200px; object-fit: contain;" />
+                                        <p class="text-success mb-0"><i class="fas fa-check-circle me-1"></i>Logo uploaded</p>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-muted py-4">
+                                            <i class="fas fa-building fa-3x mb-3 d-block"></i>
+                                            <p class="mb-0">No logo uploaded</p>
+                                            <small>Your company name will be shown instead</small>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-8 mb-3">
+                            <form asp-controller="Settings" asp-action="UploadLogo" method="post" enctype="multipart/form-data">
+                                <div class="mb-3">
+                                    <label for="logoFile" class="form-label">Select Logo Image</label>
+                                    <input type="file" class="form-control" id="logoFile" name="logo" accept="image/jpeg,image/png,image/gif,image/webp" />
+                                    <div class="form-text">Accepted formats: JPG, PNG, GIF, WebP. Maximum size: 2MB.</div>
+                                </div>
+                                <div id="logoPreviewContainer" class="mb-3" style="display:none;">
+                                    <label class="form-label">Preview</label>
+                                    <div>
+                                        <img id="logoPreview" src="" alt="Preview" style="max-height: 80px; max-width: 160px; object-fit: contain; border: 1px solid #dee2e6; border-radius: 4px; padding: 4px;" />
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-upload me-2"></i>Upload Logo
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- EBM Settings Tab -->
                 <div class="tab-pane fade" id="ebm" role="tabpanel">
                     <h5 class="mb-3">
@@ -226,19 +280,38 @@
 
 @section Scripts {
 <script>
-    // Show/hide save button based on active tab
     document.addEventListener('DOMContentLoaded', function () {
         var settingsTabs = document.getElementById('settingsTabs');
         var saveSection = document.getElementById('saveButtonSection');
 
+        // Show/hide save button based on active tab
         settingsTabs.addEventListener('shown.bs.tab', function (event) {
-            // Hide save button on EBM tab (read-only)
-            if (event.target.id === 'ebm-tab') {
+            if (event.target.id === 'ebm-tab' || event.target.id === 'branding-tab') {
                 saveSection.style.display = 'none';
             } else {
                 saveSection.style.display = '';
             }
         });
+
+        // Logo preview
+        var logoInput = document.getElementById('logoFile');
+        if (logoInput) {
+            logoInput.addEventListener('change', function (e) {
+                var file = e.target.files[0];
+                var preview = document.getElementById('logoPreview');
+                var container = document.getElementById('logoPreviewContainer');
+                if (file && file.type.startsWith('image/')) {
+                    var reader = new FileReader();
+                    reader.onload = function (ev) {
+                        preview.src = ev.target.result;
+                        container.style.display = '';
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    container.style.display = 'none';
+                }
+            });
+        }
     });
 </script>
 }

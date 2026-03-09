@@ -16,9 +16,10 @@ public class SettingsService : ISettingsService
     private readonly IEBMService _ebmService;
     private readonly INotificationService _notificationService;
     private readonly IMemoryCache _cache;
+    private readonly IAuditLogger _audit;
 
     public SettingsService(IUnitOfWork unitOfWork, ICurrentUserService currentUser, IMapper mapper,
-        IEBMService ebmService, INotificationService notificationService, IMemoryCache cache)
+        IEBMService ebmService, INotificationService notificationService, IMemoryCache cache, IAuditLogger audit)
     {
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
@@ -26,6 +27,7 @@ public class SettingsService : ISettingsService
         _ebmService = ebmService;
         _notificationService = notificationService;
         _cache = cache;
+        _audit = audit;
     }
 
     public async Task<AppSettingsResponseDto> GetSettingsAsync()
@@ -44,12 +46,24 @@ public class SettingsService : ISettingsService
             .FirstOrDefaultAsync(s => s.OrganizationId == orgId)
             ?? throw new KeyNotFoundException("Settings not found");
 
+        // Capture before-state for audit
+        var before = _mapper.Map<AppSettingsResponseDto>(settings);
+
         _mapper.Map(request, settings);
         _unitOfWork.OrganizationSettings.Update(settings);
         await _unitOfWork.SaveChangesAsync();
         _cache.Remove($"org_settings_{orgId}");
+
+        var after = _mapper.Map<AppSettingsResponseDto>(settings);
+        await _audit.LogAsync("SettingsUpdate", "OrganizationSettings", orgId.ToString(), new
+        {
+            EBMEnabled = new { Before = before.EBMEnabled, After = after.EBMEnabled },
+            EBMServerUrl = new { Before = before.EBMServerUrl, After = after.EBMServerUrl },
+            CompanyName = new { Before = before.CompanyName, After = after.CompanyName }
+        });
+
         _ = _notificationService.NotifyDataChangedAsync(orgId, NotificationConstants.SettingsChanged);
-        return _mapper.Map<AppSettingsResponseDto>(settings);
+        return after;
     }
 
     public async Task<EbmStatusDto> GetEbmStatusAsync()

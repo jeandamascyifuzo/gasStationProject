@@ -102,6 +102,7 @@ app.UseSwaggerUI(c =>
 });
 
 app.UseHttpsRedirection();
+app.UseStaticFiles(); // Serve uploaded logos from wwwroot/uploads/logos/
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();

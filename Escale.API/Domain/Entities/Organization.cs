@@ -8,6 +8,7 @@ public class Organization : BaseEntity
     public string? Address { get; set; }
     public string? Phone { get; set; }
     public string? Email { get; set; }
+    public string? LogoUrl { get; set; }
     public bool IsActive { get; set; } = true;
 
     public ICollection<Station> Stations { get; set; } = new List<Station>();

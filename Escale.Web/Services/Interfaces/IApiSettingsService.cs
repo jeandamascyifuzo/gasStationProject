@@ -10,4 +10,6 @@ public interface IApiSettingsService
     Task<ApiResponse<EbmStatusDto>> SyncEbmAsync();
     Task<ApiResponse<EbmConfigResponseDto>> GetEbmConfigAsync();
     Task<ApiResponse<bool>> TestEbmConnectionAsync();
+    Task<ApiResponse<string>> UploadLogoAsync(IFormFile file);
+    Task<ApiResponse<string>> GetLogoUrlAsync();
 }

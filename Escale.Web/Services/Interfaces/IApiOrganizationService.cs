@@ -24,4 +24,7 @@ public interface IApiOrganizationService
     Task<ApiResponse> RestoreFuelTypeAsync(Guid orgId, Guid fuelTypeId);
     Task<ApiResponse<UserResponseDto>> GetAdminAsync(Guid orgId);
     Task<ApiResponse<UserResponseDto>> CreateAdminAsync(Guid orgId, CreateOrgAdminRequestDto request);
+    Task<ApiResponse<string>> UploadLogoAsync(Guid orgId, IFormFile file);
+    Task<ApiResponse<PagedAuditLogResponseDto>> GetAuditLogsAsync(Guid orgId, int page = 1, int pageSize = 50,
+        string? action = null, string? entityType = null, string? startDate = null, string? endDate = null, string? search = null);
 }

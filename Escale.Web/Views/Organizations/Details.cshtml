@@ -3,6 +3,11 @@
     ViewData["Title"] = Model.Organization.Name;
     var activeTab = TempData["ActiveTab"]?.ToString() ?? "details";
     var isDeleted = Model.Organization.IsDeleted;
+    var apiBaseUrl = ((Microsoft.Extensions.Options.IOptions<Escale.Web.Configuration.ApiSettings>)
+        Context.RequestServices.GetService(typeof(Microsoft.Extensions.Options.IOptions<Escale.Web.Configuration.ApiSettings>)))?.Value?.BaseUrl ?? "https://localhost:7015/api";
+    var fullLogoUrl = !string.IsNullOrEmpty(Model.Organization.LogoUrl)
+        ? apiBaseUrl.Replace("/api", "") + Model.Organization.LogoUrl
+        : "";
 }
 
 @await Html.PartialAsync("_ApiError")
@@ -72,6 +77,13 @@
             <i class="fas fa-gas-pump me-2"></i>Station Management
         </button>
     </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(activeTab == "audit" ? "active" : "")" id="audit-tab" data-bs-toggle="tab"
+                data-bs-target="#audit-pane" type="button" role="tab" aria-controls="audit-pane"
+                aria-selected="@(activeTab == "audit" ? "true" : "false")">
+            <i class="fas fa-history me-2"></i>Audit Log
+        </button>
+    </li>
     @if (Model.DeletedFuelTypes.Any())
     {
         <li class="nav-item" role="presentation">
@@ -120,6 +132,39 @@
                 </div>
             </div>
             <div class="col-md-4">
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-image me-2"></i>Company Logo</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        @if (!string.IsNullOrEmpty(fullLogoUrl))
+                        {
+                            <img src="@fullLogoUrl" alt="@Model.Organization.Name" class="mb-3"
+                                 style="max-width: 120px; max-height: 120px; object-fit: contain; border-radius: 8px; border: 2px solid #e0e0e0; padding: 4px;" />
+                        }
+                        else
+                        {
+                            <div class="mb-3 p-4" style="background: #f5f5f5; border-radius: 8px; border: 2px dashed #ccc;">
+                                <i class="fas fa-building fa-3x text-muted mb-2"></i>
+                                <p class="text-muted mb-0 small">No logo uploaded.<br />Company name will be displayed instead.</p>
+                            </div>
+                        }
+                        @if (!isDeleted)
+                        {
+                            <form asp-action="UploadLogo" method="post" enctype="multipart/form-data">
+                                <input type="hidden" name="orgId" value="@Model.Organization.Id" />
+                                <div class="mb-2">
+                                    <input type="file" class="form-control form-control-sm" name="logo"
+                                           accept=".jpg,.jpeg,.png,.gif,.webp" required />
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-primary w-100">
+                                    <i class="fas fa-upload me-1"></i>Upload Logo
+                                </button>
+                                <small class="text-muted d-block mt-1">Max 2MB. JPG, PNG, GIF, or WebP.</small>
+                            </form>
+                        }
+                    </div>
+                </div>
                 <div class="card shadow-sm">
                     <div class="card-header">
                         <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Quick Stats</h5>
@@ -383,7 +428,56 @@
         </div>
     </div>
 
-    <!-- Tab 5: Deleted Fuel Types -->
+    <!-- Tab 5: Audit Log -->
+    <div class="tab-pane fade @(activeTab == "audit" ? "show active" : "")" id="audit-pane" role="tabpanel" aria-labelledby="audit-tab">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i>Audit Log</h5>
+                <div class="d-flex gap-2 flex-wrap">
+                    <input type="text" id="auditSearch" class="form-control form-control-sm" placeholder="Search..." style="width: 160px;" />
+                    <select id="auditAction" class="form-select form-select-sm" style="width: 140px;">
+                        <option value="">All Actions</option>
+                        <option value="Login">Login</option>
+                        <option value="LoginFailed">Login Failed</option>
+                        <option value="Create">Create</option>
+                        <option value="Update">Update</option>
+                        <option value="Delete">Delete</option>
+                    </select>
+                    <select id="auditEntity" class="form-select form-select-sm" style="width: 140px;">
+                        <option value="">All Entities</option>
+                        <option value="User">User</option>
+                        <option value="Station">Station</option>
+                        <option value="FuelType">Fuel Type</option>
+                        <option value="Transaction">Transaction</option>
+                        <option value="Customer">Customer</option>
+                        <option value="InventoryItem">Inventory</option>
+                        <option value="Shift">Shift</option>
+                        <option value="OrganizationSettings">Settings</option>
+                        <option value="Subscription">Subscription</option>
+                    </select>
+                    <input type="date" id="auditStartDate" class="form-control form-control-sm" style="width: 140px;" />
+                    <input type="date" id="auditEndDate" class="form-control form-control-sm" style="width: 140px;" />
+                    <button class="btn btn-sm btn-primary" id="auditFilterBtn" onclick="loadAuditLogs(1)">
+                        <i class="fas fa-filter me-1"></i>Filter
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="auditLogsContainer">
+                    <div class="text-center py-5">
+                        <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
+                        <p class="text-muted">Loading audit logs...</p>
+                    </div>
+                </div>
+                <nav id="auditPagination" class="d-flex justify-content-between align-items-center mt-3" style="display: none !important;">
+                    <small class="text-muted" id="auditPaginationInfo"></small>
+                    <ul class="pagination pagination-sm mb-0" id="auditPaginationLinks"></ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 6: Deleted Fuel Types -->
     @if (Model.DeletedFuelTypes.Any())
     {
         <div class="tab-pane fade @(activeTab == "deleted-fuels" ? "show active" : "")" id="deleted-fuels-pane" role="tabpanel" aria-labelledby="deleted-fuels-tab">
@@ -608,5 +702,141 @@
             alert('Failed to update station status.');
         });
     }
+
+    // ===== Audit Log =====
+    var auditCurrentPage = 1;
+    var auditLoaded = false;
+
+    // Default date range: last 30 days
+    (function() {
+        var now = new Date();
+        var monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        document.getElementById('auditStartDate').value = monthAgo.toISOString().split('T')[0];
+        document.getElementById('auditEndDate').value = now.toISOString().split('T')[0];
+    })();
+
+    // Load audit logs when the tab is shown
+    document.getElementById('audit-tab').addEventListener('shown.bs.tab', function() {
+        if (!auditLoaded) {
+            loadAuditLogs(1);
+            auditLoaded = true;
+        }
+    });
+
+    // Also load if audit tab is active on page load
+    if (document.getElementById('audit-tab').classList.contains('active')) {
+        loadAuditLogs(1);
+        auditLoaded = true;
+    }
+
+    function loadAuditLogs(page) {
+        auditCurrentPage = page;
+        var url = '@Url.Action("AuditLogs", "Organizations")';
+        var params = {
+            orgId: '@Model.Organization.Id',
+            page: page,
+            pageSize: 50,
+            action: $('#auditAction').val(),
+            entityType: $('#auditEntity').val(),
+            startDate: $('#auditStartDate').val(),
+            endDate: $('#auditEndDate').val(),
+            search: $('#auditSearch').val()
+        };
+
+        console.log('Loading audit logs:', url, params);
+        $('#auditLogsContainer').html('<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x text-muted"></i></div>');
+
+        $.getJSON(url, params, function(data) {
+            console.log('Audit logs response:', data);
+            renderAuditLogs(data);
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+            console.error('Audit logs failed:', textStatus, errorThrown, jqXHR.status, jqXHR.responseText);
+            $('#auditLogsContainer').html('<div class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Failed to load audit logs. Check console for details.</div>');
+        });
+    }
+
+    function renderAuditLogs(data) {
+        if (!data || !data.Items || data.Items.length === 0) {
+            $('#auditLogsContainer').html('<div class="text-center py-5"><i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i><p class="text-muted">No audit log entries found.</p></div>');
+            $('#auditPagination').hide();
+            return;
+        }
+
+        var actionBadge = function(action) {
+            var colors = {
+                'Login': 'bg-success', 'LoginFailed': 'bg-danger', 'Create': 'bg-primary',
+                'Update': 'bg-warning text-dark', 'Delete': 'bg-danger'
+            };
+            return '<span class="badge ' + (colors[action] || 'bg-secondary') + '">' + action + '</span>';
+        };
+
+        var html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0">';
+        html += '<thead><tr><th style="width:160px">Timestamp</th><th>User</th><th>Action</th><th>Entity</th><th>IP Address</th><th>Details</th></tr></thead><tbody>';
+
+        data.Items.forEach(function(log) {
+            var ts = new Date(log.Timestamp);
+            var timeStr = ts.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) + ' ' + ts.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+            var details = '';
+            if (log.Details) {
+                try {
+                    var parsed = JSON.parse(log.Details);
+                    var keys = Object.keys(parsed).slice(0, 3);
+                    details = keys.map(function(k) {
+                        var v = parsed[k];
+                        if (typeof v === 'object' && v !== null && v.Old !== undefined) {
+                            return '<small><strong>' + k + ':</strong> ' + escapeHtml(String(v.Old)) + ' → ' + escapeHtml(String(v.New)) + '</small>';
+                        }
+                        return '<small><strong>' + k + ':</strong> ' + escapeHtml(String(v)) + '</small>';
+                    }).join('<br>');
+                    if (Object.keys(parsed).length > 3) details += '<br><small class="text-muted">...and more</small>';
+                } catch(e) {
+                    details = '<small class="text-muted">' + escapeHtml(log.Details.substring(0, 100)) + '</small>';
+                }
+            }
+
+            html += '<tr>';
+            html += '<td><small>' + timeStr + '</small></td>';
+            html += '<td>' + escapeHtml(log.UserName || 'System') + '</td>';
+            html += '<td>' + actionBadge(log.Action) + '</td>';
+            html += '<td><small>' + escapeHtml(log.EntityType || '-') + '</small></td>';
+            html += '<td><small class="text-muted">' + escapeHtml(log.IpAddress || '-') + '</small></td>';
+            html += '<td>' + details + '</td>';
+            html += '</tr>';
+        });
+
+        html += '</tbody></table></div>';
+        $('#auditLogsContainer').html(html);
+
+        // Pagination
+        if (data.TotalPages > 1) {
+            var infoText = 'Showing ' + ((data.Page - 1) * data.PageSize + 1) + '-' + Math.min(data.Page * data.PageSize, data.TotalCount) + ' of ' + data.TotalCount;
+            $('#auditPaginationInfo').text(infoText);
+
+            var pHtml = '';
+            pHtml += '<li class="page-item ' + (data.Page <= 1 ? 'disabled' : '') + '"><a class="page-link" href="#" onclick="loadAuditLogs(' + (data.Page - 1) + ');return false;">&laquo;</a></li>';
+            var startP = Math.max(1, data.Page - 2);
+            var endP = Math.min(data.TotalPages, data.Page + 2);
+            for (var i = startP; i <= endP; i++) {
+                pHtml += '<li class="page-item ' + (i === data.Page ? 'active' : '') + '"><a class="page-link" href="#" onclick="loadAuditLogs(' + i + ');return false;">' + i + '</a></li>';
+            }
+            pHtml += '<li class="page-item ' + (data.Page >= data.TotalPages ? 'disabled' : '') + '"><a class="page-link" href="#" onclick="loadAuditLogs(' + (data.Page + 1) + ');return false;">&raquo;</a></li>';
+            $('#auditPaginationLinks').html(pHtml);
+            $('#auditPagination').css('display', 'flex');
+        } else {
+            $('#auditPagination').hide();
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+    }
+
+    // Enter key in search box triggers filter
+    $('#auditSearch').on('keypress', function(e) {
+        if (e.which === 13) loadAuditLogs(1);
+    });
 </script>
 }

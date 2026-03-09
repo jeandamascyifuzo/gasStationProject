@@ -27,4 +27,5 @@ public interface IOrganizationService
     Task RestoreOrganizationFuelTypeAsync(Guid orgId, Guid fuelTypeId);
     Task<UserResponseDto?> GetOrganizationAdminAsync(Guid orgId);
     Task<UserResponseDto> CreateOrganizationAdminAsync(Guid orgId, CreateOrgAdminRequestDto request);
+    Task<string> UploadLogoAsync(Guid orgId, Stream fileStream, string fileName);
 }

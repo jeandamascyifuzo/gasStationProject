@@ -24,4 +24,35 @@ public class ApiSettingsService : BaseApiService, IApiSettingsService
 
     public async Task<ApiResponse<bool>> TestEbmConnectionAsync()
         => await PostAsync<bool>("/api/settings/ebm/test");
+
+    public async Task<ApiResponse<string>> UploadLogoAsync(IFormFile file)
+    {
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            var stream = file.OpenReadStream();
+            var fileContent = new StreamContent(stream);
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+            content.Add(fileContent, "file", file.FileName);
+
+            var response = await HttpClient.PostAsync("/api/settings/logo", content);
+            var json = await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = System.Text.Json.JsonSerializer.Deserialize<ApiResponse<string>>(json,
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                return result ?? new ApiResponse<string> { Success = true };
+            }
+
+            return new ApiResponse<string> { Success = false, Message = $"Upload failed: {response.StatusCode}" };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse<string> { Success = false, Message = ex.Message };
+        }
+    }
+
+    public async Task<ApiResponse<string>> GetLogoUrlAsync()
+        => await GetAsync<string>("/api/settings/logo");
 }
