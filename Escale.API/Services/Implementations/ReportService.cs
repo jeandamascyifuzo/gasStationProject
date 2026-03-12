@@ -202,11 +202,11 @@ public class ReportService : IReportService
             .ToListAsync();
 
         var sb = new StringBuilder();
-        sb.AppendLine("ReceiptNumber,Date,Station,FuelType,Liters,PricePerLiter,Subtotal,VAT,Total,PaymentMethod,Cashier,Customer");
+        sb.AppendLine("ReceiptNumber,Date,Station,FuelType,Liters,PricePerLiter,Subtotal,VAT,Total,PaymentMethod,Cashier,Customer,EBMSent,EBMSdcId,EBMReceiptNumber,EBMInvoiceLink");
 
         foreach (var t in transactions)
         {
-            sb.AppendLine($"{t.ReceiptNumber},{t.TransactionDate:yyyy-MM-dd HH:mm},{t.Station.Name},{t.FuelType.Name},{t.Liters},{t.PricePerLiter},{t.Subtotal},{t.VATAmount},{t.Total},{t.PaymentMethod},{t.Cashier.FullName},{t.CustomerName ?? "Walk-in"}");
+            sb.AppendLine($"{t.ReceiptNumber},{t.TransactionDate:yyyy-MM-dd HH:mm},{t.Station.Name},{t.FuelType.Name},{t.Liters},{t.PricePerLiter},{t.Subtotal},{t.VATAmount},{t.Total},{t.PaymentMethod},{t.Cashier.FullName},{t.CustomerName ?? "Walk-in"},{(t.EBMSent ? "Yes" : "No")},{t.EBMSdcId ?? ""},{t.EBMReceiptNumber ?? ""},{t.EBMCode ?? ""}");
         }
 
         return Encoding.UTF8.GetBytes(sb.ToString());

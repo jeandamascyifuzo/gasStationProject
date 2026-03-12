@@ -58,6 +58,17 @@ public static class DatabaseSeeder
             CreatedAt = now
         });
 
+        foreach (var (name, displayName, sortOrder) in new[] {
+            ("Cash","Cash",1), ("MobileMoney","Mobile Money",2), ("Card","Card",3), ("Credit","Credit",4) })
+        {
+            context.OrganizationPaymentMethods.Add(new OrganizationPaymentMethod
+            {
+                Id = Guid.NewGuid(), OrganizationId = systemOrgId,
+                Name = name, DisplayName = displayName,
+                IsEnabled = true, SortOrder = sortOrder, CreatedAt = now
+            });
+        }
+
         // ── Organization 1: Escale Petroleum ──
         await SeedOrganization(context, now, new OrgSeedData
         {
@@ -462,6 +473,28 @@ public static class DatabaseSeeder
             CriticalStockThreshold = 0.10m,
             CreatedAt = now
         });
+
+        // Default payment methods — one record per payment type per org
+        var defaultPaymentMethods = new[]
+        {
+            ("Cash",        "Cash",         1),
+            ("MobileMoney", "Mobile Money",  2),
+            ("Card",        "Card",          3),
+            ("Credit",      "Credit",        4)
+        };
+        foreach (var (name, displayName, sortOrder) in defaultPaymentMethods)
+        {
+            context.OrganizationPaymentMethods.Add(new OrganizationPaymentMethod
+            {
+                Id = Guid.NewGuid(),
+                OrganizationId = orgId,
+                Name = name,
+                DisplayName = displayName,
+                IsEnabled = true,
+                SortOrder = sortOrder,
+                CreatedAt = now
+            });
+        }
 
         return Task.CompletedTask;
     }

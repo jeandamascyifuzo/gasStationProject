@@ -166,6 +166,8 @@ public class SaleService : ISaleService
             // Check org-level EBM settings — cached to avoid DB hit per sale
             bool ebmSent = false;
             string? ebmReceiptUrl = null;
+            string? ebmSdcId = null;
+            string? ebmReceiptNumber = null;
 
             var orgSettings = await GetCachedOrgSettingsAsync(orgId);
 
@@ -187,7 +189,9 @@ public class SaleService : ISaleService
                 }
 
                 ebmSent = true;
-                ebmReceiptUrl = ebmResult.ReceiptCode;
+                ebmReceiptUrl = ebmResult.InvoiceLink ?? ebmResult.ReceiptCode;
+                ebmSdcId = ebmResult.SdcId;
+                ebmReceiptNumber = ebmResult.EBMReceiptNumber;
             }
 
             Console.WriteLine($"[Sale Timing] EBM receipt: {stepWatch.ElapsedMilliseconds}ms");
@@ -216,6 +220,8 @@ public class SaleService : ISaleService
                 ShiftId = activeShift?.Id,
                 EBMSent = ebmSent,
                 EBMCode = ebmReceiptUrl,
+                EBMSdcId = ebmSdcId,
+                EBMReceiptNumber = ebmReceiptNumber,
                 EBMSentAt = ebmSent ? DateTime.UtcNow : null,
                 SubscriptionId = subscriptionId,
                 SubscriptionDeduction = subscriptionDeduction
@@ -263,6 +269,8 @@ public class SaleService : ISaleService
                     Id = transaction.Id,
                     ReceiptNumber = receiptNumber,
                     EBMReceiptUrl = ebmReceiptUrl,
+                    EBMSdcId = ebmSdcId,
+                    EBMReceiptNumber = ebmReceiptNumber,
                     TransactionDate = transaction.TransactionDate,
                     FuelType = fuelType.Name,
                     Liters = request.Liters,

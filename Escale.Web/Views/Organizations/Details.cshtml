@@ -433,9 +433,8 @@
         <div class="card shadow-sm">
             <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <h5 class="mb-0"><i class="fas fa-history me-2"></i>Audit Log</h5>
-                <div class="d-flex gap-2 flex-wrap">
-                    <input type="text" id="auditSearch" class="form-control form-control-sm" placeholder="Search..." style="width: 160px;" />
-                    <select id="auditAction" class="form-select form-select-sm" style="width: 140px;">
+                <div class="d-flex gap-2 flex-wrap align-items-center">
+                    <select id="auditAction" class="form-select form-select-sm" style="width: 150px;">
                         <option value="">All Actions</option>
                         <option value="Login">Login</option>
                         <option value="LoginFailed">Login Failed</option>
@@ -443,7 +442,7 @@
                         <option value="Update">Update</option>
                         <option value="Delete">Delete</option>
                     </select>
-                    <select id="auditEntity" class="form-select form-select-sm" style="width: 140px;">
+                    <select id="auditEntity" class="form-select form-select-sm" style="width: 150px;">
                         <option value="">All Entities</option>
                         <option value="User">User</option>
                         <option value="Station">Station</option>
@@ -455,10 +454,16 @@
                         <option value="OrganizationSettings">Settings</option>
                         <option value="Subscription">Subscription</option>
                     </select>
-                    <input type="date" id="auditStartDate" class="form-control form-control-sm" style="width: 140px;" />
-                    <input type="date" id="auditEndDate" class="form-control form-control-sm" style="width: 140px;" />
-                    <button class="btn btn-sm btn-primary" id="auditFilterBtn" onclick="loadAuditLogs(1)">
-                        <i class="fas fa-filter me-1"></i>Filter
+                    <input type="date" id="auditStartDate" class="form-control form-control-sm" style="width: 140px;" title="From date" />
+                    <input type="date" id="auditEndDate" class="form-control form-control-sm" style="width: 140px;" title="To date" />
+                    <select id="auditPageSize" class="form-select form-select-sm" style="width: 90px;" title="Rows per page">
+                        <option value="10">10</option>
+                        <option value="25" selected>25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                    <button class="btn btn-sm btn-outline-secondary" id="auditClearBtn" onclick="clearAuditFilters()" title="Clear all filters">
+                        <i class="fas fa-times me-1"></i>Clear
                     </button>
                 </div>
             </div>
@@ -469,10 +474,12 @@
                         <p class="text-muted">Loading audit logs...</p>
                     </div>
                 </div>
-                <nav id="auditPagination" class="d-flex justify-content-between align-items-center mt-3" style="display: none !important;">
-                    <small class="text-muted" id="auditPaginationInfo"></small>
-                    <ul class="pagination pagination-sm mb-0" id="auditPaginationLinks"></ul>
-                </nav>
+                <div id="auditPaginationBar" class="d-none border-top pt-3 mt-2">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <small class="text-muted" id="auditPaginationInfo"></small>
+                        <ul class="pagination pagination-sm mb-0" id="auditPaginationLinks"></ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -631,6 +638,50 @@
     </div>
 </div>
 
+<!-- Audit Log Detail Modal -->
+<div class="modal fade" id="auditDetailModal" tabindex="-1" aria-labelledby="auditDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title" id="auditDetailModalLabel">
+                    <i class="fas fa-history me-2 text-primary"></i>Audit Log Detail
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-6">
+                        <label class="form-label text-muted small mb-1">Timestamp</label>
+                        <div class="fw-semibold" id="auditDetailTimestamp"></div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label text-muted small mb-1">User</label>
+                        <div class="fw-semibold" id="auditDetailUser"></div>
+                    </div>
+                    <div class="col-sm-4">
+                        <label class="form-label text-muted small mb-1">Action</label>
+                        <div id="auditDetailAction"></div>
+                    </div>
+                    <div class="col-sm-4">
+                        <label class="form-label text-muted small mb-1">Entity</label>
+                        <div id="auditDetailEntity"></div>
+                    </div>
+                    <div class="col-sm-4">
+                        <label class="form-label text-muted small mb-1">IP Address</label>
+                        <div class="text-muted" id="auditDetailIp"></div>
+                    </div>
+                </div>
+                <hr class="my-2" />
+                <label class="form-label text-muted small mb-2">Details</label>
+                <div id="auditDetailBody" class="overflow-auto" style="max-height: 350px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Restore Fuel Type Modal -->
 <div class="modal fade" id="restoreFuelModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
@@ -706,13 +757,16 @@
     // ===== Audit Log =====
     var auditCurrentPage = 1;
     var auditLoaded = false;
+    var auditLogCache = {};
 
-    // Default date range: last 30 days
+    // Default to current week (Monday → today)
     (function() {
-        var now = new Date();
-        var monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        document.getElementById('auditStartDate').value = monthAgo.toISOString().split('T')[0];
-        document.getElementById('auditEndDate').value = now.toISOString().split('T')[0];
+        var today = new Date();
+        var day = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+        var monday = new Date(today);
+        monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
+        document.getElementById('auditStartDate').value = monday.toISOString().split('T')[0];
+        document.getElementById('auditEndDate').value = today.toISOString().split('T')[0];
     })();
 
     // Load audit logs when the tab is shown
@@ -735,12 +789,11 @@
         var params = {
             orgId: '@Model.Organization.Id',
             page: page,
-            pageSize: 50,
+            pageSize: parseInt($('#auditPageSize').val()) || 25,
             action: $('#auditAction').val(),
             entityType: $('#auditEntity').val(),
             startDate: $('#auditStartDate').val(),
-            endDate: $('#auditEndDate').val(),
-            search: $('#auditSearch').val()
+            endDate: $('#auditEndDate').val()
         };
 
         console.log('Loading audit logs:', url, params);
@@ -758,7 +811,7 @@
     function renderAuditLogs(data) {
         if (!data || !data.Items || data.Items.length === 0) {
             $('#auditLogsContainer').html('<div class="text-center py-5"><i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i><p class="text-muted">No audit log entries found.</p></div>');
-            $('#auditPagination').hide();
+            $('#auditPaginationBar').addClass('d-none');
             return;
         }
 
@@ -771,9 +824,9 @@
         };
 
         var html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0">';
-        html += '<thead><tr><th style="width:160px">Timestamp</th><th>User</th><th>Action</th><th>Entity</th><th>IP Address</th><th>Details</th></tr></thead><tbody>';
+        html += '<thead><tr><th style="width:160px">Timestamp</th><th>User</th><th>Action</th><th>Entity</th><th>IP Address</th><th>Details</th><th style="width:50px"></th></tr></thead><tbody>';
 
-        data.Items.forEach(function(log) {
+        data.Items.forEach(function(log, idx) {
             var ts = new Date(log.Timestamp);
             var timeStr = ts.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) + ' ' + ts.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
             var details = '';
@@ -794,6 +847,8 @@
                 }
             }
 
+            auditLogCache[idx] = log;
+
             html += '<tr>';
             html += '<td><small>' + timeStr + '</small></td>';
             html += '<td>' + escapeHtml(log.UserName || 'System') + '</td>';
@@ -801,30 +856,87 @@
             html += '<td><small>' + escapeHtml(log.EntityType || '-') + '</small></td>';
             html += '<td><small class="text-muted">' + escapeHtml(log.IpAddress || '-') + '</small></td>';
             html += '<td>' + details + '</td>';
+            html += '<td><button class="btn btn-sm btn-outline-info py-0 px-1" title="View full details" onclick="viewAuditDetail(' + idx + ')"><i class="fas fa-eye"></i></button></td>';
             html += '</tr>';
         });
 
         html += '</tbody></table></div>';
         $('#auditLogsContainer').html(html);
 
-        // Pagination
-        if (data.TotalPages > 1) {
-            var infoText = 'Showing ' + ((data.Page - 1) * data.PageSize + 1) + '-' + Math.min(data.Page * data.PageSize, data.TotalCount) + ' of ' + data.TotalCount;
-            $('#auditPaginationInfo').text(infoText);
+        // Pagination bar — always show record count
+        var from = (data.Page - 1) * data.PageSize + 1;
+        var to   = Math.min(data.Page * data.PageSize, data.TotalCount);
+        $('#auditPaginationInfo').text('Showing ' + from + '–' + to + ' of ' + data.TotalCount + ' records');
 
+        if (data.TotalPages > 1) {
             var pHtml = '';
-            pHtml += '<li class="page-item ' + (data.Page <= 1 ? 'disabled' : '') + '"><a class="page-link" href="#" onclick="loadAuditLogs(' + (data.Page - 1) + ');return false;">&laquo;</a></li>';
+            // First
+            pHtml += '<li class="page-item ' + (data.Page <= 1 ? 'disabled' : '') + '"><a class="page-link" href="#" onclick="loadAuditLogs(1);return false;" title="First">&laquo;&laquo;</a></li>';
+            // Prev
+            pHtml += '<li class="page-item ' + (data.Page <= 1 ? 'disabled' : '') + '"><a class="page-link" href="#" onclick="loadAuditLogs(' + (data.Page - 1) + ');return false;" title="Previous">&laquo;</a></li>';
+            // Numbered pages (window of 5)
             var startP = Math.max(1, data.Page - 2);
-            var endP = Math.min(data.TotalPages, data.Page + 2);
+            var endP   = Math.min(data.TotalPages, startP + 4);
+            startP = Math.max(1, endP - 4); // re-anchor if near the end
             for (var i = startP; i <= endP; i++) {
                 pHtml += '<li class="page-item ' + (i === data.Page ? 'active' : '') + '"><a class="page-link" href="#" onclick="loadAuditLogs(' + i + ');return false;">' + i + '</a></li>';
             }
-            pHtml += '<li class="page-item ' + (data.Page >= data.TotalPages ? 'disabled' : '') + '"><a class="page-link" href="#" onclick="loadAuditLogs(' + (data.Page + 1) + ');return false;">&raquo;</a></li>';
+            // Next
+            pHtml += '<li class="page-item ' + (data.Page >= data.TotalPages ? 'disabled' : '') + '"><a class="page-link" href="#" onclick="loadAuditLogs(' + (data.Page + 1) + ');return false;" title="Next">&raquo;</a></li>';
+            // Last
+            pHtml += '<li class="page-item ' + (data.Page >= data.TotalPages ? 'disabled' : '') + '"><a class="page-link" href="#" onclick="loadAuditLogs(' + data.TotalPages + ');return false;" title="Last">&raquo;&raquo;</a></li>';
             $('#auditPaginationLinks').html(pHtml);
-            $('#auditPagination').css('display', 'flex');
         } else {
-            $('#auditPagination').hide();
+            $('#auditPaginationLinks').html('');
         }
+
+        $('#auditPaginationBar').removeClass('d-none');
+    }
+
+    function viewAuditDetail(idx) {
+        var log = auditLogCache[idx];
+        if (!log) return;
+
+        var ts = new Date(log.Timestamp);
+        var timeStr = ts.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) + ' ' + ts.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+        var actionColors = { 'Login':'success','LoginFailed':'danger','Create':'primary','Update':'warning','Delete':'danger' };
+        var badgeClass = actionColors[log.Action] || 'secondary';
+        var textClass = log.Action === 'Update' ? ' text-dark' : '';
+
+        var detailsHtml = '<em class="text-muted">No details recorded.</em>';
+        if (log.Details) {
+            try {
+                var parsed = JSON.parse(log.Details);
+                detailsHtml = '<table class="table table-sm table-bordered mb-0">';
+                Object.keys(parsed).forEach(function(k) {
+                    var v = parsed[k];
+                    var valHtml;
+                    if (typeof v === 'object' && v !== null && v.Old !== undefined) {
+                        valHtml = '<span class="text-danger text-decoration-line-through me-1">' + escapeHtml(String(v.Old)) + '</span>'
+                                + '<i class="fas fa-arrow-right text-muted mx-1"></i>'
+                                + '<span class="text-success">' + escapeHtml(String(v.New)) + '</span>';
+                    } else if (typeof v === 'object' && v !== null) {
+                        valHtml = '<pre class="mb-0 small">' + escapeHtml(JSON.stringify(v, null, 2)) + '</pre>';
+                    } else {
+                        valHtml = escapeHtml(String(v));
+                    }
+                    detailsHtml += '<tr><th class="text-nowrap bg-light" style="width:35%">' + escapeHtml(k) + '</th><td>' + valHtml + '</td></tr>';
+                });
+                detailsHtml += '</table>';
+            } catch(e) {
+                detailsHtml = '<pre class="mb-0 small">' + escapeHtml(log.Details) + '</pre>';
+            }
+        }
+
+        document.getElementById('auditDetailTimestamp').textContent = timeStr;
+        document.getElementById('auditDetailUser').textContent = log.UserName || 'System';
+        document.getElementById('auditDetailAction').innerHTML = '<span class="badge bg-' + badgeClass + textClass + '">' + escapeHtml(log.Action) + '</span>';
+        document.getElementById('auditDetailEntity').textContent = (log.EntityType || '-') + (log.EntityId ? ' #' + log.EntityId : '');
+        document.getElementById('auditDetailIp').textContent = log.IpAddress || '-';
+        document.getElementById('auditDetailBody').innerHTML = detailsHtml;
+
+        new bootstrap.Modal(document.getElementById('auditDetailModal')).show();
     }
 
     function escapeHtml(str) {
@@ -834,9 +946,22 @@
         return div.innerHTML;
     }
 
-    // Enter key in search box triggers filter
-    $('#auditSearch').on('keypress', function(e) {
-        if (e.which === 13) loadAuditLogs(1);
+    // Dropdowns and date pickers fire immediately on change
+    $('#auditAction, #auditEntity, #auditStartDate, #auditEndDate, #auditPageSize').on('change', function() {
+        loadAuditLogs(1);
     });
+
+    function clearAuditFilters() {
+        $('#auditAction').val('');
+        $('#auditEntity').val('');
+        $('#auditPageSize').val('50');
+        var today = new Date();
+        var day = today.getDay();
+        var monday = new Date(today);
+        monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
+        document.getElementById('auditStartDate').value = monday.toISOString().split('T')[0];
+        document.getElementById('auditEndDate').value = today.toISOString().split('T')[0];
+        loadAuditLogs(1);
+    }
 </script>
 }

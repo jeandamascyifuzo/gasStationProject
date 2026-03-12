@@ -81,7 +81,10 @@
       "Bash(~/.dotnet/tools/dotnet-ef database:*)",
       "Bash(sqlcmd:*)",
       "Bash(echo Token length: ${#TOKEN}:*)",
-      "Bash(tasklist:*)"
+      "Bash(tasklist:*)",
+      "Bash(dotnet:*)",
+      "Read(//c/Users/cyifu/Desktop/project/GasManagement/$USERPROFILE/.dotnet/**)",
+      "Read(//c/Users/cyifu/.dotnet/tools/**)"
     ]
   }
 }

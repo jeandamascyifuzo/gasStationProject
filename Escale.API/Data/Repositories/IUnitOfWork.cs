@@ -18,6 +18,7 @@ public interface IUnitOfWork : IDisposable
     IRepository<Shift> Shifts { get; }
     IRepository<OrganizationSettings> OrganizationSettings { get; }
     IRepository<RefreshToken> RefreshTokens { get; }
+    IRepository<OrganizationPaymentMethod> PaymentMethods { get; }
     EscaleDbContext Context { get; }
     Task<int> SaveChangesAsync();
 }

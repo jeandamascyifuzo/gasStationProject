@@ -55,4 +55,10 @@ public class ApiSettingsService : BaseApiService, IApiSettingsService
 
     public async Task<ApiResponse<string>> GetLogoUrlAsync()
         => await GetAsync<string>("/api/settings/logo");
+
+    public async Task<ApiResponse<List<PaymentMethodSettingDto>>> GetPaymentMethodsAsync()
+        => await GetAsync<List<PaymentMethodSettingDto>>("/api/settings/payment-methods");
+
+    public async Task<ApiResponse<PaymentMethodSettingDto>> UpdatePaymentMethodAsync(Guid id, UpdatePaymentMethodDto request)
+        => await PutAsync<PaymentMethodSettingDto>($"/api/settings/payment-methods/{id}", request);
 }

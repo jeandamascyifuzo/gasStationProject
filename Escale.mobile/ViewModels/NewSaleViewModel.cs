@@ -13,6 +13,7 @@ public partial class NewSaleViewModel : ObservableObject
     private Action<string>? _dataChangedHandler;
     private bool _isUpdating;
     private bool _fuelTypesLoaded;
+    private bool _paymentMethodsLoaded;
 
     [ObservableProperty]
     private ObservableCollection<FuelTypeOption> fuelTypes = new();
@@ -30,12 +31,12 @@ public partial class NewSaleViewModel : ObservableObject
     private string selectedPaymentMethod = "Cash";
 
     [ObservableProperty]
+    private PaymentMethodOption? selectedPaymentMethodOption;
+
+    [ObservableProperty]
     private bool isBusy;
 
-    public ObservableCollection<string> PaymentMethods { get; } = new()
-    {
-        "Cash", "MobileMoney", "Card", "Credit"
-    };
+    public ObservableCollection<PaymentMethodOption> PaymentMethods { get; } = new();
 
     public NewSaleViewModel(ApiService apiService, SignalRService signalRService)
     {
@@ -77,11 +78,14 @@ public partial class NewSaleViewModel : ObservableObject
         AppState.Instance.StartNewSale();
         ResetForm();
 
-        // Load fuel types if not yet loaded
+        // Load payment methods and fuel types if not yet loaded
+        var tasks = new List<Task>();
+        if (!_paymentMethodsLoaded)
+            tasks.Add(LoadPaymentMethodsAsync());
         if (!_fuelTypesLoaded)
-        {
-            await LoadFuelTypesAsync();
-        }
+            tasks.Add(LoadFuelTypesAsync());
+        if (tasks.Count > 0)
+            await Task.WhenAll(tasks);
     }
 
     private void ResetForm()
@@ -90,8 +94,14 @@ public partial class NewSaleViewModel : ObservableObject
         SelectedFuelType = null;
         AmountRWFText = string.Empty;
         LitersText = string.Empty;
-        SelectedPaymentMethod = "Cash";
+        SelectedPaymentMethodOption = PaymentMethods.FirstOrDefault(p => p.Name == "Cash")
+            ?? PaymentMethods.FirstOrDefault();
         _isUpdating = false;
+    }
+
+    partial void OnSelectedPaymentMethodOptionChanged(PaymentMethodOption? value)
+    {
+        SelectedPaymentMethod = value?.Name ?? string.Empty;
     }
 
     partial void OnSelectedFuelTypeChanged(FuelTypeOption? value)
@@ -159,6 +169,27 @@ public partial class NewSaleViewModel : ObservableObject
         finally
         {
             _isUpdating = false;
+        }
+    }
+
+    private async Task LoadPaymentMethodsAsync()
+    {
+        try
+        {
+            var methods = await _apiService.GetEnabledPaymentMethodsAsync();
+            PaymentMethods.Clear();
+            foreach (var m in methods)
+                PaymentMethods.Add(m);
+
+            _paymentMethodsLoaded = PaymentMethods.Count > 0;
+
+            // Select Cash by default, or the first available method
+            SelectedPaymentMethodOption = PaymentMethods.FirstOrDefault(p => p.Name == "Cash")
+                ?? PaymentMethods.FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading payment methods: {ex}");
         }
     }
 

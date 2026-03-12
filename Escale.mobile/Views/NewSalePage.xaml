@@ -90,7 +90,8 @@
                     BackgroundColor="White"
                     Padding="15,5">
                 <Picker ItemsSource="{Binding PaymentMethods}"
-                        SelectedItem="{Binding SelectedPaymentMethod}"
+                        SelectedItem="{Binding SelectedPaymentMethodOption}"
+                        ItemDisplayBinding="{Binding DisplayName}"
                         Title="Select Payment Method"
                         FontSize="16"
                         TextColor="#1E293B"/>

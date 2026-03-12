@@ -90,6 +90,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
         services.AddScoped<IAuditLogger, AuditLogger>();
+        services.AddHostedService<AuditLogCleanupService>();
 
         return services;
     }

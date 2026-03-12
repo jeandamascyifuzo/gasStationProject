@@ -1,5 +1,6 @@
 using AutoMapper;
 using Escale.API.Data.Repositories;
+using Escale.API.Domain.Entities;
 using Escale.API.DTOs.Settings;
 using Escale.API.Hubs;
 using Escale.API.Services.Interfaces;
@@ -129,5 +130,81 @@ public class SettingsService : ISettingsService
     {
         var orgId = _currentUser.OrganizationId!.Value;
         return await _ebmService.TestConnectionAsync(orgId);
+    }
+
+    public async Task<List<PaymentMethodSettingDto>> GetPaymentMethodsAsync()
+    {
+        var orgId = _currentUser.OrganizationId!.Value;
+        var methods = await _unitOfWork.PaymentMethods.Query()
+            .Where(p => p.OrganizationId == orgId)
+            .OrderBy(p => p.SortOrder)
+            .ToListAsync();
+
+        // Auto-create defaults if this org has never had payment methods seeded
+        if (methods.Count == 0)
+        {
+            var now = DateTime.UtcNow;
+            var defaults = new[]
+            {
+                ("Cash",        "Cash",         1),
+                ("MobileMoney", "Mobile Money",  2),
+                ("Card",        "Card",          3),
+                ("Credit",      "Credit",        4),
+            };
+            foreach (var (name, displayName, sortOrder) in defaults)
+            {
+                var m = new OrganizationPaymentMethod
+                {
+                    Id = Guid.NewGuid(),
+                    OrganizationId = orgId,
+                    Name = name,
+                    DisplayName = displayName,
+                    IsEnabled = true,
+                    SortOrder = sortOrder,
+                    CreatedAt = now
+                };
+                await _unitOfWork.PaymentMethods.AddAsync(m);
+                methods.Add(m);
+            }
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        return methods.Select(p => new PaymentMethodSettingDto
+        {
+            Id = p.Id,
+            Name = p.Name,
+            DisplayName = p.DisplayName,
+            IsEnabled = p.IsEnabled,
+            SortOrder = p.SortOrder
+        }).ToList();
+    }
+
+    public async Task<PaymentMethodSettingDto> UpdatePaymentMethodAsync(Guid id, UpdatePaymentMethodDto request)
+    {
+        var orgId = _currentUser.OrganizationId!.Value;
+        var method = await _unitOfWork.PaymentMethods.Query()
+            .FirstOrDefaultAsync(p => p.Id == id && p.OrganizationId == orgId)
+            ?? throw new KeyNotFoundException("Payment method not found");
+
+        method.IsEnabled = request.IsEnabled;
+        if (!string.IsNullOrWhiteSpace(request.DisplayName))
+            method.DisplayName = request.DisplayName.Trim();
+
+        _unitOfWork.PaymentMethods.Update(method);
+        await _unitOfWork.SaveChangesAsync();
+
+        await _audit.LogAsync("PaymentMethodUpdate", "OrganizationPaymentMethod", id.ToString(), new
+        {
+            Name = method.Name, IsEnabled = request.IsEnabled, DisplayName = method.DisplayName
+        });
+
+        return new PaymentMethodSettingDto
+        {
+            Id = method.Id,
+            Name = method.Name,
+            DisplayName = method.DisplayName,
+            IsEnabled = method.IsEnabled,
+            SortOrder = method.SortOrder
+        };
     }
 }

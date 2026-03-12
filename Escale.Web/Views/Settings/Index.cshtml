@@ -30,6 +30,11 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link text-white" id="payment-tab" data-bs-toggle="tab" data-bs-target="#payment" type="button" role="tab">
+                    <i class="fas fa-credit-card me-2"></i>Payment Methods
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link text-white" id="ebm-tab" data-bs-toggle="tab" data-bs-target="#ebm" type="button" role="tab">
                     <i class="fas fa-plug me-2"></i>EBM Settings
                 </button>
@@ -180,6 +185,60 @@
                     </div>
                 </div>
 
+                <!-- Payment Methods Tab -->
+                <div class="tab-pane fade" id="payment" role="tabpanel">
+                    <h5 class="mb-1">Payment Methods</h5>
+                    <p class="text-muted mb-4">Enable or disable payment methods available to cashiers when processing sales.</p>
+
+                    @if (!Model.PaymentMethods.Any())
+                    {
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            No payment methods found. They are created automatically — try refreshing the page.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row">
+                            @foreach (var pm in Model.PaymentMethods.OrderBy(p => p.SortOrder))
+                            {
+                                <div class="col-md-6 col-lg-4 mb-3">
+                                    <div class="card h-100 border @(pm.IsEnabled ? "border-success" : "border-secondary")" id="pm-card-@pm.Id">
+                                        <div class="card-body d-flex align-items-center gap-3">
+                                            <div class="fs-3 text-@(pm.IsEnabled ? "success" : "secondary")">
+                                                @if (pm.Name == "Cash") { <i class="fas fa-money-bill-wave"></i> }
+                                                else if (pm.Name == "MobileMoney") { <i class="fas fa-mobile-alt"></i> }
+                                                else if (pm.Name == "Card") { <i class="fas fa-credit-card"></i> }
+                                                else if (pm.Name == "Credit") { <i class="fas fa-hand-holding-usd"></i> }
+                                                else { <i class="fas fa-wallet"></i> }
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <div class="fw-semibold" id="pm-name-@pm.Id">@pm.DisplayName</div>
+                                                <small class="text-muted">@pm.Name</small>
+                                            </div>
+                                            <div class="form-check form-switch mb-0">
+                                                <input class="form-check-input" type="checkbox" role="switch"
+                                                       id="pm-toggle-@pm.Id"
+                                                       @(pm.IsEnabled ? "checked" : "")
+                                                       onchange="togglePaymentMethod('@pm.Id', '@pm.DisplayName', this.checked)" />
+                                            </div>
+                                        </div>
+                                        <div class="card-footer bg-transparent py-2 px-3">
+                                            <span class="badge @(pm.IsEnabled ? "bg-success" : "bg-secondary")" id="pm-badge-@pm.Id">
+                                                @(pm.IsEnabled ? "Enabled" : "Disabled")
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <div class="alert alert-info mt-2">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Changes take effect immediately. Cashiers will only see enabled payment methods when processing sales.
+                        </div>
+                    }
+                </div>
+
                 <!-- EBM Settings Tab -->
                 <div class="tab-pane fade" id="ebm" role="tabpanel">
                     <h5 class="mb-3">
@@ -286,15 +345,13 @@
 
         // Show/hide save button based on active tab
         settingsTabs.addEventListener('shown.bs.tab', function (event) {
-            if (event.target.id === 'ebm-tab' || event.target.id === 'branding-tab') {
-                saveSection.style.display = 'none';
-            } else {
-                saveSection.style.display = '';
-            }
+            var noSaveTabs = ['ebm-tab', 'branding-tab', 'payment-tab'];
+            saveSection.style.display = noSaveTabs.includes(event.target.id) ? 'none' : '';
         });
 
         // Logo preview
         var logoInput = document.getElementById('logoFile');
+
         if (logoInput) {
             logoInput.addEventListener('change', function (e) {
                 var file = e.target.files[0];
@@ -313,5 +370,84 @@
             });
         }
     });
+
+    function showConfirm(title, bodyHtml, confirmText, confirmClass) {
+        return new Promise(resolve => {
+            const modalEl = document.getElementById('pmConfirmModal');
+            document.getElementById('pmConfirmTitle').textContent = title;
+            document.getElementById('pmConfirmBody').innerHTML = bodyHtml;
+            const btn = document.getElementById('pmConfirmBtn');
+            btn.textContent = confirmText;
+            btn.className = 'btn ' + confirmClass;
+
+            const modal = new bootstrap.Modal(modalEl);
+            let resolved = false;
+
+            btn.onclick = () => { resolved = true; modal.hide(); resolve(true); };
+            modalEl.addEventListener('hidden.bs.modal', () => { if (!resolved) resolve(false); }, { once: true });
+            modal.show();
+        });
+    }
+
+    async function togglePaymentMethod(id, displayName, isEnabled) {
+        const toggle = document.getElementById('pm-toggle-' + id);
+        const card = document.getElementById('pm-card-' + id);
+        const badge = document.getElementById('pm-badge-' + id);
+
+        const action = isEnabled ? 'Enable' : 'Disable';
+        const confirmed = await showConfirm(
+            action + ' ' + displayName + '?',
+            'Cashiers will ' + (isEnabled ? 'be able to use' : 'no longer see') + ' <strong>' + displayName + '</strong> when processing sales.',
+            action,
+            isEnabled ? 'btn-success' : 'btn-danger'
+        );
+        if (!confirmed) {
+            toggle.checked = !isEnabled;
+            return;
+        }
+
+        toggle.disabled = true;
+
+        try {
+            const response = await fetch('@Url.Action("TogglePaymentMethod", "Settings")', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '' },
+                body: new URLSearchParams({ id, isEnabled, displayName })
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                badge.textContent = isEnabled ? 'Enabled' : 'Disabled';
+                badge.className = 'badge ' + (isEnabled ? 'bg-success' : 'bg-secondary');
+                card.className = 'card h-100 border ' + (isEnabled ? 'border-success' : 'border-secondary');
+                showToast(displayName + (isEnabled ? ' enabled' : ' disabled'), 'success');
+            } else {
+                toggle.checked = !isEnabled;
+                showToast(result.message || 'Update failed', 'error');
+            }
+        } catch {
+            toggle.checked = !isEnabled;
+            showToast('Request failed', 'error');
+        } finally {
+            toggle.disabled = false;
+        }
+    }
 </script>
+
+<!-- Payment Method Confirm Modal -->
+<div class="modal fade" id="pmConfirmModal" tabindex="-1" aria-labelledby="pmConfirmTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pmConfirmTitle"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="pmConfirmBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn" id="pmConfirmBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
 }

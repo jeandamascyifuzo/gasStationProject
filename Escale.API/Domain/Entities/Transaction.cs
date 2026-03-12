@@ -29,6 +29,8 @@ public class Transaction : TenantEntity
     public Shift? Shift { get; set; }
     public bool EBMSent { get; set; }
     public string? EBMCode { get; set; }
+    public string? EBMSdcId { get; set; }
+    public string? EBMReceiptNumber { get; set; }
     public int EBMRetryCount { get; set; }
     public DateTime? EBMSentAt { get; set; }
     public string? EBMErrorMessage { get; set; }

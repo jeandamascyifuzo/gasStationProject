@@ -14,6 +14,8 @@ namespace Escale.Web.Models
         public string PaymentMethod { get; set; } = string.Empty;
         public string? CustomerName { get; set; }
         public string? EBMCode { get; set; }
+        public string? EBMSdcId { get; set; }
+        public string? EBMReceiptNumber { get; set; }
         public bool EBMSent { get; set; }
         public string CashierName { get; set; } = string.Empty;
         public DateTime TransactionDate { get; set; }

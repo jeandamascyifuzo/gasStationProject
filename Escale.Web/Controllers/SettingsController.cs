@@ -23,14 +23,16 @@ namespace Escale.Web.Controllers
             var ebmConfigTask = _settingsService.GetEbmConfigAsync();
             var fuelTypesTask = _fuelTypeService.GetAllAsync();
             var logoTask = _settingsService.GetLogoUrlAsync();
+            var paymentMethodsTask = _settingsService.GetPaymentMethodsAsync();
 
-            await Task.WhenAll(settingsTask, ebmTask, ebmConfigTask, fuelTypesTask, logoTask);
+            await Task.WhenAll(settingsTask, ebmTask, ebmConfigTask, fuelTypesTask, logoTask, paymentMethodsTask);
 
             var settings = settingsTask.Result;
             var ebm = ebmTask.Result;
             var ebmConfig = ebmConfigTask.Result;
             var fuelTypes = fuelTypesTask.Result;
             var logo = logoTask.Result;
+            var paymentMethods = paymentMethodsTask.Result;
 
             var s = settings.Data ?? new AppSettingsResponseDto();
             var ec = ebmConfig.Data;
@@ -65,7 +67,8 @@ namespace Escale.Web.Controllers
                     Name = f.Name,
                     PricePerLiter = f.PricePerLiter,
                     IsActive = f.IsActive
-                }).ToList() ?? new()
+                }).ToList() ?? new(),
+                PaymentMethods = paymentMethods.Data ?? new()
             };
 
             return View(model);
@@ -142,6 +145,14 @@ namespace Escale.Web.Controllers
             }
 
             return RedirectToAction("Index");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> TogglePaymentMethod(Guid id, bool isEnabled, string? displayName)
+        {
+            var request = new UpdatePaymentMethodDto { IsEnabled = isEnabled, DisplayName = displayName };
+            var result = await _settingsService.UpdatePaymentMethodAsync(id, request);
+            return Json(new { success = result.Success, message = result.Message });
         }
 
         [HttpPost]

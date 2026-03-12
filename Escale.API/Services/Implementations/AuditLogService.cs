@@ -2,16 +2,19 @@ using Escale.API.Data;
 using Escale.API.DTOs.AuditLogs;
 using Escale.API.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Escale.API.Services.Implementations;
 
 public class AuditLogService : IAuditLogService
 {
     private readonly EscaleDbContext _context;
+    private readonly ILogger<AuditLogService> _logger;
 
-    public AuditLogService(EscaleDbContext context)
+    public AuditLogService(EscaleDbContext context, ILogger<AuditLogService> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     public async Task<PagedAuditLogResponseDto> GetAuditLogsAsync(Guid organizationId, AuditLogQueryDto query)
@@ -69,5 +72,36 @@ public class AuditLogService : IAuditLogService
             Page = query.Page,
             PageSize = query.PageSize
         };
+    }
+
+    /// <summary>
+    /// For each organization: if its oldest audit log is more than 6 months old,
+    /// delete all logs older than 3 months for that org.
+    /// </summary>
+    public async Task PurgeOldLogsAsync(CancellationToken cancellationToken = default)
+    {
+        var sixMonthsAgo  = DateTime.UtcNow.AddMonths(-6);
+        var threeMonthsAgo = DateTime.UtcNow.AddMonths(-3);
+
+        // Find orgs that have at least one log older than 6 months
+        var orgIds = await _context.AuditLogs
+            .Where(a => a.Timestamp < sixMonthsAgo)
+            .Select(a => a.OrganizationId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        if (orgIds.Count == 0) return;
+
+        foreach (var orgId in orgIds)
+        {
+            var deleted = await _context.AuditLogs
+                .Where(a => a.OrganizationId == orgId && a.Timestamp < threeMonthsAgo)
+                .ExecuteDeleteAsync(cancellationToken);
+
+            if (deleted > 0)
+                _logger.LogInformation(
+                    "AuditLog purge: deleted {Count} entries older than 3 months for org {OrgId}",
+                    deleted, orgId);
+        }
     }
 }

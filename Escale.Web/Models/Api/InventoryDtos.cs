@@ -14,6 +14,7 @@ public class InventoryItemResponseDto
     public string Status { get; set; } = string.Empty;
     public DateTime? LastRefill { get; set; }
     public DateTime? NextDeliveryDate { get; set; }
+    public decimal? EBMStock { get; set; }
 }
 
 public class RefillRecordResponseDto

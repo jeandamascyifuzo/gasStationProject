@@ -36,5 +36,8 @@ namespace Escale.Web.Models
 
         // Fuel prices from FuelTypes API
         public List<FuelType> FuelTypes { get; set; } = new();
+
+        // Payment methods
+        public List<Api.PaymentMethodSettingDto> PaymentMethods { get; set; } = new();
     }
 }

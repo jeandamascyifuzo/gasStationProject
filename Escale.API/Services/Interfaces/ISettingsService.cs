@@ -10,4 +10,6 @@ public interface ISettingsService
     Task<EbmStatusDto> SyncEbmAsync();
     Task<EbmConfigResponseDto> GetEbmConfigAsync();
     Task<bool> TestEbmConnectionAsync();
+    Task<List<PaymentMethodSettingDto>> GetPaymentMethodsAsync();
+    Task<PaymentMethodSettingDto> UpdatePaymentMethodAsync(Guid id, UpdatePaymentMethodDto request);
 }

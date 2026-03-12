@@ -23,6 +23,9 @@ public class EBMSellResult
 {
     public bool Success { get; set; }
     public string? ReceiptCode { get; set; }
+    public string? InvoiceLink { get; set; }
+    public string? SdcId { get; set; }
+    public string? EBMReceiptNumber { get; set; }
     public string? ErrorMessage { get; set; }
     public string? RawResponse { get; set; }
 }
@@ -107,6 +110,13 @@ public class EBMProductVariant
     public string ProductName { get; set; } = string.Empty;
     public string CategoryName { get; set; } = "Fuel";
     public string BarCode { get; set; } = "BARCODE001";
+}
+
+public class EBMCheckStockResult
+{
+    public bool Success { get; set; }
+    public decimal? Stock { get; set; }
+    public string? ErrorMessage { get; set; }
 }
 
 public class EBMCreateProductResult

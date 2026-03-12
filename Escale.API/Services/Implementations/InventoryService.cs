@@ -43,13 +43,40 @@ public class InventoryService : IInventoryService
             query = query.Where(i => i.StationId == stationId.Value);
 
         var items = await query.OrderBy(i => i.Station.Name).ThenBy(i => i.FuelType.Name).ToListAsync();
+
+        // Fetch EBM stock in parallel — one call per unique variantId
+        var ebmStockByVariant = new Dictionary<string, decimal?>();
+        var orgSettings = await _unitOfWork.OrganizationSettings.Query()
+            .AsNoTracking().FirstOrDefaultAsync(s => s.OrganizationId == orgId);
+
+        if (orgSettings?.EBMEnabled == true)
+        {
+            var uniqueVariants = items
+                .Where(i => !string.IsNullOrEmpty(i.FuelType.EBMVariantId))
+                .Select(i => i.FuelType.EBMVariantId!)
+                .Distinct()
+                .ToList();
+
+            var ebmTasks = uniqueVariants.Select(async variantId =>
+            {
+                var result = await _ebmService.CheckStockAsync(orgId, variantId);
+                return (variantId, result.Success ? result.Stock : null);
+            });
+
+            foreach (var (variantId, stock) in await Task.WhenAll(ebmTasks))
+                ebmStockByVariant[variantId] = stock;
+        }
+
         var dtos = _mapper.Map<List<InventoryItemResponseDto>>(items);
 
-        // Set computed status
-        foreach (var dto in dtos)
+        for (int i = 0; i < dtos.Count; i++)
         {
-            var pct = dto.PercentageFull / 100;
-            dto.Status = pct < 0.10m ? "Critical" : pct < 0.25m ? "Low Stock" : "Normal";
+            var pct = dtos[i].PercentageFull / 100;
+            dtos[i].Status = pct < 0.10m ? "Critical" : pct < 0.25m ? "Low Stock" : "Normal";
+
+            var variantId = items[i].FuelType.EBMVariantId;
+            if (!string.IsNullOrEmpty(variantId) && ebmStockByVariant.TryGetValue(variantId, out var stock))
+                dtos[i].EBMStock = stock;
         }
 
         return dtos;

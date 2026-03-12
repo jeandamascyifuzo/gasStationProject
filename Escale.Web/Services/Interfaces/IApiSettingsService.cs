@@ -12,4 +12,6 @@ public interface IApiSettingsService
     Task<ApiResponse<bool>> TestEbmConnectionAsync();
     Task<ApiResponse<string>> UploadLogoAsync(IFormFile file);
     Task<ApiResponse<string>> GetLogoUrlAsync();
+    Task<ApiResponse<List<PaymentMethodSettingDto>>> GetPaymentMethodsAsync();
+    Task<ApiResponse<PaymentMethodSettingDto>> UpdatePaymentMethodAsync(Guid id, UpdatePaymentMethodDto request);
 }

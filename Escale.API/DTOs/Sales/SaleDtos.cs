@@ -33,6 +33,8 @@ public class CompletedSaleDto
     public Guid Id { get; set; }
     public string ReceiptNumber { get; set; } = string.Empty;
     public string? EBMReceiptUrl { get; set; }
+    public string? EBMSdcId { get; set; }
+    public string? EBMReceiptNumber { get; set; }
     public DateTime TransactionDate { get; set; }
     public string FuelType { get; set; } = string.Empty;
     public decimal Liters { get; set; }

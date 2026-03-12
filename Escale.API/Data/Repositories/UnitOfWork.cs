@@ -19,6 +19,7 @@ public class UnitOfWork : IUnitOfWork
     private IRepository<Shift>? _shifts;
     private IRepository<OrganizationSettings>? _organizationSettings;
     private IRepository<RefreshToken>? _refreshTokens;
+    private IRepository<OrganizationPaymentMethod>? _paymentMethods;
 
     public UnitOfWork(EscaleDbContext context)
     {
@@ -39,6 +40,7 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<Shift> Shifts => _shifts ??= new Repository<Shift>(_context);
     public IRepository<OrganizationSettings> OrganizationSettings => _organizationSettings ??= new Repository<OrganizationSettings>(_context);
     public IRepository<RefreshToken> RefreshTokens => _refreshTokens ??= new Repository<RefreshToken>(_context);
+    public IRepository<OrganizationPaymentMethod> PaymentMethods => _paymentMethods ??= new Repository<OrganizationPaymentMethod>(_context);
     public EscaleDbContext Context => _context;
 
     public async Task<int> SaveChangesAsync() => await _context.SaveChangesAsync();

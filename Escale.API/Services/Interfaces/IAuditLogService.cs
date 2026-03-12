@@ -5,4 +5,5 @@ namespace Escale.API.Services.Interfaces;
 public interface IAuditLogService
 {
     Task<PagedAuditLogResponseDto> GetAuditLogsAsync(Guid organizationId, AuditLogQueryDto query);
+    Task PurgeOldLogsAsync(CancellationToken cancellationToken = default);
 }

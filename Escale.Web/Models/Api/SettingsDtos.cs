@@ -44,3 +44,18 @@ public class EbmStatusDto
     public string Status { get; set; } = string.Empty;
     public bool IsConfigured { get; set; }
 }
+
+public class PaymentMethodSettingDto
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public bool IsEnabled { get; set; }
+    public int SortOrder { get; set; }
+}
+
+public class UpdatePaymentMethodDto
+{
+    public bool IsEnabled { get; set; }
+    public string? DisplayName { get; set; }
+}

@@ -25,7 +25,7 @@ namespace Escale.Web.Models
 
         public decimal? EBMSupplyPrice { get; set; }
 
-        public bool IsEBMRegistered => !string.IsNullOrEmpty(EBMProductId) || !string.IsNullOrEmpty(EBMVariantId) || EBMSupplyPrice.HasValue;
+        public bool IsEBMRegistered { get; set; }
 
         public DateTime CreatedAt { get; set; }
 

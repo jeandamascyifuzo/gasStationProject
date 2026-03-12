@@ -137,6 +137,7 @@
                                 <th>Station</th>
                                 <th>Fuel Type</th>
                                 <th>Current Level</th>
+                                <th>EBM Stock</th>
                                 <th>Capacity</th>
                                 <th>Stock %</th>
                                 <th>Reorder Level</th>
@@ -157,6 +158,16 @@
                                         </span>
                                     </td>
                                     <td><strong>@item.CurrentLevel.ToString("N0")L</strong></td>
+                                    <td>
+                                        @if (item.EBMStock.HasValue)
+                                        {
+                                            <span class="fw-semibold">@item.EBMStock.Value.ToString("N0")L</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">N/A</span>
+                                        }
+                                    </td>
                                     <td>@item.Capacity.ToString("N0")L</td>
                                     <td>
                                         <div class="progress" style="height: 25px;">
@@ -390,7 +401,7 @@
             stockTable.column(0).search(this.value).draw();
         });
         $('#stockFuelFilter').on('change', function() {
-            stockTable.column(1).search(this.value).draw();
+            stockTable.column(1).search(this.value).draw(); // col 1 = Fuel Type (EBM Stock is col 3)
         });
 
         // Refill filters

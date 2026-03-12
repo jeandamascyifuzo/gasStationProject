@@ -1,5 +1,6 @@
 using Escale.API.DTOs.Common;
 using Escale.API.DTOs.Settings;
+using Escale.API.Domain.Entities;
 using Escale.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +9,7 @@ namespace Escale.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin,SuperAdmin")]
+[Authorize]
 public class SettingsController : ControllerBase
 {
     private readonly ISettingsService _settingsService;
@@ -23,6 +24,7 @@ public class SettingsController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<ActionResult<ApiResponse<AppSettingsResponseDto>>> GetSettings()
     {
         var result = await _settingsService.GetSettingsAsync();
@@ -30,6 +32,7 @@ public class SettingsController : ControllerBase
     }
 
     [HttpPut]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<ActionResult<ApiResponse<AppSettingsResponseDto>>> UpdateSettings([FromBody] UpdateSettingsRequestDto request)
     {
         var result = await _settingsService.UpdateSettingsAsync(request);
@@ -37,6 +40,7 @@ public class SettingsController : ControllerBase
     }
 
     [HttpGet("ebm/status")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<ActionResult<ApiResponse<EbmStatusDto>>> GetEbmStatus()
     {
         var result = await _settingsService.GetEbmStatusAsync();
@@ -44,6 +48,7 @@ public class SettingsController : ControllerBase
     }
 
     [HttpPost("ebm/sync")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<ActionResult<ApiResponse<EbmStatusDto>>> SyncEbm()
     {
         var result = await _settingsService.SyncEbmAsync();
@@ -51,6 +56,7 @@ public class SettingsController : ControllerBase
     }
 
     [HttpGet("ebm/config")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<ActionResult<ApiResponse<EbmConfigResponseDto>>> GetEbmConfig()
     {
         var result = await _settingsService.GetEbmConfigAsync();
@@ -58,6 +64,7 @@ public class SettingsController : ControllerBase
     }
 
     [HttpPost("ebm/test")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<ActionResult<ApiResponse<bool>>> TestEbmConnection()
     {
         var result = await _settingsService.TestEbmConnectionAsync();
@@ -88,6 +95,21 @@ public class SettingsController : ControllerBase
         using var stream = file.OpenReadStream();
         var logoUrl = await _organizationService.UploadLogoAsync(orgId.Value, stream, file.FileName);
         return Ok(ApiResponse<string>.SuccessResponse(logoUrl, "Logo uploaded successfully"));
+    }
+
+    [HttpGet("payment-methods")]
+    public async Task<ActionResult<ApiResponse<List<PaymentMethodSettingDto>>>> GetPaymentMethods()
+    {
+        var result = await _settingsService.GetPaymentMethodsAsync();
+        return Ok(ApiResponse<List<PaymentMethodSettingDto>>.SuccessResponse(result));
+    }
+
+    [HttpPut("payment-methods/{id}")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<ActionResult<ApiResponse<PaymentMethodSettingDto>>> UpdatePaymentMethod(Guid id, [FromBody] UpdatePaymentMethodDto request)
+    {
+        var result = await _settingsService.UpdatePaymentMethodAsync(id, request);
+        return Ok(ApiResponse<PaymentMethodSettingDto>.SuccessResponse(result, "Payment method updated"));
     }
 
     [HttpGet("logo")]

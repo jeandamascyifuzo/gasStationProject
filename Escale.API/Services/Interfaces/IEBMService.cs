@@ -11,4 +11,5 @@ public interface IEBMService
     Task<bool> TestConnectionAsync(Guid orgId);
     Task<EBMCreateProductResult> CreateProductAsync(Guid orgId, string productName, decimal retailPrice, decimal supplyPrice);
     Task<bool> DeleteProductAsync(Guid orgId, string productId);
+    Task<EBMCheckStockResult> CheckStockAsync(Guid orgId, string variantId);
 }

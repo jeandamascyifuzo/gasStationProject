@@ -22,6 +22,8 @@ namespace Escale.Web.Models
         public DateTime? NextDeliveryDate { get; set; }
 
         public string Status { get; set; } = "Normal";
+
+        public decimal? EBMStock { get; set; }
     }
 
     public class RefillRecord

@@ -65,13 +65,16 @@ public class EBMService : IEBMService
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var receiptCode = TryExtractReceiptCode(responseBody);
-                    _logger.LogInformation("EBM sale receipt sent successfully for org {OrgId}, receipt: {Code} (attempt {Attempt})",
-                        orgId, receiptCode, attempt);
+                    var extracted = TryExtractSellResult(responseBody);
+                    _logger.LogInformation("EBM sale receipt sent successfully for org {OrgId}, invoiceLink: {Link}, sdcId: {SdcId}, receiptNumber: {RcptNo} (attempt {Attempt})",
+                        orgId, extracted.InvoiceLink, extracted.SdcId, extracted.EBMReceiptNumber, attempt);
                     return new EBMSellResult
                     {
                         Success = true,
-                        ReceiptCode = receiptCode,
+                        ReceiptCode = extracted.InvoiceLink,
+                        InvoiceLink = extracted.InvoiceLink,
+                        SdcId = extracted.SdcId,
+                        EBMReceiptNumber = extracted.EBMReceiptNumber,
                         RawResponse = responseBody
                     };
                 }
@@ -457,35 +460,100 @@ public class EBMService : IEBMService
         return false;
     }
 
-    private static string? TryExtractReceiptCode(string responseBody)
+    public async Task<EBMCheckStockResult> CheckStockAsync(Guid orgId, string variantId)
+    {
+        try
+        {
+            var settings = await GetSettings(orgId);
+            if (settings == null || !settings.EBMEnabled || string.IsNullOrEmpty(settings.EBMServerUrl))
+                return new EBMCheckStockResult { Success = false, ErrorMessage = "EBM not configured" };
+
+            var client = _httpClientFactory.CreateClient("EBM");
+            var payload = new { variantId };
+            var json = JsonSerializer.Serialize(payload, _jsonOptions);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var url = $"{settings.EBMServerUrl.TrimEnd('/')}/products/check-stock";
+
+            var response = await client.PostAsync(url, content);
+            var responseBody = await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
+            {
+                var stock = TryExtractStockLevel(responseBody);
+                _logger.LogInformation("EBM check-stock for variant {VariantId}: {Stock}", variantId, stock);
+                return new EBMCheckStockResult { Success = true, Stock = stock };
+            }
+
+            _logger.LogWarning("EBM check-stock failed for variant {VariantId}: {StatusCode} - {Body}",
+                variantId, response.StatusCode, responseBody);
+            return new EBMCheckStockResult { Success = false, ErrorMessage = responseBody };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "EBM check-stock exception for variant {VariantId}", variantId);
+            return new EBMCheckStockResult { Success = false, ErrorMessage = ex.Message };
+        }
+    }
+
+    private static decimal? TryExtractStockLevel(string responseBody)
     {
         try
         {
             using var doc = JsonDocument.Parse(responseBody);
+            var root = doc.RootElement;
 
-            // YegoBox returns {"previewUrl":"https://.../receipts/preview/<receipt-id>"}
-            // Return the full URL so cashiers can view/print the EBM receipt
-            if (doc.RootElement.TryGetProperty("previewUrl", out var previewUrl))
+            // Try common YegoBox stock field names
+            foreach (var field in new[] { "rsdQty", "stock", "quantity", "currentStock", "qty", "available" })
             {
-                var url = previewUrl.GetString();
-                if (!string.IsNullOrEmpty(url))
-                    return url;
+                if (root.TryGetProperty(field, out var val) && val.TryGetDecimal(out var d))
+                    return d;
             }
 
-            // Fallback: try other common response formats
-            if (doc.RootElement.TryGetProperty("receiptCode", out var code))
-                return code.GetString();
-            if (doc.RootElement.TryGetProperty("receipt_code", out var code2))
-                return code2.GetString();
-            if (doc.RootElement.TryGetProperty("data", out var data))
+            // Wrapped in "data"
+            if (root.TryGetProperty("data", out var data))
             {
-                if (data.TryGetProperty("receiptCode", out var nestedCode))
-                    return nestedCode.GetString();
-                if (data.TryGetProperty("rcpt_no", out var rcptNo))
-                    return rcptNo.ToString();
+                foreach (var field in new[] { "rsdQty", "stock", "quantity", "currentStock", "qty", "available" })
+                {
+                    if (data.TryGetProperty(field, out var val) && val.TryGetDecimal(out var d))
+                        return d;
+                }
             }
         }
         catch { }
         return null;
+    }
+
+    private static (string? InvoiceLink, string? SdcId, string? EBMReceiptNumber) TryExtractSellResult(string responseBody)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(responseBody);
+            var root = doc.RootElement;
+
+            string? invoiceLink = null;
+            string? sdcId = null;
+            string? receiptNumber = null;
+
+            // YegoBox API returns: { "invoiceLink": "...", "sdcId": "...", "receiptNumber": "..." }
+            if (root.TryGetProperty("invoiceLink", out var il)) invoiceLink = il.GetString();
+            if (root.TryGetProperty("sdcId", out var sdc)) sdcId = sdc.GetString();
+            if (root.TryGetProperty("receiptNumber", out var rn)) receiptNumber = rn.GetString();
+
+            // Fallback: older previewUrl format
+            if (invoiceLink == null && root.TryGetProperty("previewUrl", out var previewUrl))
+                invoiceLink = previewUrl.GetString();
+
+            // Fallback: data-wrapped responses
+            if (root.TryGetProperty("data", out var data))
+            {
+                if (invoiceLink == null && data.TryGetProperty("invoiceLink", out var dil)) invoiceLink = dil.GetString();
+                if (sdcId == null && data.TryGetProperty("sdcId", out var dsdc)) sdcId = dsdc.GetString();
+                if (receiptNumber == null && data.TryGetProperty("receiptNumber", out var drn)) receiptNumber = drn.GetString();
+            }
+
+            return (invoiceLink, sdcId, receiptNumber);
+        }
+        catch { }
+        return (null, null, null);
     }
 }

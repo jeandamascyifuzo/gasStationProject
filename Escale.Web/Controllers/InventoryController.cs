@@ -48,7 +48,8 @@ namespace Escale.Web.Controllers
                 PercentageFull = i.PercentageFull,
                 LastRefill = i.LastRefill,
                 NextDeliveryDate = i.NextDeliveryDate,
-                Status = i.Status
+                Status = i.Status,
+                EBMStock = i.EBMStock
             }).ToList() ?? new();
 
             var model = new InventoryViewModel

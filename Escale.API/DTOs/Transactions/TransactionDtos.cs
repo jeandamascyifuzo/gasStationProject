@@ -17,6 +17,8 @@ public class TransactionResponseDto
     public string? CustomerTIN { get; set; }
     public bool EBMSent { get; set; }
     public string? EBMReceiptUrl { get; set; }
+    public string? EBMSdcId { get; set; }
+    public string? EBMReceiptNumber { get; set; }
     public DateTime? EBMSentAt { get; set; }
     public string? EBMErrorMessage { get; set; }
     public string CashierName { get; set; } = string.Empty;

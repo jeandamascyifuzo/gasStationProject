@@ -4,6 +4,7 @@ using Escale.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Escale.API.Migrations
 {
     [DbContext(typeof(EscaleDbContext))]
-    partial class EscaleDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260311175939_AddEBMSdcIdAndReceiptNumber")]
+    partial class AddEBMSdcIdAndReceiptNumber
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -436,54 +439,6 @@ namespace Escale.API.Migrations
                         .HasFilter("[Slug] IS NOT NULL");
 
                     b.ToTable("Organizations", (string)null);
-                });
-
-            modelBuilder.Entity("Escale.API.Domain.Entities.OrganizationPaymentMethod", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DisplayName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrganizationId");
-
-                    b.ToTable("OrganizationPaymentMethods");
                 });
 
             modelBuilder.Entity("Escale.API.Domain.Entities.OrganizationSettings", b =>
@@ -1222,17 +1177,6 @@ namespace Escale.API.Migrations
                     b.Navigation("Organization");
 
                     b.Navigation("Station");
-                });
-
-            modelBuilder.Entity("Escale.API.Domain.Entities.OrganizationPaymentMethod", b =>
-                {
-                    b.HasOne("Escale.API.Domain.Entities.Organization", "Organization")
-                        .WithMany()
-                        .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("Escale.API.Domain.Entities.OrganizationSettings", b =>

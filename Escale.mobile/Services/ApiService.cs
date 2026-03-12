@@ -100,6 +100,18 @@ public class RecentTransactionResponse
 }
 
 /// <summary>
+/// Payment method option returned by GET /api/settings/payment-methods.
+/// </summary>
+public class PaymentMethodOption
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;        // API value: "Cash", "MobileMoney", etc.
+    public string DisplayName { get; set; } = string.Empty; // UI label: "Mobile Money", etc.
+    public bool IsEnabled { get; set; }
+    public int SortOrder { get; set; }
+}
+
+/// <summary>
 /// Fuel type response matching API's FuelTypeResponseDto.
 /// </summary>
 public class FuelTypeResponse
@@ -428,6 +440,34 @@ public class ApiService
             return _cachedFuelTypes ?? new List<FuelTypeOption>();
         }
     }
+
+    // ==================== PAYMENT METHODS ====================
+
+    public async Task<List<PaymentMethodOption>> GetEnabledPaymentMethodsAsync()
+    {
+        try
+        {
+            var response = await _httpClient.GetFromJsonAsync<ApiResponse<List<PaymentMethodOption>>>(
+                $"{_baseUrl}/settings/payment-methods");
+
+            return response?.Data?.Where(p => p.IsEnabled).OrderBy(p => p.SortOrder).ToList()
+                ?? GetDefaultPaymentMethods();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error fetching payment methods: {ex.Message}");
+            return GetDefaultPaymentMethods();
+        }
+    }
+
+    private static List<PaymentMethodOption> GetDefaultPaymentMethods() =>
+        new()
+        {
+            new() { Name = "Cash",        DisplayName = "Cash",          SortOrder = 1 },
+            new() { Name = "MobileMoney", DisplayName = "Mobile Money",  SortOrder = 2 },
+            new() { Name = "Card",        DisplayName = "Card",          SortOrder = 3 },
+            new() { Name = "Credit",      DisplayName = "Credit",        SortOrder = 4 },
+        };
 
     // ==================== SALES ====================
 

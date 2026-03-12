@@ -23,7 +23,10 @@ namespace Escale.Web.Controllers
                 Name = f.Name,
                 PricePerLiter = f.PricePerLiter,
                 IsActive = f.IsActive,
+                EBMProductId = f.EBMProductId,
+                EBMVariantId = f.EBMVariantId,
                 EBMSupplyPrice = f.EBMSupplyPrice,
+                IsEBMRegistered = f.EBMRegistered,
                 CreatedAt = f.CreatedAt
             }).ToList() ?? new();
 
@@ -41,8 +44,18 @@ namespace Escale.Web.Controllers
             };
 
             var result = await _fuelTypeService.CreateAsync(request);
-            TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
-                result.Success ? "Fuel type created successfully!" : result.Message;
+
+            if (result.Success)
+            {
+                var ebmStatus = result.Data?.EBMRegistered == true
+                    ? " and registered in EBM successfully."
+                    : " (EBM not enabled — not registered in EBM).";
+                TempData["SuccessMessage"] = $"Fuel type \"{name}\" created{ebmStatus}";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = result.Message;
+            }
 
             return RedirectToAction("Index");
         }

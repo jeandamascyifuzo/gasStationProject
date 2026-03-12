@@ -9,7 +9,10 @@ public class FuelTypeResponseDto
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
     public DateTime CreatedAt { get; set; }
+    public string? EBMProductId { get; set; }
+    public string? EBMVariantId { get; set; }
     public decimal? EBMSupplyPrice { get; set; }
+    public bool EBMRegistered { get; set; }
 }
 
 public class CreateFuelTypeRequestDto
