@@ -6,7 +6,7 @@ using Escale.mobile.Models;
 namespace Escale.mobile.Services;
 
 /// <summary>
-/// Generic API response wrapper matching the API's ApiResponse<T> format.
+/// Generic API response wrapper matching the API's <see cref="ApiResponse{T}"/> format.
 /// </summary>
 public class ApiResponse<T>
 {
@@ -246,7 +246,7 @@ public class ClockResponse
 }
 
 /// <summary>
-/// Paged result matching API's PagedResult<T>.
+/// Paged result matching the API's <see cref="PagedResult{T}"/>.
 /// </summary>
 public class PagedResult<T>
 {

@@ -255,6 +255,7 @@
                                     </Border.Shadow>
                                     <Border.GestureRecognizers>
                                         <TapGestureRecognizer
+                                            x:DataType="vm:DashboardViewModel"
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type vm:DashboardViewModel}}, Path=ViewReceiptCommand}"
                                             CommandParameter="{Binding .}"/>
                                     </Border.GestureRecognizers>

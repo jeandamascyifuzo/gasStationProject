@@ -77,7 +77,7 @@ public partial class ChangePasswordViewModel : ObservableObject
 
                 if (Application.Current != null)
                 {
-                    Application.Current.MainPage = new NavigationPage(
+                    Application.Current.Windows[0].Page = new NavigationPage(
                         MauiProgram.Services.GetRequiredService<Views.LoginPage>());
                 }
             }

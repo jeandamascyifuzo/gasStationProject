@@ -79,11 +79,11 @@ public partial class LoginViewModel : ObservableObject
                 if (response.User.Role == "Cashier")
                 {
                     AppState.Instance.SetStation(response.User.AssignedStations[0]);
-                    Application.Current!.MainPage = App.GetOrCreateShell();
+                    Application.Current!.Windows[0].Page = App.GetOrCreateShell();
                 }
                 else
                 {
-                    Application.Current!.MainPage = App.GetOrCreateShell();
+                    Application.Current!.Windows[0].Page = App.GetOrCreateShell();
                     await Shell.Current.GoToAsync("///StationSelection");
                 }
             }

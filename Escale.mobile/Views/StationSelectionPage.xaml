@@ -33,6 +33,7 @@
                                 Margin="0,0,0,15">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer
+                                    x:DataType="vm:StationSelectionViewModel"
                                     Command="{Binding Source={RelativeSource AncestorType={x:Type vm:StationSelectionViewModel}}, Path=SelectStationCommand}"
                                     CommandParameter="{Binding .}"/>
                             </Border.GestureRecognizers>

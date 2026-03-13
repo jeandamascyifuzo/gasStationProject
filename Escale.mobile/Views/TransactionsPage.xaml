@@ -111,6 +111,7 @@
                                     </Border.Shadow>
                                     <Border.GestureRecognizers>
                                         <TapGestureRecognizer
+                                            x:DataType="vm:TransactionsViewModel"
                                             Command="{Binding Source={RelativeSource AncestorType={x:Type vm:TransactionsViewModel}}, Path=ViewDetailsCommand}"
                                             CommandParameter="{Binding .}"/>
                                     </Border.GestureRecognizers>

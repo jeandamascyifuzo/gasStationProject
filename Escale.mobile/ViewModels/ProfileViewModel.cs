@@ -272,7 +272,7 @@ public partial class ProfileViewModel : ObservableObject
                 await _signalRService.DisconnectAsync();
                 AppState.Instance.Logout();
 
-                Application.Current!.MainPage = new NavigationPage(
+                Application.Current!.Windows[0].Page = new NavigationPage(
                     MauiProgram.Services.GetRequiredService<LoginPage>());
             }
         }
