@@ -67,9 +67,11 @@ public class SaleService : ISaleService
             Console.WriteLine($"[Sale Timing] Fuel type lookup: {stepWatch.ElapsedMilliseconds}ms");
             stepWatch.Restart();
 
-            // Calculate amounts (price per liter is tax-inclusive)
-            var total = request.Liters * request.PricePerLiter;
-            var vatAmount = Math.Round(total * BusinessRules.VATRate, 2);
+            // Use the cashier-entered amount as total when provided — avoids rounding drift from liters
+            var total = request.AmountRWF.HasValue && request.AmountRWF.Value > 0
+                ? request.AmountRWF.Value
+                : request.Liters * request.PricePerLiter;
+            var vatAmount = Math.Round(total * (18m / 118m), 0);
             var subtotal = total - vatAmount;
 
             // Generate receipt number
@@ -354,6 +356,9 @@ public class SaleService : ISaleService
 
         if (lower.Contains("timeout") || lower.Contains("timed out"))
             return "EBM server is not responding. Please try again in a few moments.";
+
+        if (lower.Contains("rra") || lower.Contains("failed to call"))
+            return "EBM receipt could not be submitted — the RRA tax server is temporarily unreachable. Please try again in a few moments.";
 
         if (lower.Contains("connection") || lower.Contains("network"))
             return "Cannot connect to EBM server. Please check your internet connection and try again.";

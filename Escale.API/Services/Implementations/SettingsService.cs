@@ -198,6 +198,8 @@ public class SettingsService : ISettingsService
             Name = method.Name, IsEnabled = request.IsEnabled, DisplayName = method.DisplayName
         });
 
+        _ = _notificationService.NotifyDataChangedAsync(orgId, NotificationConstants.SettingsChanged);
+
         return new PaymentMethodSettingDto
         {
             Id = method.Id,

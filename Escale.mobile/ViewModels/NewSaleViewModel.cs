@@ -12,8 +12,6 @@ public partial class NewSaleViewModel : ObservableObject
     private readonly SignalRService _signalRService;
     private Action<string>? _dataChangedHandler;
     private bool _isUpdating;
-    private bool _fuelTypesLoaded;
-    private bool _paymentMethodsLoaded;
 
     [ObservableProperty]
     private ObservableCollection<FuelTypeOption> fuelTypes = new();
@@ -51,9 +49,12 @@ public partial class NewSaleViewModel : ObservableObject
         {
             if (changeType == NotificationConstants.FuelTypesChanged)
             {
-                _fuelTypesLoaded = false;
                 _apiService.InvalidateFuelTypesCache();
                 MainThread.BeginInvokeOnMainThread(async () => await InitializeAsync());
+            }
+            else if (changeType == NotificationConstants.SettingsChanged)
+            {
+                MainThread.BeginInvokeOnMainThread(async () => await LoadPaymentMethodsAsync());
             }
         };
         _signalRService.OnDataChanged += _dataChangedHandler;
@@ -78,14 +79,7 @@ public partial class NewSaleViewModel : ObservableObject
         AppState.Instance.StartNewSale();
         ResetForm();
 
-        // Load payment methods and fuel types if not yet loaded
-        var tasks = new List<Task>();
-        if (!_paymentMethodsLoaded)
-            tasks.Add(LoadPaymentMethodsAsync());
-        if (!_fuelTypesLoaded)
-            tasks.Add(LoadFuelTypesAsync());
-        if (tasks.Count > 0)
-            await Task.WhenAll(tasks);
+        await Task.WhenAll(LoadPaymentMethodsAsync(), LoadFuelTypesAsync());
     }
 
     private void ResetForm()
@@ -181,8 +175,6 @@ public partial class NewSaleViewModel : ObservableObject
             foreach (var m in methods)
                 PaymentMethods.Add(m);
 
-            _paymentMethodsLoaded = PaymentMethods.Count > 0;
-
             // Select Cash by default, or the first available method
             SelectedPaymentMethodOption = PaymentMethods.FirstOrDefault(p => p.Name == "Cash")
                 ?? PaymentMethods.FirstOrDefault();
@@ -206,7 +198,6 @@ public partial class NewSaleViewModel : ObservableObject
                 FuelTypes.Add(type);
             }
 
-            _fuelTypesLoaded = types.Count > 0;
         }
         catch (Exception ex)
         {

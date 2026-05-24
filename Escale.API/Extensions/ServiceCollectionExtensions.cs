@@ -81,9 +81,19 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISubscriptionService, SubscriptionService>();
 
         // EBM Service + HttpClient (no Polly — custom retry in EBMService handles invoice duplicates)
-        services.AddHttpClient("EBM", client =>
+        services.AddHttpClient("EBM", (sp, client) =>
         {
             client.Timeout = TimeSpan.FromSeconds(120);
+            var config = sp.GetRequiredService<IConfiguration>();
+            var username = config["EBMSettings:Username"];
+            var password = config["EBMSettings:Password"];
+            if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
+            {
+                var credentials = Convert.ToBase64String(
+                    System.Text.Encoding.UTF8.GetBytes($"{username}:{password}"));
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
+            }
         });
 
         services.AddScoped<IEBMService, EBMService>();

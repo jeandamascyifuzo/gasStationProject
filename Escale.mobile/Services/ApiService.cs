@@ -26,6 +26,7 @@ public class CreateSaleRequest
     public Guid? FuelTypeId { get; set; }
     public decimal Liters { get; set; }
     public decimal PricePerLiter { get; set; }
+    public decimal? AmountRWF { get; set; }
     public string PaymentMethod { get; set; } = string.Empty;
     public SaleCustomerRequest? Customer { get; set; }
     public Guid? SubscriptionId { get; set; }
@@ -482,6 +483,7 @@ public class ApiService
                 FuelTypeId = sale.FuelTypeId,
                 Liters = sale.Liters ?? 0,
                 PricePerLiter = sale.PricePerLiter,
+                AmountRWF = sale.AmountRWF,
                 PaymentMethod = sale.PaymentMethod,
                 SubscriptionId = sale.SubscriptionId,
                 Customer = sale.Customer != null ? new SaleCustomerRequest

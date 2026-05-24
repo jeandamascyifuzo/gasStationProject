@@ -11,7 +11,7 @@ public class SaleModel
     public string PaymentMethod { get; set; } = string.Empty;
     public CustomerInfo? Customer { get; set; }
     public string StationName { get; set; } = string.Empty;
-    public decimal Total => (Liters ?? 0) * PricePerLiter;
+    public decimal Total => AmountRWF ?? (Liters ?? 0) * PricePerLiter;
     public decimal VAT => Math.Round(Total * (18m / 118m), 0);
     public decimal Subtotal => Total - VAT;
     public DateTime TransactionDate { get; set; } = DateTime.Now;

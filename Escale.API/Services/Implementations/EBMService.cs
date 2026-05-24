@@ -54,6 +54,9 @@ public class EBMService : IEBMService
             var json = JsonSerializer.Serialize(payload, _jsonOptions);
             var url = $"{settings.EBMServerUrl.TrimEnd('/')}/receipts/sell";
 
+            var authHeader = client.DefaultRequestHeaders.Authorization;
+            _logger.LogInformation("EBM Auth header: {Scheme} {Parameter}", authHeader?.Scheme, authHeader?.Parameter);
+
             _logger.LogInformation("EBM sell receipt request for org {OrgId}: {Payload}", orgId, json);
 
             // Retry loop for "Invoice number already exists" (YegoBox bug — resultCd 924)

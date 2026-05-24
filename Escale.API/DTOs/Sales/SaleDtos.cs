@@ -7,6 +7,7 @@ public class CreateSaleRequestDto
     public Guid? FuelTypeId { get; set; }
     public decimal Liters { get; set; }
     public decimal PricePerLiter { get; set; }
+    public decimal? AmountRWF { get; set; }
     public string PaymentMethod { get; set; } = string.Empty;
     public SaleCustomerDto? Customer { get; set; }
     public Guid? SubscriptionId { get; set; }
