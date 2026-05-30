@@ -43,6 +43,7 @@ namespace Escale.Web.Models
     public class StationStock
     {
         public Guid InventoryItemId { get; set; }
+        public Guid FuelTypeId { get; set; }
         public string FuelType { get; set; } = string.Empty;
         public decimal CurrentLevel { get; set; }
         public decimal Capacity { get; set; }
@@ -50,6 +51,7 @@ namespace Escale.Web.Models
         public DateTime? LastRefill { get; set; }
         public decimal PercentageFull { get; set; }
         public bool IsLowStock => PercentageFull < 25;
+        public decimal? SupplyPrice { get; set; }
     }
 
     public class StationStats

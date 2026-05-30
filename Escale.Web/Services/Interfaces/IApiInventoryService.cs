@@ -8,4 +8,5 @@ public interface IApiInventoryService
     Task<ApiResponse<List<RefillRecordResponseDto>>> GetRefillsAsync(int count = 10);
     Task<ApiResponse<RefillRecordResponseDto>> CreateRefillAsync(CreateRefillRequestDto request);
     Task<ApiResponse> UpdateReorderLevelAsync(UpdateReorderLevelRequestDto request);
+    Task<ApiResponse> AdjustEBMStockAsync(AdjustEBMStockDto request);
 }

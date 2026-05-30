@@ -32,6 +32,14 @@ public class StockController : ControllerBase
         await _stockService.RecordRefillAsync(request.StationId, request.FuelType, request.Quantity, request.UnitCost, request.SupplierName, request.InvoiceNumber, request.RefillDate);
         return Ok(ApiResponse.SuccessResponse("Refill recorded"));
     }
+
+    [HttpPost("adjust-ebm")]
+    [Authorize(Roles = "Admin,Manager,Inventory")]
+    public async Task<ActionResult<ApiResponse>> AdjustEBMStock([FromBody] AdjustEBMStockRequest request)
+    {
+        await _stockService.AdjustEBMStockAsync(request.InventoryItemId, request.TargetStock);
+        return Ok(ApiResponse.SuccessResponse("EBM stock adjusted successfully"));
+    }
 }
 
 public class StockRefillRequest

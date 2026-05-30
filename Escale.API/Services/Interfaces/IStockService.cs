@@ -6,4 +6,5 @@ public interface IStockService
 {
     Task<List<StockLevelDto>> GetStockLevelsAsync(Guid? stationId = null);
     Task RecordRefillAsync(Guid stationId, string fuelType, decimal quantity, decimal unitCost, string? supplierName, string? invoiceNumber, DateTime refillDate);
+    Task AdjustEBMStockAsync(Guid inventoryItemId, decimal targetStock);
 }

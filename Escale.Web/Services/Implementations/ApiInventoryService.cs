@@ -21,4 +21,7 @@ public class ApiInventoryService : BaseApiService, IApiInventoryService
 
     public async Task<ApiResponse> UpdateReorderLevelAsync(UpdateReorderLevelRequestDto request)
         => await PutAsync("/api/inventory/reorder-level", request);
+
+    public async Task<ApiResponse> AdjustEBMStockAsync(AdjustEBMStockDto request)
+        => await PostAsync("/api/stock/adjust-ebm", request);
 }

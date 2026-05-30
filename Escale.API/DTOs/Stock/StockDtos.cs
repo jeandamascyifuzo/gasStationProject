@@ -1,5 +1,11 @@
 namespace Escale.API.DTOs.Stock;
 
+public class AdjustEBMStockRequest
+{
+    public Guid InventoryItemId { get; set; }
+    public decimal TargetStock { get; set; }
+}
+
 public class StockLevelDto
 {
     public Guid Id { get; set; }

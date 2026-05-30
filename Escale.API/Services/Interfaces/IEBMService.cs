@@ -12,4 +12,5 @@ public interface IEBMService
     Task<EBMCreateProductResult> CreateProductAsync(Guid orgId, string productName, decimal retailPrice, decimal supplyPrice);
     Task<bool> DeleteProductAsync(Guid orgId, string productId);
     Task<EBMCheckStockResult> CheckStockAsync(Guid orgId, string variantId);
+    Task<EBMAdjustStockResult> SetAbsoluteStockAsync(Guid orgId, string stockId, decimal targetStock);
 }

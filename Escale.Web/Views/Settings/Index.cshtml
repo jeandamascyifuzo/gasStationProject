@@ -279,31 +279,24 @@
                     @if (Model.EBMEnabled)
                     {
                         <!-- EBM Configuration (Read-Only) -->
-                        <h6 class="mb-3 text-muted"><i class="fas fa-lock me-1"></i>Configuration (managed by SuperAdmin)</h6>
+                        <h6 class="mb-3 text-muted"><i class="fas fa-lock me-1"></i>Configuration</h6>
 
                         <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Server URL</label>
-                                <input type="text" class="form-control" value="@(Model.EBMServerUrl ?? "Not set")" readonly disabled />
-                            </div>
                             <div class="col-md-6">
                                 <label class="form-label">Company Name</label>
                                 <input type="text" class="form-control" value="@(Model.EBMCompanyName ?? "Not set")" readonly disabled />
                             </div>
-                        </div>
-
-                        <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Company TIN</label>
                                 <input type="text" class="form-control" value="@(Model.EBMCompanyTIN ?? "Not set")" readonly disabled />
                             </div>
+                        </div>
+
+                        <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Company Phone</label>
                                 <input type="text" class="form-control" value="@(Model.EBMCompanyPhone ?? "Not set")" readonly disabled />
                             </div>
-                        </div>
-
-                        <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Company Address</label>
                                 <input type="text" class="form-control" value="@(Model.EBMCompanyAddress ?? "Not set")" readonly disabled />
@@ -313,14 +306,14 @@
                         <div class="alert alert-info mt-3">
                             <i class="fas fa-info-circle me-2"></i>
                             EBM integration sends transaction data to the Rwanda Revenue Authority for tax compliance.
-                            All sales will automatically generate EBM receipts. Contact your SuperAdmin to modify EBM settings.
+                            All sales will automatically generate EBM receipts. Contact Supprot Team to modify EBM settings.
                         </div>
                     }
                     else
                     {
                         <div class="alert alert-warning mt-3">
                             <i class="fas fa-exclamation-triangle me-2"></i>
-                            EBM is not enabled for your organization. Contact your SuperAdmin to configure EBM integration.
+                            EBM is not enabled for your organization. Contact Supprot Team to configure EBM integration.
                         </div>
                     }
                 </div>

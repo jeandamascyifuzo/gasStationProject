@@ -76,7 +76,8 @@ namespace Escale.Web.Controllers
                 FuelTypes = fuelTypes.Data?.Select(f => new FuelType
                 {
                     Id = f.Id,
-                    Name = f.Name
+                    Name = f.Name,
+                    EBMSupplyPrice = f.EBMSupplyPrice
                 }).ToList() ?? new(),
                 Stats = new InventoryStats
                 {
@@ -110,6 +111,13 @@ namespace Escale.Web.Controllers
                 result.Success ? "Refill recorded successfully!" : result.Message;
 
             return RedirectToAction("Index");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AdjustEBMStock([FromBody] AdjustEBMStockDto request)
+        {
+            var result = await _inventoryService.AdjustEBMStockAsync(request);
+            return Json(new { success = result.Success, message = result.Message });
         }
 
         [HttpPost]

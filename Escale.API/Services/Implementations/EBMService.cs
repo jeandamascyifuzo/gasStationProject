@@ -441,6 +441,37 @@ public class EBMService : IEBMService
             .FirstOrDefaultAsync(s => s.OrganizationId == orgId);
     }
 
+    private static string ParseEBMAdjustError(string? responseBody, decimal targetStock)
+    {
+        if (string.IsNullOrEmpty(responseBody))
+            return "EBM stock adjustment failed. Please try again.";
+
+        try
+        {
+            using var doc = JsonDocument.Parse(responseBody);
+            var root = doc.RootElement;
+
+            string? resultMsg = null;
+            if (root.TryGetProperty("resultMsg", out var msg))
+                resultMsg = msg.GetString();
+
+            if (!string.IsNullOrEmpty(resultMsg))
+            {
+                var lower = resultMsg.ToLower();
+                if (lower.Contains("cannot be lower than existing stock level"))
+                {
+                    var existing = TryParseExistingStockLevel(responseBody);
+                    return existing.HasValue
+                        ? $"Cannot set EBM stock to {targetStock:N0} L — EBM currently has {existing.Value:N0} L and does not allow reducing stock. Set a value higher than {existing.Value:N0} L."
+                        : $"Cannot reduce EBM stock. EBM does not allow setting a level lower than its current stock.";
+                }
+            }
+        }
+        catch { }
+
+        return "EBM stock adjustment failed. Please try again or contact support.";
+    }
+
     private static bool IsInvoiceDuplicateError(string responseBody)
     {
         if (string.IsNullOrEmpty(responseBody)) return false;
@@ -461,6 +492,35 @@ public class EBMService : IEBMService
         }
         catch { }
         return false;
+    }
+
+    public async Task<EBMAdjustStockResult> SetAbsoluteStockAsync(Guid orgId, string stockId, decimal targetStock)
+    {
+        try
+        {
+            var settings = await GetSettings(orgId);
+            if (settings == null || !settings.EBMEnabled || string.IsNullOrEmpty(settings.EBMServerUrl))
+                return new EBMAdjustStockResult { Success = false, ErrorMessage = "EBM not configured" };
+
+            var client = _httpClientFactory.CreateClient("EBM");
+            var url = $"{settings.EBMServerUrl.TrimEnd('/')}/products/update-stock";
+
+            var result = await SendStockUpdate(client, url, stockId, targetStock);
+
+            if (result.Success)
+            {
+                _logger.LogInformation("EBM stock adjusted for org {OrgId}, stock {StockId} → {Target}", orgId, stockId, targetStock);
+                return new EBMAdjustStockResult { Success = true };
+            }
+
+            _logger.LogWarning("EBM stock adjustment failed for org {OrgId}: {StatusCode} - {Body}", orgId, result.StatusCode, result.ResponseBody);
+            return new EBMAdjustStockResult { Success = false, ErrorMessage = ParseEBMAdjustError(result.ResponseBody, targetStock) };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "EBM stock adjustment exception for org {OrgId}", orgId);
+            return new EBMAdjustStockResult { Success = false, ErrorMessage = ex.Message };
+        }
     }
 
     public async Task<EBMCheckStockResult> CheckStockAsync(Guid orgId, string variantId)

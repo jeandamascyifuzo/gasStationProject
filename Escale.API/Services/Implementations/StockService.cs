@@ -25,6 +25,25 @@ public class StockService : IStockService
         _logger = logger;
     }
 
+    public async Task AdjustEBMStockAsync(Guid inventoryItemId, decimal targetStock)
+    {
+        var orgId = _currentUser.OrganizationId!.Value;
+
+        var item = await _unitOfWork.InventoryItems.Query()
+            .Include(i => i.FuelType)
+            .FirstOrDefaultAsync(i => i.Id == inventoryItemId && i.OrganizationId == orgId)
+            ?? throw new KeyNotFoundException("Inventory item not found");
+
+        if (string.IsNullOrEmpty(item.EBMStockId))
+            throw new InvalidOperationException(
+                $"'{item.FuelType.Name}' has no EBM Stock ID. Delete and re-create the fuel type to register it with EBM.");
+
+        var result = await _ebmService.SetAbsoluteStockAsync(orgId, item.EBMStockId, targetStock);
+
+        if (!result.Success)
+            throw new InvalidOperationException(result.ErrorMessage ?? "EBM stock adjustment failed.");
+    }
+
     public async Task<List<StockLevelDto>> GetStockLevelsAsync(Guid? stationId = null)
     {
         var orgId = _currentUser.OrganizationId!.Value;

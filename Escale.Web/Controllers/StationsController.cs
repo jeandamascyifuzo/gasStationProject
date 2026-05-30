@@ -12,17 +12,20 @@ namespace Escale.Web.Controllers
         private readonly IApiUserService _userService;
         private readonly IApiInventoryService _inventoryService;
         private readonly IApiReportService _reportService;
+        private readonly IApiFuelTypeService _fuelTypeService;
 
         public StationsController(
             IApiStationService stationService,
             IApiUserService userService,
             IApiInventoryService inventoryService,
-            IApiReportService reportService)
+            IApiReportService reportService,
+            IApiFuelTypeService fuelTypeService)
         {
             _stationService = stationService;
             _userService = userService;
             _inventoryService = inventoryService;
             _reportService = reportService;
+            _fuelTypeService = fuelTypeService;
         }
 
         public async Task<IActionResult> Index()
@@ -94,12 +97,14 @@ namespace Escale.Web.Controllers
             var stationTask = _stationService.GetByIdAsync(id);
             var inventoryTask = _inventoryService.GetAllAsync(id);
             var usersTask = _userService.GetAllAsync(1, 100);
+            var fuelTypesTask = _fuelTypeService.GetAllAsync();
 
-            await Task.WhenAll(stationTask, inventoryTask, usersTask);
+            await Task.WhenAll(stationTask, inventoryTask, usersTask, fuelTypesTask);
 
             var stationResult = stationTask.Result;
             var inventoryResult = inventoryTask.Result;
             var usersResult = usersTask.Result;
+            var fuelTypes = fuelTypesTask.Result.Data ?? new();
 
             if (!stationResult.Success || stationResult.Data == null)
             {
@@ -124,12 +129,14 @@ namespace Escale.Web.Controllers
             var stock = inventoryResult.Data?.Select(i => new StationStock
             {
                 InventoryItemId = i.Id,
+                FuelTypeId = i.FuelTypeId,
                 FuelType = i.FuelType,
                 CurrentLevel = i.CurrentLevel,
                 Capacity = i.Capacity,
                 ReorderLevel = i.ReorderLevel,
                 LastRefill = i.LastRefill,
-                PercentageFull = i.PercentageFull
+                PercentageFull = i.PercentageFull,
+                SupplyPrice = fuelTypes.FirstOrDefault(f => f.Id == i.FuelTypeId)?.EBMSupplyPrice
             }).ToList() ?? new();
 
             var employees = usersResult.Data?.Items?

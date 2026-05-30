@@ -270,7 +270,7 @@
                     @if (isAdmin)
                     {
                         <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#refillModal">
-                            <i class="fas fa-plus me-2"></i>Record Refill
+                            <i class="fas fa-plus me-2"></i>Add Stock
                         </button>
                     }
                 </div>
@@ -381,7 +381,7 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Record Fuel Refill - @Model.Station.Name</h5>
+                    <h5 class="modal-title">Add Stock - @Model.Station.Name</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form asp-controller="Inventory" asp-action="RecordRefill" method="post" data-loading-form>
@@ -393,7 +393,7 @@
                                     <option value="">Select Fuel Tank</option>
                                     @foreach (var stock in Model.Stock)
                                     {
-                                        <option value="@stock.InventoryItemId">@stock.FuelType (@stock.CurrentLevel.ToString("N0")L / @stock.Capacity.ToString("N0")L)</option>
+                                        <option value="@stock.InventoryItemId" data-supply-price="@(stock.SupplyPrice?.ToString() ?? "")">@stock.FuelType (@stock.CurrentLevel.ToString("N0")L / @stock.Capacity.ToString("N0")L)</option>
                                     }
                                 </select>
                             </div>
@@ -426,7 +426,7 @@
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                         <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-2"></i>Record Refill
+                            <i class="fas fa-save me-2"></i>Add Stock
                         </button>
                     </div>
                 </form>
@@ -439,6 +439,15 @@
 <script>
     $(document).ready(function() {
         $('#refillDate').val(new Date().toISOString().slice(0, 16));
+
+        $('#inventoryItemId').on('change', function () {
+            var price = $(this).find(':selected').data('supply-price');
+            if (price) {
+                $('#refillUnitCost').val(price);
+            } else {
+                $('#refillUnitCost').val('');
+            }
+        });
 
         var today = new Date().toISOString().slice(0, 10);
         $('#salesStartDate').val(today);

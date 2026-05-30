@@ -46,3 +46,9 @@ public class UpdateReorderLevelRequestDto
     public Guid Id { get; set; }
     public decimal ReorderLevel { get; set; }
 }
+
+public class AdjustEBMStockDto
+{
+    public Guid InventoryItemId { get; set; }
+    public decimal TargetStock { get; set; }
+}

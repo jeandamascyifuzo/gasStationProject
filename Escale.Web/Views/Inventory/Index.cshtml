@@ -3,6 +3,7 @@
     ViewData["Title"] = "Inventory";
     var userRole = Context.Session.GetString("UserRole");
     var isAdmin = userRole == "Admin";
+    var canAdjustEBM = userRole == "Admin" || userRole == "Inventory";
 }
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-4 page-header">
@@ -11,11 +12,11 @@
         <p class="text-muted mb-0">Monitor fuel stock levels and manage refills across all stations.</p>
     </div>
     <div class="btn-toolbar mb-2 mb-md-0 gap-2">
-        <button type="button" class="btn btn-success" id="exportBtn" onclick="exportInventory()">
+        <button type="button" class="btn btn-success" id="exportBtn" onclick="exportCurrentTab()">
             <i class="fas fa-file-excel me-2"></i>Export CSV
         </button>
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#refillModal">
-            <i class="fas fa-plus me-2"></i>Record Refill
+            <i class="fas fa-plus me-2"></i>Add Stock
         </button>
     </div>
 </div>
@@ -108,7 +109,7 @@
         <div class="card shadow mb-4 border-top-0 rounded-top-0">
             <div class="card-body">
                 <div class="row mb-3 align-items-center">
-                    <div class="col-md-3">
+                    <div class="col-md-6">
                         <select id="stockStationFilter" class="form-select form-select-sm">
                             <option value="">All Stations</option>
                             @foreach (var station in Model.Stations)
@@ -117,7 +118,7 @@
                             }
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-6">
                         <select id="stockFuelFilter" class="form-select form-select-sm">
                             <option value="">All Fuel Types</option>
                             @foreach (var fuel in Model.FuelTypes)
@@ -125,9 +126,6 @@
                                 <option value="@fuel.Name">@fuel.Name</option>
                             }
                         </select>
-                    </div>
-                    <div class="col-md-6 text-end">
-                        <div id="stockExportBtns" class="d-inline-flex gap-1"></div>
                     </div>
                 </div>
                 <div class="table-responsive">
@@ -189,6 +187,12 @@
                                         <button class="btn btn-sm btn-primary" onclick="openReorderModal('@item.Id', '@item.StationName - @item.FuelType', @item.ReorderLevel)" title="Set Reorder Level">
                                             <i class="fas fa-edit"></i>
                                         </button>
+                                        @if (canAdjustEBM)
+                                        {
+                                        <button class="btn btn-sm btn-warning ms-1" onclick="openAdjustEBMModal('@item.Id', '@item.StationName - @item.FuelType', @item.CurrentLevel, @(item.EBMStock.HasValue ? item.EBMStock.Value.ToString() : "null"))" title="Adjust EBM Stock">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                        }
                                     </td>
                                 </tr>
                             }
@@ -204,7 +208,7 @@
         <div class="card shadow mb-4 border-top-0 rounded-top-0">
             <div class="card-body">
                 <div class="row mb-3 align-items-center">
-                    <div class="col-md-3">
+                    <div class="col-md-6">
                         <select id="refillStationFilter" class="form-select form-select-sm">
                             <option value="">All Stations</option>
                             @foreach (var station in Model.Stations)
@@ -213,7 +217,7 @@
                             }
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-6">
                         <select id="refillFuelFilter" class="form-select form-select-sm">
                             <option value="">All Fuel Types</option>
                             @foreach (var fuel in Model.FuelTypes)
@@ -221,9 +225,6 @@
                                 <option value="@fuel.Name">@fuel.Name</option>
                             }
                         </select>
-                    </div>
-                    <div class="col-md-6 text-end">
-                        <div id="refillExportBtns" class="d-inline-flex gap-1"></div>
                     </div>
                 </div>
                 <div class="table-responsive">
@@ -279,7 +280,7 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="refillModalLabel">Record Fuel Refill</h5>
+                <h5 class="modal-title" id="refillModalLabel">Add Stock</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="refillForm" asp-controller="Inventory" asp-action="RecordRefill" method="post" data-loading-form>
@@ -291,7 +292,7 @@
                                 <option value="">Select Inventory Item</option>
                                 @foreach (var item in Model.InventoryItems)
                                 {
-                                    <option value="@item.Id">@item.StationName - @item.FuelType (@item.CurrentLevel.ToString("N0")L / @item.Capacity.ToString("N0")L)</option>
+                                    <option value="@item.Id" data-fuel-type-id="@item.FuelTypeId">@item.StationName - @item.FuelType (@item.CurrentLevel.ToString("N0")L / @item.Capacity.ToString("N0")L)</option>
                                 }
                             </select>
                         </div>
@@ -331,10 +332,51 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-2"></i>Record Refill
+                        <i class="fas fa-save me-2"></i>Add Stock
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Adjust EBM Stock Modal -->
+<div class="modal fade" id="adjustEBMModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-sync-alt me-2"></i>Adjust EBM Stock</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3" id="adjustEBMItemName"></p>
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div class="card bg-light text-center py-2">
+                            <div class="text-xs text-muted text-uppercase">Local Stock</div>
+                            <div class="fw-bold text-primary" id="adjustEBMLocalStock">--</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card bg-light text-center py-2">
+                            <div class="text-xs text-muted text-uppercase">EBM Stock</div>
+                            <div class="fw-bold text-warning" id="adjustEBMCurrentStock">--</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="adjustEBMTargetStock" class="form-label">Set EBM Stock To (Liters) <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="adjustEBMTargetStock" step="0.01" min="0" required />
+                    <div class="form-text">This sets the absolute stock level in EBM. EBM does not allow reducing below its current level.</div>
+                </div>
+                <div id="adjustEBMError" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" id="adjustEBMConfirmBtn" onclick="submitAdjustEBMStock()">
+                    <i class="fas fa-sync-alt me-2"></i>Adjust EBM Stock
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -369,32 +411,29 @@
 
 @section Scripts {
 <script>
+    var stockTable, refillTable, activeTab = 'stock';
+
     $(document).ready(function() {
-        var stockTable = $('#inventoryTable').DataTable({
+        stockTable = $('#inventoryTable').DataTable({
             pageLength: 10,
             order: [[6, 'desc']],
             searching: true,
             dom: 'lrtip',
             buttons: [
-                { extend: 'excel', text: '<i class="fas fa-file-excel me-1"></i>Excel', className: 'btn btn-sm btn-success' },
-                { extend: 'csv', text: '<i class="fas fa-file-csv me-1"></i>CSV', className: 'btn btn-sm btn-info' },
-                { extend: 'pdf', text: '<i class="fas fa-file-pdf me-1"></i>PDF', className: 'btn btn-sm btn-danger' }
+                { extend: 'csv', text: 'CSV', className: 'btn btn-sm btn-info',
+                  filename: function() { return 'stock_levels_' + new Date().toISOString().slice(0, 10); } }
             ]
         });
-        stockTable.buttons().container().appendTo('#stockExportBtns');
-
-        var refillTable = $('#refillsTable').DataTable({
+        refillTable = $('#refillsTable').DataTable({
             pageLength: 10,
             order: [[0, 'desc']],
             searching: true,
             dom: 'lrtip',
             buttons: [
-                { extend: 'excel', text: '<i class="fas fa-file-excel me-1"></i>Excel', className: 'btn btn-sm btn-success' },
-                { extend: 'csv', text: '<i class="fas fa-file-csv me-1"></i>CSV', className: 'btn btn-sm btn-info' },
-                { extend: 'pdf', text: '<i class="fas fa-file-pdf me-1"></i>PDF', className: 'btn btn-sm btn-danger' }
+                { extend: 'csv', text: 'CSV', className: 'btn btn-sm btn-info',
+                  filename: function() { return 'refills_' + new Date().toISOString().slice(0, 10); } }
             ]
         });
-        refillTable.buttons().container().appendTo('#refillExportBtns');
 
         // Stock filters
         $('#stockStationFilter').on('change', function() {
@@ -412,12 +451,36 @@
             refillTable.column(2).search(this.value).draw();
         });
 
-        // Recalculate DataTable columns when switching tabs
+        // Track active tab and recalculate DataTable columns on switch
         $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function(e) {
+            activeTab = $(e.target).attr('href').replace('#', '');
             $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
         });
 
         $('#refillDate').val(new Date().toISOString().slice(0, 16));
+
+    // Supply price lookup: fuelTypeId -> EBMSupplyPrice
+    var supplyPriceMap = {
+        @foreach (var ft in Model.FuelTypes)
+        {
+            if (ft.EBMSupplyPrice.HasValue)
+            {
+                <text>"@ft.Id": @ft.EBMSupplyPrice.Value,</text>
+            }
+        }
+    };
+
+    $('#inventoryItemId').on('change', function () {
+        var fuelTypeId = $(this).find(':selected').data('fuel-type-id');
+        var price = supplyPriceMap[fuelTypeId];
+        if (price != null) {
+            $('#unitCost').val(price);
+            calculateTotalCost();
+        } else {
+            $('#unitCost').val('');
+            $('#totalCostDisplay').val('');
+        }
+    });
     });
 
     function calculateTotalCost() {
@@ -429,6 +492,52 @@
 
     $('#quantity').on('change keyup', calculateTotalCost);
 
+    var _adjustEBMItemId = null;
+
+    function openAdjustEBMModal(id, name, localStock, ebmStock) {
+        _adjustEBMItemId = id;
+        $('#adjustEBMItemName').text(name);
+        $('#adjustEBMLocalStock').text(Number(localStock).toLocaleString() + ' L');
+        $('#adjustEBMCurrentStock').text(ebmStock != null ? Number(ebmStock).toLocaleString() + ' L' : 'Unknown');
+        $('#adjustEBMTargetStock').val(localStock);
+        $('#adjustEBMError').addClass('d-none').text('');
+        $('#adjustEBMConfirmBtn').prop('disabled', false);
+        new bootstrap.Modal(document.getElementById('adjustEBMModal')).show();
+    }
+
+    async function submitAdjustEBMStock() {
+        var target = parseFloat($('#adjustEBMTargetStock').val());
+        if (isNaN(target) || target < 0) {
+            $('#adjustEBMError').removeClass('d-none').text('Please enter a valid stock level.');
+            return;
+        }
+
+        var btn = document.getElementById('adjustEBMConfirmBtn');
+        startLoading(btn, 'Adjusting...');
+        $('#adjustEBMError').addClass('d-none');
+
+        try {
+            var response = await fetch('@Url.Action("AdjustEBMStock", "Inventory")', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ inventoryItemId: _adjustEBMItemId, targetStock: target })
+            });
+            var result = await response.json();
+
+            if (result.success) {
+                bootstrap.Modal.getInstance(document.getElementById('adjustEBMModal')).hide();
+                showToast('EBM stock adjusted successfully', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                $('#adjustEBMError').removeClass('d-none').text(result.message || 'Adjustment failed.');
+            }
+        } catch {
+            $('#adjustEBMError').removeClass('d-none').text('Request failed. Please try again.');
+        } finally {
+            stopLoading(btn);
+        }
+    }
+
     function openReorderModal(id, name, currentLevel) {
         $('#reorderItemId').val(id);
         $('#reorderItemName').text(name);
@@ -436,9 +545,12 @@
         $('#reorderModal').modal('show');
     }
 
-    function exportInventory() {
-        var url = '@Url.Action("ExportReport", "Reports")' + '?reportType=Inventory';
-        exportCsv(url, document.getElementById('exportBtn'), 'inventory_report.csv');
+    function exportCurrentTab() {
+        if (activeTab === 'stock') {
+            stockTable.buttons('.buttons-csv').trigger();
+        } else {
+            refillTable.buttons('.buttons-csv').trigger();
+        }
     }
 </script>
 }
