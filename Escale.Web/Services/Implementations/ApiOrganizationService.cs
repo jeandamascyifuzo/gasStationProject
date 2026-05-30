@@ -25,6 +25,9 @@ public class ApiOrganizationService : BaseApiService, IApiOrganizationService
     public async Task<ApiResponse> RestoreAsync(Guid id)
         => await PostAsync($"/api/superadmin/organizations/{id}/restore", new { });
 
+    public async Task<ApiResponse> HardDeleteAsync(Guid id)
+        => await base.DeleteAsync($"/api/superadmin/organizations/{id}/permanent");
+
     public async Task<ApiResponse<List<StationResponseDto>>> GetStationsAsync(Guid orgId)
         => await GetAsync<List<StationResponseDto>>($"/api/superadmin/organizations/{orgId}/stations");
 

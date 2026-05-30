@@ -37,7 +37,9 @@ public class OrganizationsController : Controller
             DeletedAt = o.DeletedAt,
             CreatedAt = o.CreatedAt,
             StationCount = o.StationCount,
-            UserCount = o.UserCount
+            UserCount = o.UserCount,
+            AdminName = o.AdminName,
+            StationNames = o.StationNames
         }).ToList() ?? new();
 
         var filtered = filter switch
@@ -211,6 +213,16 @@ public class OrganizationsController : Controller
             result.Success ? "Organization restored successfully!" : result.Message;
 
         return RedirectToAction("Index");
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> HardDelete(Guid id)
+    {
+        var result = await _organizationService.HardDeleteAsync(id);
+        TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] =
+            result.Success ? "Organization permanently deleted." : result.Message;
+
+        return RedirectToAction("Index", new { filter = "deleted" });
     }
 
     [HttpPost]

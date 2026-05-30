@@ -69,10 +69,11 @@
             <table id="orgsTable" class="table table-bordered table-hover">
                 <thead>
                     <tr>
+                        <th>Date</th>
                         <th>Name</th>
+                        <th>Stations</th>
                         <th>TIN</th>
                         <th>Address</th>
-                        <th>Stations</th>
                         <th>Users</th>
                         <th>Status</th>
                         <th>Actions</th>
@@ -82,21 +83,42 @@
                     @foreach (var org in Model.Organizations)
                     {
                         <tr class="@(org.IsDeleted ? "table-secondary" : "")">
+                            <td><small class="text-muted">@org.CreatedAt.ToString("yyyy-MM-dd HH:mm")</small></td>
                             <td>
                                 <strong>@org.Name</strong>
                                 <br /><small class="text-muted">@org.Slug</small>
                             </td>
+                            <td>
+                                @if (org.StationNames.Any())
+                                {
+                                    foreach (var s in org.StationNames)
+                                    {
+                                        <div><i class="fas fa-gas-pump me-1 text-info"></i><small>@s</small></div>
+                                    }
+                                }
+                                else
+                                {
+                                    <small class="text-muted">No stations</small>
+                                }
+                            </td>
                             <td>@org.TIN</td>
                             <td>@org.Address</td>
-                            <td><span class="badge bg-info">@org.StationCount</span></td>
-                            <td><span class="badge bg-secondary">@org.UserCount</span></td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(org.AdminName))
+                                {
+                                    <span>@org.AdminName</span>
+                                }
+                                else
+                                {
+                                    <small class="text-muted">No admin</small>
+                                }
+                            </td>
                             <td>
                                 @if (org.IsDeleted)
                                 {
-                                    <span class="badge bg-dark">
+                                    <span class="badge bg-danger">
                                         <i class="fas fa-trash-alt me-1"></i>Deleted
                                     </span>
-                                    <br /><small class="text-muted">@org.DeletedAt?.ToString("yyyy-MM-dd HH:mm")</small>
                                 }
                                 else
                                 {
@@ -109,7 +131,10 @@
                                 @if (org.IsDeleted)
                                 {
                                     <button class="btn btn-sm btn-success" onclick="restoreOrg('@org.Id', '@org.Name')" title="Restore">
-                                        <i class="fas fa-undo"></i> Restore
+                                        <i class="fas fa-undo"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger ms-1" onclick="hardDeleteOrg('@org.Id', '@org.Name')" title="Delete Forever">
+                                        <i class="fas fa-skull-crossbones"></i>
                                     </button>
                                 }
                                 else
@@ -230,12 +255,38 @@
     </div>
 </div>
 
+<!-- Hard Delete Organization Confirm Modal -->
+<div class="modal fade" id="hardDeleteOrgModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h6 class="modal-title fw-bold"><i class="fas fa-skull-crossbones me-2"></i>Delete Forever</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <i class="fas fa-exclamation-triangle fa-3x mb-3 text-warning"></i>
+                <p id="hardDeleteOrgMessage"></p>
+                <p class="text-danger fw-bold small mb-0">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <form id="hardDeleteOrgForm" asp-controller="Organizations" asp-action="HardDelete" method="post">
+                    <input type="hidden" name="id" id="hardDeleteOrgId" />
+                    <button type="submit" class="btn btn-sm btn-danger" id="hardDeleteOrgBtn">
+                        <i class="fas fa-skull-crossbones me-1"></i>Delete Forever
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
     $(document).ready(function () {
         $('#orgsTable').DataTable({
             pageLength: 10,
-            order: [[0, 'asc']]
+            order: [[0, 'desc']]
         });
     });
 
@@ -288,6 +339,12 @@
         pendingRestoreOrgId = id;
         $('#restoreOrgMessage').html('Are you sure you want to restore <strong>' + name + '</strong>?<br><small class="text-muted">The organization will be reactivated.</small>');
         new bootstrap.Modal(document.getElementById('restoreOrgModal')).show();
+    }
+
+    function hardDeleteOrg(id, name) {
+        $('#hardDeleteOrgId').val(id);
+        $('#hardDeleteOrgMessage').html('Permanently delete <strong>' + name + '</strong>?<br><small class="text-muted">All data for this organization will be erased from the database.</small>');
+        new bootstrap.Modal(document.getElementById('hardDeleteOrgModal')).show();
     }
 
     function submitRestoreOrg() {

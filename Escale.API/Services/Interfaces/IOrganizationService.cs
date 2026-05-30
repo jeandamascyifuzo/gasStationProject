@@ -14,6 +14,7 @@ public interface IOrganizationService
     Task<OrganizationResponseDto> UpdateOrganizationAsync(Guid id, UpdateOrganizationRequestDto request);
     Task DeleteOrganizationAsync(Guid id);
     Task RestoreOrganizationAsync(Guid id);
+    Task HardDeleteOrganizationAsync(Guid id);
     Task<List<StationResponseDto>> GetOrganizationStationsAsync(Guid orgId);
     Task<StationResponseDto> CreateOrganizationStationAsync(Guid orgId, CreateStationRequestDto request);
     Task ToggleOrganizationStationStatusAsync(Guid orgId, Guid stationId);

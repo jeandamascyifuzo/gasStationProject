@@ -61,7 +61,9 @@ public class OrganizationService : IOrganizationService
             CreatedAt = o.CreatedAt,
             LogoUrl = o.LogoUrl,
             StationCount = o.Stations.Count,
-            UserCount = o.Users.Count
+            UserCount = o.Users.Count,
+            AdminName = o.Users.FirstOrDefault(u => u.Role == UserRole.Admin)?.FullName,
+            StationNames = o.Stations.Select(s => s.Name).ToList()
         }).ToList();
     }
 
@@ -185,6 +187,42 @@ public class OrganizationService : IOrganizationService
         org.DeletedAt = DateTime.UtcNow;
         _unitOfWork.Organizations.Update(org);
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task HardDeleteOrganizationAsync(Guid id)
+    {
+        var org = await _unitOfWork.Context.Organizations
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(o => o.Id == id)
+            ?? throw new KeyNotFoundException("Organization not found");
+
+        if (org.Slug == "system")
+            throw new InvalidOperationException("Cannot delete the system organization");
+
+        if (!org.IsDeleted)
+            throw new InvalidOperationException("Organization must be soft-deleted before permanent deletion");
+
+        var ctx = _unitOfWork.Context;
+
+        // Delete in dependency order (children before parents)
+        await ctx.Transactions.IgnoreQueryFilters().Where(t => t.OrganizationId == id).ExecuteDeleteAsync();
+        await ctx.RefillRecords.IgnoreQueryFilters().Where(r => r.InventoryItem.OrganizationId == id).ExecuteDeleteAsync();
+        await ctx.InventoryItems.IgnoreQueryFilters().Where(i => i.OrganizationId == id).ExecuteDeleteAsync();
+        await ctx.Shifts.IgnoreQueryFilters().Where(s => s.OrganizationId == id).ExecuteDeleteAsync();
+        await ctx.UserStations.Where(us => ctx.Stations.IgnoreQueryFilters().Any(s => s.Id == us.StationId && s.OrganizationId == id)).ExecuteDeleteAsync();
+        await ctx.FuelPrices.IgnoreQueryFilters().Where(fp => ctx.FuelTypes.IgnoreQueryFilters().Any(ft => ft.Id == fp.FuelTypeId && ft.OrganizationId == id)).ExecuteDeleteAsync();
+        await ctx.FuelTypes.IgnoreQueryFilters().Where(ft => ft.OrganizationId == id).ExecuteDeleteAsync();
+        await ctx.Subscriptions.IgnoreQueryFilters().Where(s => ctx.Customers.IgnoreQueryFilters().Any(c => c.Id == s.CustomerId && c.OrganizationId == id)).ExecuteDeleteAsync();
+        await ctx.Cars.IgnoreQueryFilters().Where(c => ctx.Customers.IgnoreQueryFilters().Any(cu => cu.Id == c.CustomerId && cu.OrganizationId == id)).ExecuteDeleteAsync();
+        await ctx.Customers.IgnoreQueryFilters().Where(c => c.OrganizationId == id).ExecuteDeleteAsync();
+        await ctx.Stations.IgnoreQueryFilters().Where(s => s.OrganizationId == id).ExecuteDeleteAsync();
+        await ctx.RefreshTokens.Where(rt => ctx.Users.IgnoreQueryFilters().Any(u => u.Id == rt.UserId && u.OrganizationId == id)).ExecuteDeleteAsync();
+        await ctx.Users.IgnoreQueryFilters().Where(u => u.OrganizationId == id).ExecuteDeleteAsync();
+        await ctx.OrganizationSettings.Where(s => s.OrganizationId == id).ExecuteDeleteAsync();
+        await ctx.OrganizationPaymentMethods.Where(p => p.OrganizationId == id).ExecuteDeleteAsync();
+        await ctx.AuditLogs.Where(a => a.OrganizationId == id).ExecuteDeleteAsync();
+
+        await ctx.Organizations.IgnoreQueryFilters().Where(o => o.Id == id).ExecuteDeleteAsync();
     }
 
     public async Task RestoreOrganizationAsync(Guid id)

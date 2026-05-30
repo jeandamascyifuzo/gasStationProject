@@ -10,6 +10,7 @@ public interface IApiOrganizationService
     Task<ApiResponse<OrganizationResponseDto>> UpdateAsync(Guid id, UpdateOrganizationRequestDto request);
     Task<ApiResponse> DeleteAsync(Guid id);
     Task<ApiResponse> RestoreAsync(Guid id);
+    Task<ApiResponse> HardDeleteAsync(Guid id);
     Task<ApiResponse<List<StationResponseDto>>> GetStationsAsync(Guid orgId);
     Task<ApiResponse<StationResponseDto>> CreateStationAsync(Guid orgId, CreateStationRequestDto request);
     Task<ApiResponse> ToggleStationStatusAsync(Guid orgId, Guid stationId);

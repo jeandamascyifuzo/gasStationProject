@@ -69,6 +69,13 @@ public class SuperAdminController : ControllerBase
         return Ok(ApiResponse.SuccessResponse("Organization restored"));
     }
 
+    [HttpDelete("organizations/{id}/permanent")]
+    public async Task<ActionResult<ApiResponse>> HardDeleteOrganization(Guid id)
+    {
+        await _organizationService.HardDeleteOrganizationAsync(id);
+        return Ok(ApiResponse.SuccessResponse("Organization permanently deleted"));
+    }
+
     [HttpGet("organizations/{orgId}/stations")]
     public async Task<ActionResult<ApiResponse<List<StationResponseDto>>>> GetOrganizationStations(Guid orgId)
     {

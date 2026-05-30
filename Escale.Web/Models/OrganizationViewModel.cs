@@ -16,6 +16,8 @@ public class OrganizationListItem
     public DateTime CreatedAt { get; set; }
     public int StationCount { get; set; }
     public int UserCount { get; set; }
+    public string? AdminName { get; set; }
+    public List<string> StationNames { get; set; } = new();
     public string Status => IsDeleted ? "Deleted" : IsActive ? "Active" : "Inactive";
 }
 
