@@ -106,6 +106,7 @@ app.UseStaticFiles(); // Serve uploaded logos from wwwroot/uploads/logos/
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<UserContextMiddleware>();
 app.MapControllers();
 app.MapHub<EscaleHub>("/hubs/escale");
 app.MapGet("/health", () => Results.Ok("ok")).AllowAnonymous();

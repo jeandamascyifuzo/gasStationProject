@@ -42,6 +42,18 @@ public class SaleService : ISaleService
         var orgId = _currentUser.OrganizationId!.Value;
         var userId = _currentUser.UserId!.Value;
 
+        var journey = new SaleJourneyLog
+        {
+            OrganizationId = orgId,
+            StationId = request.StationId,
+            CashierId = userId,
+            CashierName = _currentUser.Username ?? "unknown",
+            Liters = request.Liters,
+            PricePerLiter = request.PricePerLiter,
+            PaymentMethod = request.PaymentMethod,
+            Timestamp = DateTime.UtcNow
+        };
+
         // Begin explicit DB transaction — everything commits or rolls back together
         await using var dbTransaction = await _unitOfWork.Context.Database.BeginTransactionAsync();
 
@@ -62,9 +74,15 @@ public class SaleService : ISaleService
                     .FirstOrDefaultAsync(f => f.Name == request.FuelType && f.OrganizationId == orgId);
             }
             if (fuelType == null)
+            {
+                journey.FailureStep = "FuelType";
+                journey.FailureReason = "Invalid fuel type";
+                journey.FuelTypeLookupMs = stepWatch.ElapsedMilliseconds;
                 throw new ArgumentException("Invalid fuel type");
+            }
 
-            Console.WriteLine($"[Sale Timing] Fuel type lookup: {stepWatch.ElapsedMilliseconds}ms");
+            journey.FuelType = fuelType.Name;
+            journey.FuelTypeLookupMs = stepWatch.ElapsedMilliseconds;
             stepWatch.Restart();
 
             // Use the cashier-entered amount as total when provided — avoids rounding drift from liters
@@ -97,7 +115,9 @@ public class SaleService : ISaleService
             string? customerPhone = request.Customer?.PhoneNumber;
             string? customerTIN = request.Customer?.TIN;
 
-            Console.WriteLine($"[Sale Timing] Shift lookup: {stepWatch.ElapsedMilliseconds}ms");
+            journey.HasCustomer = request.Customer != null;
+            journey.IsSubscriptionSale = paymentMethod == PaymentMethod.Credit;
+
             stepWatch.Restart();
 
             if (paymentMethod == PaymentMethod.Credit)
@@ -107,7 +127,13 @@ public class SaleService : ISaleService
                     throw new ArgumentException("SubscriptionId is required for Credit payment");
 
                 if (request.Customer?.Id == null || request.Customer.Id == Guid.Empty)
+                {
+                    journey.SubscriptionRequired = true;
+                    journey.SubscriptionValid = false;
+                    journey.SubscriptionFailReason = "Customer is required for Credit payment";
+                    journey.SubscriptionCheckMs = stepWatch.ElapsedMilliseconds;
                     throw new ArgumentException("Customer is required for Credit payment");
+                }
 
                 // Verify customer exists and is active
                 var customer = await _unitOfWork.Customers.Query()
@@ -115,10 +141,22 @@ public class SaleService : ISaleService
                     .FirstOrDefaultAsync(c => c.Id == request.Customer.Id.Value && c.OrganizationId == orgId);
 
                 if (customer == null)
+                {
+                    journey.SubscriptionRequired = true;
+                    journey.SubscriptionValid = false;
+                    journey.SubscriptionFailReason = "Customer not found";
+                    journey.SubscriptionCheckMs = stepWatch.ElapsedMilliseconds;
                     throw new InvalidOperationException("Customer not found");
+                }
 
                 if (!customer.IsActive)
+                {
+                    journey.SubscriptionRequired = true;
+                    journey.SubscriptionValid = false;
+                    journey.SubscriptionFailReason = "Customer account is not active";
+                    journey.SubscriptionCheckMs = stepWatch.ElapsedMilliseconds;
                     throw new InvalidOperationException("Customer account is not active");
+                }
 
                 customerId = customer.Id;
                 customerName = customer.Name;
@@ -132,10 +170,22 @@ public class SaleService : ISaleService
                                            && s.Status == SubscriptionStatus.Active);
 
                 if (subscription == null)
+                {
+                    journey.SubscriptionRequired = true;
+                    journey.SubscriptionValid = false;
+                    journey.SubscriptionFailReason = "No active subscription found";
+                    journey.SubscriptionCheckMs = stepWatch.ElapsedMilliseconds;
                     throw new InvalidOperationException("No active subscription found");
+                }
 
                 if (subscription.CustomerId != customer.Id)
+                {
+                    journey.SubscriptionRequired = true;
+                    journey.SubscriptionValid = false;
+                    journey.SubscriptionFailReason = "Subscription does not belong to this customer";
+                    journey.SubscriptionCheckMs = stepWatch.ElapsedMilliseconds;
                     throw new InvalidOperationException("Subscription does not belong to this customer");
+                }
 
                 // Check expiry
                 if (subscription.ExpiryDate.HasValue && subscription.ExpiryDate.Value < DateTime.UtcNow)
@@ -144,13 +194,23 @@ public class SaleService : ISaleService
                     _unitOfWork.Subscriptions.Update(subscription);
                     await _unitOfWork.SaveChangesAsync();
                     await dbTransaction.CommitAsync();
+                    journey.SubscriptionRequired = true;
+                    journey.SubscriptionValid = false;
+                    journey.SubscriptionFailReason = "Subscription has expired";
+                    journey.SubscriptionCheckMs = stepWatch.ElapsedMilliseconds;
                     throw new InvalidOperationException("Subscription has expired");
                 }
 
                 // Check balance
                 if (subscription.RemainingBalance < total)
+                {
+                    journey.SubscriptionRequired = true;
+                    journey.SubscriptionValid = false;
+                    journey.SubscriptionFailReason = $"Insufficient balance: {subscription.RemainingBalance:N0} RWF available, {total:N0} RWF required";
+                    journey.SubscriptionCheckMs = stepWatch.ElapsedMilliseconds;
                     throw new InvalidOperationException(
                         $"Insufficient subscription balance. Available: {subscription.RemainingBalance:N0} RWF, Required: {total:N0} RWF");
+                }
 
                 // Deduct from subscription balance
                 subscription.RemainingBalance -= total;
@@ -160,9 +220,11 @@ public class SaleService : ISaleService
                 subscriptionId = subscription.Id;
                 subscriptionDeduction = total;
                 remainingBalanceAfter = subscription.RemainingBalance;
+                journey.SubscriptionRequired = true;
+                journey.SubscriptionValid = true;
             }
 
-            Console.WriteLine($"[Sale Timing] Subscription/customer validation: {stepWatch.ElapsedMilliseconds}ms");
+            journey.SubscriptionCheckMs = stepWatch.ElapsedMilliseconds;
             stepWatch.Restart();
 
             // Check org-level EBM settings — cached to avoid DB hit per sale
@@ -173,10 +235,15 @@ public class SaleService : ISaleService
 
             var orgSettings = await GetCachedOrgSettingsAsync(orgId);
 
+            journey.EBMRequired = orgSettings?.EBMEnabled == true;
+
             if (orgSettings?.EBMEnabled == true)
             {
                 if (string.IsNullOrEmpty(fuelType.EBMVariantId))
                 {
+                    journey.EBMSuccess = false;
+                    journey.EBMError = $"Fuel type '{fuelType.Name}' has no EBM variant configured";
+                    journey.EBMSubmissionMs = stepWatch.ElapsedMilliseconds;
                     throw new InvalidOperationException(
                         $"EBM is required but fuel type '{fuelType.Name}' has no EBM variant configured. Contact admin.");
                 }
@@ -184,19 +251,23 @@ public class SaleService : ISaleService
                 var ebmResult = await _ebmService.SendSaleReceiptAsync(
                     orgId, fuelType.EBMVariantId, request.Liters, customerName, customerPhone, customerTIN);
 
+                journey.EBMSubmissionMs = stepWatch.ElapsedMilliseconds;
+
                 if (!ebmResult.Success)
                 {
+                    journey.EBMSuccess = false;
+                    journey.EBMError = ebmResult.ErrorMessage;
                     var friendlyMessage = ParseEbmError(ebmResult.ErrorMessage, fuelType.Name);
                     throw new InvalidOperationException(friendlyMessage);
                 }
 
+                journey.EBMSuccess = true;
                 ebmSent = true;
                 ebmReceiptUrl = ebmResult.InvoiceLink ?? ebmResult.ReceiptCode;
                 ebmSdcId = ebmResult.SdcId;
                 ebmReceiptNumber = ebmResult.EBMReceiptNumber;
             }
 
-            Console.WriteLine($"[Sale Timing] EBM receipt: {stepWatch.ElapsedMilliseconds}ms");
             stepWatch.Restart();
 
             var transaction = new Transaction
@@ -245,8 +316,15 @@ public class SaleService : ISaleService
             await _unitOfWork.SaveChangesAsync();
             await dbTransaction.CommitAsync();
 
-            Console.WriteLine($"[Sale Timing] DB save + commit: {stepWatch.ElapsedMilliseconds}ms");
-            stepWatch.Restart();
+            journey.DBSaveMs = stepWatch.ElapsedMilliseconds;
+            totalStopwatch.Stop();
+            journey.TotalDurationMs = totalStopwatch.ElapsedMilliseconds;
+            journey.Total = total;
+            journey.ShiftId = activeShift?.Id;
+            journey.Completed = true;
+            journey.TransactionId = transaction.Id;
+            _unitOfWork.Context.SaleJourneyLogs.Add(journey);
+            await _unitOfWork.Context.SaveChangesAsync();
 
             // Fire-and-forget — don't block the sale response for audit or SignalR
             await _audit.LogAsync("Sale", "Transaction", transaction.Id.ToString(), new
@@ -260,7 +338,6 @@ public class SaleService : ISaleService
             _ = _notificationService.NotifyDataChangedAsync(orgId, NotificationConstants.SaleCompleted);
 
             totalStopwatch.Stop();
-            Console.WriteLine($"[Sale Timing] TOTAL: {totalStopwatch.ElapsedMilliseconds}ms");
 
             return new SaleResponseDto
             {
@@ -289,6 +366,19 @@ public class SaleService : ISaleService
         catch (Exception ex)
         {
             await dbTransaction.RollbackAsync();
+
+            totalStopwatch.Stop();
+            journey.Completed = false;
+            journey.TotalDurationMs = totalStopwatch.ElapsedMilliseconds;
+            if (journey.FailureStep == null) journey.FailureStep = "Unknown";
+            if (journey.FailureReason == null) journey.FailureReason = ex.Message;
+            try
+            {
+                _unitOfWork.Context.SaleJourneyLogs.Add(journey);
+                await _unitOfWork.Context.SaveChangesAsync();
+            }
+            catch { /* never let journey logging break the error response */ }
+
             await _audit.LogAsync("SaleFailed", "Transaction", null, new
             {
                 Error = ex.Message, FuelType = request.FuelType, Liters = request.Liters,

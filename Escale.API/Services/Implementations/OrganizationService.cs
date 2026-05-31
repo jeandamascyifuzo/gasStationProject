@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using AutoMapper;
 using Escale.API.Data.Repositories;
 using Escale.API.Domain.Constants;
@@ -22,10 +23,11 @@ public class OrganizationService : IOrganizationService
     private readonly INotificationService _notificationService;
     private readonly ILogger<OrganizationService> _logger;
     private readonly IWebHostEnvironment _env;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public OrganizationService(IUnitOfWork unitOfWork, IMapper mapper,
         IEBMService ebmService, INotificationService notificationService, ILogger<OrganizationService> logger,
-        IWebHostEnvironment env)
+        IWebHostEnvironment env, IHttpContextAccessor httpContextAccessor)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
@@ -33,6 +35,7 @@ public class OrganizationService : IOrganizationService
         _notificationService = notificationService;
         _logger = logger;
         _env = env;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<List<OrganizationResponseDto>> GetAllOrganizationsAsync()
@@ -223,6 +226,27 @@ public class OrganizationService : IOrganizationService
         await ctx.AuditLogs.Where(a => a.OrganizationId == id).ExecuteDeleteAsync();
 
         await ctx.Organizations.IgnoreQueryFilters().Where(o => o.Id == id).ExecuteDeleteAsync();
+
+        var httpContext = _httpContextAccessor.HttpContext;
+        var userId = httpContext?.User?.FindFirst("UserId")?.Value;
+        var userName = httpContext?.User?.FindFirst(ClaimTypes.Name)?.Value;
+        var ipAddress = httpContext?.Connection?.RemoteIpAddress?.ToString();
+
+        _logger.LogWarning("Organization '{OrgName}' (Id={OrgId}) permanently deleted by {UserName} ({UserId})",
+            org.Name, org.Id, userName ?? "unknown", userId ?? "unknown");
+
+        ctx.AuditLogs.Add(new AuditLog
+        {
+            Action = "HardDelete",
+            EntityType = "Organization",
+            EntityId = org.Id.ToString(),
+            Details = $"{{\"Name\":\"{org.Name}\",\"Slug\":\"{org.Slug}\"}}",
+            UserId = Guid.TryParse(userId, out var uid) ? uid : null,
+            UserName = userName,
+            IpAddress = ipAddress,
+            Timestamp = DateTime.UtcNow
+        });
+        await ctx.SaveChangesAsync();
     }
 
     public async Task RestoreOrganizationAsync(Guid id)

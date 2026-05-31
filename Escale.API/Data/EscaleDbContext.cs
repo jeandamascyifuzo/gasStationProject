@@ -31,6 +31,7 @@ public class EscaleDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<OrganizationPaymentMethod> OrganizationPaymentMethods => Set<OrganizationPaymentMethod>();
+    public DbSet<SaleJourneyLog> SaleJourneyLogs => Set<SaleJourneyLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
